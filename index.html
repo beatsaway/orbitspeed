@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Lab</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #e8f4ff;
+            background: radial-gradient(ellipse at 50% 0%, #12345a 0%, #000011 55%);
+        }
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+        h1 { font-size: 1.7rem; color: #6df; font-weight: 700; }
+        .lead { margin: 8px 0 28px; opacity: 0.75; line-height: 1.45; }
+        .cards { display: grid; gap: 14px; }
+        @media (min-width: 640px) { .cards { grid-template-columns: 1fr 1fr; } }
+        a.card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            background: rgba(0, 12, 30, 0.92);
+            border: 1px solid #4af;
+            border-radius: 14px;
+            padding: 20px 18px;
+            box-shadow: 0 0 28px rgba(0, 150, 255, 0.18);
+        }
+        a.card:hover { border-color: #8cf; background: rgba(0, 22, 48, 0.95); }
+        a.card h2 { font-size: 1.15rem; color: #6df; margin: 0; }
+        .tag {
+            display: inline-block;
+            margin-bottom: 10px;
+            font-size: 0.7rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Orbit Lab</h1>
+        <p class="lead">Two pages for circular orbits: a short sandbox, then the mission game.</p>
+        <div class="cards">
+            <a class="card" href="orbit-sandbox.html">
+                <span class="tag">Try the numbers</span>
+                <h2>Orbit sandbox</h2>
+            </a>
+            <a class="card" href="poe-preview.html">
+                <span class="tag">Six missions</span>
+                <h2>Orbit Commander</h2>
+            </a>
+        </div>
+    </main>
+</body>
+</html>

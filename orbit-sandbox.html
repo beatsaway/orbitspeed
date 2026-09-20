@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="x-poe-datastore-behavior" content="local_only">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Sandbox</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+        #ui {
+            position: absolute; top: 10px; left: 12px; background: rgba(0,12,30,0.93);
+            padding: 10px 12px; border-radius: 12px; width: 300px;
+            border: 1px solid #4af; z-index: 10; font-size: 0.88rem;
+            max-height: calc(100vh - 28px); overflow-y: auto;
+        }
+        h1 { font-size: 1.05rem; margin: 0 0 2px; color: #6df; }
+        .sub { font-size: 0.72rem; opacity: 0.65; margin-bottom: 8px; }
+        .stat { margin: 5px 0; padding: 6px 8px; background: #0a1a2a; border-radius: 7px; transition: border-color 0.18s ease, box-shadow 0.18s ease; }
+        .stat.adjust { border: 1px solid #4af; }
+        .stat.source, .stat.driven {
+            border-color: #7ee0ff;
+            box-shadow: 0 0 0 1px #7ee0ff, 0 0 12px rgba(90, 200, 255, 0.4);
+        }
+        .stat.source {
+            box-shadow: 0 0 0 2px #7ee0ff, 0 0 16px rgba(90, 200, 255, 0.55);
+        }
+        .stat.derived {
+            border: 1px solid #f5a623;
+            background: #1a1408;
+            box-shadow: inset 0 0 0 1px rgba(245,166,35,0.25);
+        }
+        .stat.derived.source, .stat.derived.driven {
+            border-color: #7ee0ff;
+            box-shadow: 0 0 0 1px #7ee0ff, 0 0 12px rgba(90, 200, 255, 0.4);
+        }
+        .sym { color: #6df; font-weight: 700; font-style: italic; min-width: 1.8em; display: inline-block; }
+        .stat.derived .sym { color: #f5a623; }
+        .value { color: #0f8; font-weight: bold; }
+        .stat.derived .value { color: #ffc14d; }
+        .stat-hint { font-size: 0.68rem; opacity: 0.6; margin-top: 1px; }
+        .stat.derived .stat-hint { color: #f5a623; opacity: 0.9; }
+        input[type=range] { width: 100%; height: 16px; margin: 4px 0 0; accent-color: #4af; }
+        .stat.derived input[type=range] { display: none; }
+        input[type=text].inline-num {
+            width: 9.5em; margin: 0 4px; padding: 1px 6px;
+            border-radius: 5px; border: 1px solid #4af; background: #061018;
+            color: #0f8; font-weight: 700; font-size: 0.92rem;
+            font-variant-numeric: tabular-nums;
+        }
+        .circ { display: none; }
+        .eqs { display: none; }
+        #eqBar {
+            position: absolute; bottom: 16px; left: 12px; z-index: 10;
+            background: rgba(0,20,40,0.9); padding: 8px 12px; border-radius: 8px; border: 1px solid #4af;
+            font-size: 0.95rem; line-height: 1.45; color: #9cf;
+        }
+        #eqBar div {
+            cursor: pointer;
+            padding: 3px 6px;
+            margin: 0 -6px;
+            border-radius: 6px;
+        }
+        #eqBar div + div { margin-top: 2px; }
+        #eqBar div:hover { background: rgba(80, 180, 255, 0.15); }
+        #vizFormula {
+            position: absolute;
+            left: 50%;
+            top: 38%;
+            transform: translate(-50%, -50%);
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            gap: 0.28em;
+            pointer-events: none;
+            text-shadow: 0 0 24px rgba(0, 80, 160, 0.45);
+            user-select: none;
+        }
+        #vizFormula .viz-eq {
+            color: #9cf;
+            font-weight: 700;
+            font-size: 2.2rem;
+            transition: font-size 0.15s ease, color 0.18s ease;
+        }
+        #vizGM {
+            display: inline-flex;
+            align-items: baseline;
+            line-height: 1;
+        }
+        #vizV, #vizG, #vizM, #vizR {
+            color: #9cf;
+            font-weight: 800;
+            font-style: italic;
+            line-height: 1;
+            transition: font-size 0.15s ease, text-shadow 0.18s ease;
+        }
+        #vizG { font-size: 34px; }
+        #vizV.driven, #vizM.driven, #vizR.driven,
+        #vizV.source, #vizM.source, #vizR.source {
+            text-shadow: 0 0 8px #7ee0ff, 0 0 18px rgba(90, 200, 255, 0.65);
+        }
+        .viz-sqrt-group {
+            display: flex;
+            align-items: stretch;
+            color: #9cf;
+        }
+        #vizRadical {
+            flex: 0 0 auto;
+            width: 32px;
+            overflow: visible;
+            filter: drop-shadow(0 0 10px rgba(100, 200, 255, 0.35));
+        }
+        .viz-radicand {
+            border-top: 6px solid #9cf;
+            padding: 8px 16px 6px 10px;
+            margin-left: -3px;
+            box-shadow: 0 -8px 16px rgba(80, 180, 255, 0.12);
+        }
+        .viz-frac {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+        }
+        #vizBar {
+            display: block;
+            height: 4px;
+            margin: 4px 0;
+            background: #9cf;
+            border-radius: 2px;
+            transition: width 0.15s ease;
+        }
+        #explain {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 20, 0.55);
+            z-index: 90;
+            align-items: center;
+            justify-content: center;
+        }
+        #explain.show { display: flex; }
+        #explain .box {
+            background: #0a1a2a;
+            border: 1px solid #4af;
+            border-radius: 14px;
+            padding: 22px 24px;
+            max-width: 440px;
+            width: 92%;
+            line-height: 1.5;
+            font-size: 1.02rem;
+            white-space: pre-wrap;
+        }
+        #explain h3 { color: #6df; font-size: 1.05rem; margin-bottom: 8px; }
+        #explainOk {
+            width: 100%; margin-top: 16px; padding: 12px;
+            border: none; border-radius: 10px; background: #09f;
+            color: #fff; font-weight: 800; font-size: 1.05rem; cursor: pointer;
+        }
+        #launchBtn, #resetBtn {
+            width: 48%; padding: 9px; margin-top: 10px; font-size: 0.95rem; font-weight: bold;
+            border: none; border-radius: 8px; cursor: pointer; color: white;
+        }
+        #launchBtn { background: linear-gradient(45deg, #09f, #06d); }
+        #resetBtn { background: #444; float: right; }
+        #launchBtn:hover, #resetBtn:hover { filter: brightness(1.15); }
+        #launchBtn:disabled { background: #333; cursor: not-allowed; }
+        #overlay { display: none; }
+        #qCard {
+            position: absolute; top: 10px; right: 12px; width: 300px;
+            background: rgba(0,12,30,0.94); border: 1px solid #4af; border-radius: 12px;
+            padding: 12px 14px; z-index: 12; font-size: 0.92rem; line-height: 1.4;
+        }
+        .qstep { color: #6df; font-size: 0.78rem; margin-bottom: 6px; }
+        .qtext { font-size: 1.02rem; line-height: 1.4; margin-bottom: 12px; }
+        .qbtns { display: flex; gap: 8px; }
+        .qbtns button {
+            flex: 1; padding: 10px; font-size: 1rem; font-weight: 800; border: none;
+            border-radius: 8px; cursor: pointer; color: #fff;
+        }
+        #trueBtn { background: #1a7a4a; }
+        #falseBtn { background: #246; }
+        #trueBtn:hover, #falseBtn:hover { filter: brightness(1.12); }
+        #qAfter { display: none; }
+        #qAfter.show { display: block; }
+        #qAsk.hide { display: none; }
+        #qAfter .verdict { font-weight: 800; margin-bottom: 6px; }
+        #qAfter .verdict.ok { color: #86efac; }
+        #qAfter .verdict.no { color: #ff8a8a; }
+        #nextQ {
+            width: 100%; margin-top: 10px; padding: 10px; border: none; border-radius: 8px;
+            background: #09f; color: #fff; font-weight: 800; cursor: pointer;
+        }
+        .stat.pulse { animation: pulseGlow 0.75s ease 3; }
+        .stat.derived.pulse { animation: pulseAmber 0.75s ease 3; }
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(68,170,255,0); }
+            45% { box-shadow: 0 0 20px 3px rgba(80,200,255,0.75); }
+        }
+        @keyframes pulseAmber {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0); }
+            45% { box-shadow: 0 0 22px 4px rgba(255,193,77,0.85); }
+        }
+        .eqs.pulse-eq, #eqBar.pulse-eq { animation: pulseGlow 0.75s ease 3; }
+    </style>
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+    <div id="ui">
+        <h1>Orbit sandbox</h1>
+        <div class="sub">Change one value. The others update so the satellite stays in orbit. r is locked.</div>
+
+        <div class="stat adjust" id="velStat">
+            <span class="sym">V</span> = <input type="text" inputmode="decimal" class="inline-num" id="velInput" value="7.65"> km/s
+            <input type="range" id="velSlider" min="0.5" max="15" step="0.01" value="7.65">
+            <div class="stat-hint">insertion speed</div>
+        </div>
+        <div class="stat adjust" id="gmStat">
+            <span class="sym">GM</span> = <input type="text" inputmode="decimal" class="inline-num" id="gmInput" value="398600"> km³/s²
+            <input type="range" id="gmSlider" min="20000" max="500000" step="100" value="398600">
+            <div class="stat-hint">central body (G × mass)</div>
+        </div>
+        <div class="stat adjust" id="bodyRStat">
+            <span class="sym">R</span> = <input type="text" inputmode="decimal" class="inline-num" id="bodyRInput" value="6371"> km
+            <input type="range" id="bodyRSlider" min="800" max="8000" step="1" value="6371">
+            <div class="stat-hint">central body radius</div>
+        </div>
+        <div class="stat adjust" id="altStat">
+            <span class="sym">h</span> = <input type="text" inputmode="decimal" class="inline-num" id="altInput" value="440"> km
+            <input type="range" id="altSlider" min="100" max="40000" step="1" value="440">
+            <div class="stat-hint">height above the surface, aka altitude</div>
+        </div>
+        <div class="stat derived" id="rStat">
+            <span class="sym">r</span> = R + h = <span class="value" id="rDisp">6 811</span> km
+            <div class="stat-hint">orbital radius</div>
+        </div>
+
+        <button id="launchBtn">LAUNCH</button>
+        <button id="resetBtn">RESET</button>
+    </div>
+
+    <div id="qCard">
+        <div id="qAsk">
+            <div class="qstep" id="qStep">Question 1 of 5</div>
+            <div class="qtext" id="qText"></div>
+            <div class="qbtns">
+                <button type="button" id="trueBtn">True</button>
+                <button type="button" id="falseBtn">False</button>
+            </div>
+        </div>
+        <div id="qAfter">
+            <div class="verdict" id="verdict"></div>
+            <div id="tryText"></div>
+            <button type="button" id="nextQ">Next question</button>
+        </div>
+    </div>
+
+    <div id="vizFormula" aria-hidden="true">
+        <span id="vizV">V</span>
+        <span class="viz-eq">=</span>
+        <span class="viz-sqrt-group">
+            <svg id="vizRadical" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
+                <polyline
+                    points="1,50 7,50 12,96 23,5"
+                    fill="none"
+                    stroke="#9cf"
+                    stroke-width="4.2"
+                    stroke-linejoin="miter"
+                    stroke-linecap="butt" />
+            </svg>
+            <span class="viz-radicand">
+                <span class="viz-frac">
+                    <span id="vizGM"><span id="vizG">G</span><span id="vizM">M</span></span>
+                    <span id="vizBar"></span>
+                    <span id="vizR">r</span>
+                </span>
+            </span>
+        </span>
+    </div>
+
+    <div id="eqBar">
+        <div id="eqCirc">V = √(GM / r)</div>
+        <div id="eqRad">r = R + h</div>
+    </div>
+
+    <div id="explain">
+        <div class="box">
+            <h3 id="explainTitle"></h3>
+            <div id="explainBody"></div>
+            <button type="button" id="explainOk">Understood</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        const VIS_R = 3;
+        const questions = [
+            {
+                text: 'A satellite at a higher orbit needs a higher velocity to stay in orbit.',
+                answer: false,
+                pulse: ['altStat', 'velStat', 'rStat'],
+                try: 'Try raising h. r gets bigger. Watch the circular speed — it goes down, not up. Higher orbit, slower circular V.'
+            },
+            {
+                text: 'A satellite at a lower orbit needs a lower velocity to stay in orbit.',
+                answer: false,
+                pulse: ['altStat', 'velStat', 'rStat'],
+                try: 'Try lowering h. r gets smaller. The circular speed goes up. Lower orbit, faster circular V.'
+            },
+            {
+                text: "A satellite's mass is considered in the orbital speed formula.",
+                answer: false,
+                pulse: ['eqBar', 'velStat', 'gmStat', 'rStat'],
+                try: 'The speed formula is at the bottom. There is no satellite mass in it. Change V, GM or h — you still will not find a satellite mass to set.'
+            },
+            {
+                text: 'Mass of the central body is considered in the orbital speed formula.',
+                answer: true,
+                pulse: ['gmStat', 'altStat', 'rStat', 'eqBar'],
+                try: 'Raise or lower GM. Height h will change so the same speed still keeps a circular orbit.'
+            },
+            {
+                text: 'The orbital radius of a satellite is the sum of its altitude plus the central body radius.',
+                answer: true,
+                pulse: ['rStat', 'bodyRStat', 'altStat'],
+                try: 'Change h or R. r is locked, so it always follows. That is why it has a different colour.'
+            }
+        ];
+
+        let qIndex = 0;
+        let bodyR = 6371, alt = 440, GM = 398600, visGM = 50;
+        let simulating = false, crashed = false, escaped = false, judged = false;
+        let flightT = 0, rMin = Infinity, rMax = 0, launchR = 3, rVis = VIS_R * (6371 + 440) / 6371;
+        let velocity = new THREE.Vector3();
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000011);
+        const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(0, 4, 10);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(innerWidth, innerHeight);
+        renderer.domElement.style.position = 'absolute';
+        renderer.domElement.style.inset = '0';
+        document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.enableZoom = false;
+        controls.target.set(0, 0, 0);
+        let camDist = camera.position.distanceTo(controls.target);
+
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for (let i = 0; i < 1600; i++) starPos.push((Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500);
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.4 })));
+
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R, 64, 64), new THREE.MeshPhongMaterial({ color: 0x2266aa, emissive: 0x112244 }));
+        scene.add(planet);
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R * 1.06, 32, 32), new THREE.MeshBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.12, side: THREE.BackSide }));
+        scene.add(glow);
+
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x44ffaa, dashSize: 0.4, gapSize: 0.2, transparent: true, opacity: 0.6 }));
+        scene.add(orbitLine);
+
+        const sat = new THREE.Group();
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 12), new THREE.MeshPhongMaterial({ color: 0xd4b24a, emissive: 0x443300 }));
+        sat.add(ball);
+        scene.add(sat);
+
+        const trailMax = 360, trailPos = new Float32Array(trailMax * 3);
+        const trailGeo = new THREE.BufferGeometry();
+        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
+        trailGeo.setDrawRange(0, 0);
+        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.78 }));
+        scene.add(trail);
+        let trailCount = 0;
+        function clearTrail() {
+            trailCount = 0; trailPos.fill(0);
+            trailGeo.setDrawRange(0, 0);
+            trailGeo.attributes.position.needsUpdate = true;
+        }
+        function pushTrail(x, y, z) {
+            if (trailCount < trailMax) {
+                const i = trailCount * 3;
+                trailPos[i] = x; trailPos[i + 1] = y; trailPos[i + 2] = z;
+                trailCount++;
+            } else {
+                trailPos.copyWithin(0, 3);
+                const i = (trailMax - 1) * 3;
+                trailPos[i] = x; trailPos[i + 1] = y; trailPos[i + 2] = z;
+            }
+            trailGeo.setDrawRange(0, trailCount);
+            trailGeo.attributes.position.needsUpdate = true;
+        }
+
+        scene.add(new THREE.AmbientLight(0x334466, 0.5));
+        const sun = new THREE.DirectionalLight(0xffffee, 1.3);
+        sun.position.set(25, 15, 20);
+        scene.add(sun);
+
+        const clock = new THREE.Clock();
+        const velInput = document.getElementById('velInput');
+        const velSlider = document.getElementById('velSlider');
+        const gmInput = document.getElementById('gmInput');
+        const gmSlider = document.getElementById('gmSlider');
+        const bodyRInput = document.getElementById('bodyRInput');
+        const bodyRSlider = document.getElementById('bodyRSlider');
+        const altInput = document.getElementById('altInput');
+        const altSlider = document.getElementById('altSlider');
+        const rDisp = document.getElementById('rDisp');
+        const launchBtn = document.getElementById('launchBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const qAsk = document.getElementById('qAsk');
+        const qAfter = document.getElementById('qAfter');
+        let vel = 7.65;
+        let syncing = false;
+
+        function parseTyped(raw) {
+            const s = String(raw).trim().replace(',', '.');
+            const v = Number(s);
+            return Number.isFinite(v) ? v : NaN;
+        }
+        function readClamped(input, slider, lo, hi, fallback) {
+            const v = parseTyped(input.value);
+            if (Number.isFinite(v)) return Math.min(hi, Math.max(lo, v));
+            const s = parseFloat(slider.value);
+            return Number.isFinite(s) ? s : fallback;
+        }
+        function updateOrbitPath(r) {
+            const pts = [];
+            for (let i = 0; i <= 80; i++) {
+                const a = i / 80 * Math.PI * 2;
+                pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+            }
+            orbitLine.geometry.setFromPoints(pts);
+            orbitLine.computeLineDistances();
+        }
+        function wantedCamDist() {
+            return Math.max(8, Math.min(56, 3.6 + rVis * 2.65));
+        }
+        function tweenCamera(dt) {
+            const want = wantedCamDist();
+            const k = 1 - Math.exp(-4.2 * dt);
+            camDist += (want - camDist) * k;
+            const from = controls.target;
+            const dir = camera.position.clone().sub(from);
+            if (dir.lengthSq() < 1e-8) dir.set(0, 0.35, 1);
+            dir.setLength(camDist);
+            camera.position.copy(from).add(dir);
+        }
+        function setNum(input, slider, n, digits) {
+            const v = Number(n);
+            const shown = digits == null ? String(Math.round(v)) : v.toFixed(digits);
+            input.value = shown;
+            slider.value = String(v);
+        }
+        function applyChange(which) {
+            if (syncing) return;
+            syncing = true;
+            if (which === 'h') alt = readClamped(altInput, altSlider, 50, 40000, alt);
+            if (which === 'R') bodyR = readClamped(bodyRInput, bodyRSlider, 400, 9000, bodyR);
+            if (which === 'GM') GM = readClamped(gmInput, gmSlider, 5000, 600000, GM);
+            if (which === 'V') vel = readClamped(velInput, velSlider, 0.2, 15, vel);
+
+            let r = bodyR + alt;
+            if (which === 'V' || which === 'GM') {
+                r = GM / (vel * vel);
+                alt = r - bodyR;
+                if (alt < 50) {
+                    alt = 50;
+                    bodyR = Math.max(400, r - alt);
+                    r = bodyR + alt;
+                    vel = Math.sqrt(GM / r);
+                }
+                if (alt > 40000) {
+                    alt = 40000;
+                    r = bodyR + alt;
+                    vel = Math.sqrt(GM / r);
+                }
+            } else {
+                r = bodyR + alt;
+                vel = Math.sqrt(GM / r);
+                if (vel > 15) {
+                    vel = 15;
+                    r = GM / (vel * vel);
+                    alt = r - bodyR;
+                    if (alt < 50) {
+                        alt = 50;
+                        bodyR = Math.max(400, r - alt);
+                        r = bodyR + alt;
+                        vel = Math.sqrt(GM / r);
+                    }
+                }
+                if (vel < 0.5) {
+                    vel = 0.5;
+                    r = GM / (vel * vel);
+                    alt = Math.min(40000, r - bodyR);
+                    if (alt < 50) alt = 50;
+                    r = bodyR + alt;
+                    vel = Math.sqrt(GM / r);
+                }
+            }
+
+            setNum(altInput, altSlider, alt, Math.abs(alt - Math.round(alt)) < 1e-6 ? null : 1);
+            setNum(bodyRInput, bodyRSlider, bodyR, null);
+            setNum(gmInput, gmSlider, GM, null);
+            setNum(velInput, velSlider, vel, 4);
+            rDisp.textContent = Math.round(r).toLocaleString();
+            updateViz(r);
+
+            visGM = 50 * (GM / 398600) * (6371 / bodyR);
+            rVis = VIS_R * r / bodyR;
+            const visNeed = Math.sqrt(visGM / rVis);
+            velocity.set(0, 0, visNeed);
+            sat.position.set(rVis, 0, 0);
+            sat.quaternion.identity();
+            updateOrbitPath(rVis);
+            crashed = escaped = judged = false;
+            if (simulating) {
+                launchR = rVis;
+                flightT = 0; rMin = Infinity; rMax = 0;
+                clearTrail();
+            }
+            syncing = false;
+        }
+        function mapSize(val, lo, hi, minPx, maxPx, useLog) {
+            const v = Math.min(hi, Math.max(lo, val));
+            const a = useLog ? Math.log(v) : v;
+            const b = useLog ? Math.log(lo) : lo;
+            const c = useLog ? Math.log(hi) : hi;
+            const t = (a - b) / (c - b);
+            return minPx + t * (maxPx - minPx);
+        }
+        function updateViz(r) {
+            const vPx = mapSize(vel, 0.6, 12, 36, 108, false);
+            const mPx = mapSize(GM, 25000, 480000, 28, 96, true);
+            const rPx = mapSize(r, 1600, 42000, 28, 96, true);
+            const gPx = 34;
+            document.getElementById('vizV').style.fontSize = vPx + 'px';
+            document.getElementById('vizM').style.fontSize = mPx + 'px';
+            document.getElementById('vizR').style.fontSize = rPx + 'px';
+            document.querySelector('#vizFormula .viz-eq').style.fontSize = (vPx * 0.42) + 'px';
+            document.getElementById('vizBar').style.width = Math.max(gPx + mPx * 1.15, rPx * 1.2) + 'px';
+            const roofH = Math.max(gPx, mPx) + rPx + 36;
+            const radical = document.getElementById('vizRadical');
+            radical.style.height = roofH + 'px';
+            radical.style.width = Math.max(26, roofH * 0.24) + 'px';
+        }
+        function updateDisplays() { applyChange('h'); }
+
+        const explain = document.getElementById('explain');
+        function showExplain(title, body) {
+            document.getElementById('explainTitle').textContent = title;
+            document.getElementById('explainBody').textContent = body;
+            explain.classList.add('show');
+        }
+        document.getElementById('eqCirc').onclick = () => showExplain(
+            'Circular orbit speed',
+            'V = √(GM / r)\n\nThis is how fast the satellite must go to stay in a circle at distance r from the centre.\n\nA heavier planet (bigger GM) needs a higher speed.\nA higher orbit (bigger r) needs a lower speed.\n\nThe satellite’s own mass is not in this formula — only the planet and the distance matter.\n\nG is a constant, so in the big formula only M (the planet’s mass) grows and shrinks. V grows with M and shrinks as r grows.'
+        );
+        document.getElementById('eqRad').onclick = () => showExplain(
+            'Orbital radius',
+            'r = R + h\n\nR is the planet or moon, measured from its centre to the surface.\nh is how high the satellite sits above that surface (altitude).\n\nAdd them to get r — the distance from the centre out to the satellite.\nYou cannot set r yourself. Change R or h, and r follows.'
+        );
+        document.getElementById('explainOk').onclick = () => explain.classList.remove('show');
+        explain.addEventListener('click', e => {
+            if (e.target === explain) explain.classList.remove('show');
+        });
+        const linkMap = {
+            h: { src: 'altStat', stats: ['velStat', 'rStat'], vizSrc: null, viz: ['vizV', 'vizR'] },
+            R: { src: 'bodyRStat', stats: ['velStat', 'rStat'], vizSrc: null, viz: ['vizV', 'vizR'] },
+            GM: { src: 'gmStat', stats: ['altStat', 'rStat'], vizSrc: 'vizM', viz: ['vizR'] },
+            V: { src: 'velStat', stats: ['altStat', 'rStat'], vizSrc: 'vizV', viz: ['vizR'] }
+        };
+        let linkClearT = 0;
+        function clearLinkLook() {
+            document.querySelectorAll('.stat.source, .stat.driven, #vizV, #vizM, #vizR').forEach(el => {
+                el.classList.remove('source', 'driven');
+            });
+        }
+        function setLinkLook(which) {
+            clearTimeout(linkClearT);
+            clearLinkLook();
+            const m = linkMap[which];
+            if (!m) return;
+            document.getElementById(m.src)?.classList.add('source');
+            m.stats.forEach(id => document.getElementById(id)?.classList.add('driven'));
+            if (m.vizSrc) document.getElementById(m.vizSrc)?.classList.add('source');
+            m.viz.forEach(id => document.getElementById(id)?.classList.add('driven'));
+        }
+        function bindTune(slider, input, which) {
+            const start = () => setLinkLook(which);
+            const end = () => { linkClearT = setTimeout(clearLinkLook, 500); };
+            slider.addEventListener('pointerdown', start);
+            slider.addEventListener('pointerup', end);
+            slider.addEventListener('pointercancel', end);
+            input.addEventListener('pointerdown', start);
+            input.addEventListener('pointerup', end);
+            input.addEventListener('pointercancel', end);
+            slider.addEventListener('input', () => {
+                const v = parseFloat(slider.value);
+                if (!Number.isFinite(v)) return;
+                input.value = String(v);
+                setLinkLook(which);
+                applyChange(which);
+            });
+            input.addEventListener('input', () => {
+                const v = parseTyped(input.value);
+                if (!Number.isFinite(v)) return;
+                slider.value = v;
+                setLinkLook(which);
+                applyChange(which);
+            });
+        }
+        bindTune(velSlider, velInput, 'V');
+        bindTune(gmSlider, gmInput, 'GM');
+        bindTune(bodyRSlider, bodyRInput, 'R');
+        bindTune(altSlider, altInput, 'h');
+
+        function resetSim() {
+            simulating = crashed = escaped = judged = false;
+            flightT = 0; rMin = Infinity; rMax = 0;
+            sat.visible = true;
+            clearTrail();
+            launchBtn.disabled = false;
+            updateDisplays();
+        }
+
+        launchBtn.onclick = () => {
+            if (simulating) return;
+            simulating = true;
+            launchBtn.disabled = true;
+            applyChange('h');
+            launchR = rVis;
+            flightT = 0; rMin = Infinity; rMax = 0; judged = false;
+            clearTrail();
+        };
+        resetBtn.onclick = () => {
+            syncing = true;
+            bodyR = 6371; alt = 440; GM = 398600; vel = Math.sqrt(GM / (bodyR + alt));
+            syncing = false;
+            resetSim();
+        };
+
+        function pulse(ids) {
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.remove('pulse', 'pulse-eq');
+                void el.offsetWidth;
+                el.classList.add(id === 'eqBar' ? 'pulse-eq' : 'pulse');
+            });
+        }
+
+        function showQuestion() {
+            const q = questions[qIndex];
+            document.getElementById('qStep').textContent = 'Question ' + (qIndex + 1) + ' of ' + questions.length;
+            document.getElementById('qText').textContent = q.text;
+            qAsk.classList.remove('hide');
+            qAfter.classList.remove('show');
+        }
+        function answer(choice) {
+            const q = questions[qIndex];
+            const ok = choice === q.answer;
+            const verdict = document.getElementById('verdict');
+            verdict.textContent = ok ? 'That’s right.' : 'Not quite.';
+            verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
+            document.getElementById('tryText').textContent = q.try;
+            document.getElementById('nextQ').textContent = qIndex >= questions.length - 1 ? 'Finish' : 'Next question';
+            qAsk.classList.add('hide');
+            qAfter.classList.add('show');
+            pulse(q.pulse);
+        }
+        document.getElementById('trueBtn').onclick = () => answer(true);
+        document.getElementById('falseBtn').onclick = () => answer(false);
+        document.getElementById('nextQ').onclick = () => {
+            if (qIndex >= questions.length - 1) {
+                qAfter.classList.remove('show');
+                qAsk.classList.add('hide');
+                document.getElementById('qCard').style.display = 'none';
+                return;
+            }
+            qIndex++;
+            showQuestion();
+        };
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.04) * 0.9;
+            if (simulating && !crashed && !escaped) {
+                const pos = sat.position, r = pos.length();
+                const accel = pos.clone().normalize().multiplyScalar(-visGM / (r * r));
+                velocity.add(accel.multiplyScalar(dt));
+                pos.add(velocity.clone().multiplyScalar(dt));
+                pushTrail(pos.x, pos.y, pos.z);
+                if (velocity.lengthSq() > 1e-8) {
+                    sat.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), velocity.clone().normalize());
+                }
+                flightT += dt;
+                if (flightT > 0.12) {
+                    rMin = Math.min(rMin, r);
+                    rMax = Math.max(rMax, r);
+                }
+                const energy = 0.5 * velocity.lengthSq() - visGM / r;
+                if (r < VIS_R) {
+                    crashed = true; judged = true;
+                } else if (energy > 0 && r > launchR * 1.4) {
+                    escaped = true; judged = true;
+                } else if (!judged && flightT > 2.4) {
+                    judged = true;
+                }
+            }
+            controls.update();
+            tweenCamera(dt);
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+
+        updateDisplays();
+        showQuestion();
+        animate();
+    </script>
+</body>
+</html>
