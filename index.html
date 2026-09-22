@@ -21,6 +21,8 @@
         .lead { margin: 8px 0 28px; opacity: 0.75; line-height: 1.45; }
         .cards { display: grid; gap: 14px; }
         @media (min-width: 640px) { .cards { grid-template-columns: 1fr 1fr; } }
+        h1 + .lead { margin-bottom: 18px; }
+        h2.group { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8cf; margin: 22px 0 8px; opacity: 0.85; }
         a.card {
             display: block;
             text-decoration: none;
@@ -46,15 +48,27 @@
 <body>
     <main>
         <h1>Orbit Lab</h1>
-        <p class="lead">Two pages for circular orbits: a short sandbox, then the mission game.</p>
+        <p class="lead">Year 8 gravity and circular orbits. Try the numbers, then fly the missions.</p>
+        <h2 class="group">Circular orbits · V = √(GM / r)</h2>
         <div class="cards">
             <a class="card" href="orbit-sandbox.html">
                 <span class="tag">Try the numbers</span>
                 <h2>Orbit sandbox</h2>
             </a>
-            <a class="card" href="poe-preview.html">
+            <a class="card" href="orbit-commander.html">
                 <span class="tag">Six missions</span>
                 <h2>Orbit Commander</h2>
+            </a>
+        </div>
+        <h2 class="group">Gravity · g = GM / r²</h2>
+        <div class="cards">
+            <a class="card" href="gravity-sandbox.html">
+                <span class="tag">Try the numbers</span>
+                <h2>Gravity sandbox</h2>
+            </a>
+            <a class="card" href="gravity-researcher.html">
+                <span class="tag">Eight tasks</span>
+                <h2>Gravity Researcher</h2>
             </a>
         </div>
     </main>

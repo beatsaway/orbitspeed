@@ -87,9 +87,40 @@
         }
         #launchBtn { background: linear-gradient(45deg, #09f, #06d); }
         #resetBtn { background: #444; float: right; }
-        #nextBtn { background: #0a5; width: 100%; display: none; }
         #ui > button:hover { filter: brightness(1.15); }
         #ui > button:disabled { background: #333; cursor: not-allowed; }
+        #detailBtn {
+            position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+            z-index: 40; padding: 4px 12px; border: 1px solid #4af; border-radius: 999px;
+            background: rgba(0,20,40,0.94); color: #fff; font-weight: 700; font-size: 0.75rem;
+            letter-spacing: 0.03em; cursor: pointer; white-space: nowrap;
+        }
+        #detailBtn:hover { background: rgba(0,40,80,0.96); border-color: #8cf; }
+        #nextPopup {
+            display: none; position: fixed; left: 50%; top: 50%;
+            transform: translate(-50%, -50%); z-index: 80;
+        }
+        #nextPopup.show { display: block; }
+        #nextBtn {
+            display: block; min-width: 240px; padding: 18px 32px; border: none; border-radius: 14px;
+            background: #0a5; color: #fff; font-weight: 800; font-size: 1.25rem; cursor: pointer;
+            box-shadow: 0 0 32px rgba(0,180,80,0.35);
+        }
+        #endBtn {
+            display: none; position: fixed; top: 46px; left: 50%; transform: translateX(-50%);
+            z-index: 40; padding: 4px 12px; border: 1px solid #3d6; border-radius: 999px;
+            background: rgba(6, 40, 24, 0.94); color: #fff; font-weight: 700; font-size: 0.75rem;
+            letter-spacing: 0.03em; cursor: pointer; white-space: nowrap;
+        }
+        #endBtn.show { display: block; }
+        #endBtn:hover { background: rgba(10, 70, 40, 0.96); }
+        #saveEndBtn {
+            display: none; margin-top: 18px; padding: 14px 18px; width: 100%;
+            background: #0a5; border: none; border-radius: 12px; color: white;
+            font-weight: 800; cursor: pointer; font-size: 1.05rem;
+        }
+        .popup-box.ending #saveEndBtn { display: block; }
+        #saveEndBtn:hover { filter: brightness(1.12); }
         #eqBar {
             position: absolute; bottom: 12px; left: 12px;
             display: flex; align-items: flex-end; gap: 8px;
@@ -165,9 +196,8 @@
             position: absolute; bottom: 16px; right: 16px; background: rgba(0,20,40,0.9);
             padding: 14px 18px; border-radius: 12px; border: 1px solid #4af;
             font-size: 1.25rem; max-width: 420px; line-height: 1.4;
-            z-index: 10; cursor: pointer;
+            z-index: 10;
         }
-        #control:hover { border-color: #8cf; background: rgba(0,28,55,0.95); }
         #control .hint { display: block; font-size: 0.72rem; opacity: 0.55; margin-top: 8px; }
         #control .emoji {
             font-size: 2.7rem; vertical-align: middle; margin-right: 8px; line-height: 1;
@@ -178,15 +208,16 @@
         }
         @keyframes caretBlink { 50% { opacity: 0; } }
         .brief-body { min-height: 3.2em; white-space: pre-wrap; margin: 0; }
-        #quiz { display: none; margin: 10px 0; padding: 8px; border-radius: 8px; }
-        #quiz.quiz-wrong {
-            background: rgba(120, 0, 0, 0.45);
-            outline: 2px solid #ff4d4d;
-        }
+        #quiz { display: none; margin-top: 16px; }
+        #quiz p { margin: 0 0 8px; font-size: 1.12rem; }
+        #quizNote { min-height: 2.6em; color: #9cf; font-size: 0.95rem; }
+        #quiz.quiz-wrong #quizNote { color: #ffb4b4; }
         #quiz button {
-            width: 30%; padding: 6px; font-size: 0.82rem; margin: 2px; background: #246;
-            border: none; border-radius: 8px; cursor: pointer; color: white; font-weight: bold;
+            display: block; width: 100%; padding: 14px 12px; font-size: 1.05rem;
+            margin: 8px 0 0; background: #246; border: none; border-radius: 10px;
+            cursor: pointer; color: white; font-weight: bold; min-height: 52px;
         }
+        #introPopup.quiz-lock #popupOk { display: none !important; }
         #quiz button.wrong { background: #c0392b; animation: quizShake 0.32s ease; }
         #quiz button.right { background: #1a8a4a; }
         @keyframes quizShake {
@@ -292,14 +323,12 @@
 
         <button id="launchBtn">LAUNCH</button>
         <button id="resetBtn">RETRY</button>
+    </div>
 
-        <div id="quiz">
-            <p>What sort of orbit is that?</p>
-            <button id="leoBtn">LEO</button>
-            <button id="meoBtn">MEO</button>
-            <button id="geoBtn">GEO</button>
-        </div>
-        <button id="nextBtn">NEXT MISSION</button>
+    <button type="button" id="detailBtn">Mission 1</button>
+    <button type="button" id="endBtn">See ending</button>
+    <div id="nextPopup">
+        <button type="button" id="nextBtn">NEXT MISSION</button>
     </div>
 
     <div id="eqBar">
@@ -347,6 +376,14 @@
     <div id="introPopup">
         <div class="popup-box" id="popupBox">
             <div id="popupText"></div>
+            <div id="quiz">
+                <p>What sort of orbit is this?</p>
+                <p id="quizNote"></p>
+                <button type="button" id="leoBtn">LEO</button>
+                <button type="button" id="meoBtn">MEO</button>
+                <button type="button" id="geoBtn">GEO</button>
+            </div>
+            <button type="button" id="saveEndBtn">Save as image</button>
             <button id="popupOk">Understood</button>
         </div>
     </div>
@@ -664,6 +701,23 @@
         const bodyRStat=document.getElementById('bodyRStat');
         const launchBtn=document.getElementById('launchBtn'), resetBtn=document.getElementById('resetBtn');
         const nextBtn=document.getElementById('nextBtn');
+        const nextPopup=document.getElementById('nextPopup');
+        const detailBtn=document.getElementById('detailBtn');
+        const endBtn=document.getElementById('endBtn');
+        let endingSnap = null;
+        let finalAvg = 0;
+        endBtn.addEventListener('click', () => {
+            sfx('click');
+            showEnding(finalAvg);
+        });
+        document.getElementById('saveEndBtn').addEventListener('click', () => {
+            sfx('click');
+            saveEndingImage();
+        });
+        function showNext(on) {
+            nextBtn.disabled = !on;
+            nextPopup.classList.toggle('show', !!on);
+        }
         const quiz=document.getElementById('quiz');
         const hudMission=document.getElementById('hudMission');
         const hudSavings=document.getElementById('hudSavings');
@@ -690,7 +744,7 @@
 
         document.querySelectorAll('#eqPanel .eq').forEach(el => {
             el.addEventListener('click', () => {
-                if (el.classList.contains('is-hidden')) return;
+                if (quizOpen || el.classList.contains('is-hidden')) return;
                 let expl = '';
                 const type = el.dataset.eq;
                 if (type === 'circ') {
@@ -701,7 +755,7 @@
                     expl = 'Finding the radius from speed\n\nr = GM / V²\n\nThis is V = √(GM / r) turned round. When speed is given, find r first, then h = r − R.';
                 }
                 afterBrief = null;
-                popupBox.classList.remove('wide');
+                popupBox.classList.remove('wide', 'ending');
                 popupOk.textContent = 'Understood';
                 setPopupReady(false);
                 popupText.innerHTML = '<p id="briefTalk" class="brief-body"></p>';
@@ -711,9 +765,11 @@
         });
 
         popupOk.onclick = () => {
+            if (quizOpen) return;
             if (finishType()) return;
             sfx('ok');
             introPopup.classList.remove('show');
+            popupBox.classList.remove('ending');
             setPopupReady(false);
             const follow = afterBrief;
             afterBrief = null;
@@ -1246,6 +1302,38 @@
             popupOk.classList.toggle('ready', !!on);
         }
 
+        let quizOpen = false;
+        const quizNote = document.getElementById('quizNote');
+        function hideQuiz() {
+            quizOpen = false;
+            introPopup.classList.remove('quiz-lock');
+            quiz.style.display = 'none';
+            quiz.classList.remove('quiz-wrong');
+            quiz.querySelectorAll('button').forEach(b => {
+                b.classList.remove('wrong', 'right');
+                b.disabled = false;
+            });
+            if (quizNote) quizNote.textContent = '';
+        }
+        function showQuiz() {
+            quizOpen = true;
+            afterBrief = null;
+            popupBox.classList.remove('wide', 'ending');
+            setPopupReady(false);
+            popupText.innerHTML =
+                `<div class="brief-date">Check your answer</div>` +
+                `<div class="brief-head"><span class="brief-face">❓</span><div class="brief-name">One question</div></div>`;
+            quiz.classList.remove('quiz-wrong');
+            quiz.querySelectorAll('button').forEach(b => {
+                b.classList.remove('wrong', 'right');
+                b.disabled = false;
+            });
+            quizNote.textContent = '';
+            quiz.style.display = 'block';
+            introPopup.classList.add('show', 'quiz-lock');
+            showNext(false);
+        }
+
         const seenCopy = new Set();
         function showCopyOnce(key, el, text) {
             if (!el) return;
@@ -1261,8 +1349,10 @@
         function showMissionBrief(playSound = true) {
             const m = missions[current];
             if (!m) return;
+            if (quizOpen) return;
             if (playSound) sfx('click');
-            popupBox.classList.remove('wide');
+            hideQuiz();
+            popupBox.classList.remove('wide', 'ending');
             popupOk.textContent = 'Understood';
             setPopupReady(false);
             const crewLine = m.crew > 0
@@ -1279,7 +1369,7 @@
         }
 
         function showPreIntro() {
-            popupBox.classList.remove('wide');
+            popupBox.classList.remove('wide', 'ending');
             popupOk.textContent = 'I am ready';
             setPopupReady(false);
             popupText.innerHTML =
@@ -1308,11 +1398,8 @@
                 : ` ${n} casualties. I am so sorry.`;
         }
 
-        control.addEventListener('click', () => {
-            if (isTyping() && !introPopup.classList.contains('show')) {
-                finishType();
-                return;
-            }
+        detailBtn.addEventListener('click', () => {
+            if (isTyping() && !introPopup.classList.contains('show')) finishType();
             showMissionBrief();
         });
 
@@ -1406,14 +1493,13 @@
             sat.position.set(rVis,0,0);
             setCraft(m.craft);
             updateOrbitPath(rVis);
+            detailBtn.textContent = 'Mission ' + (current + 1);
             launchBtn.textContent = 'LAUNCH';
             missionBudget = 2 * m.cost;
             refreshHud();
-            quiz.style.display = 'none';
-            quiz.classList.remove('quiz-wrong');
-            quiz.querySelectorAll('button').forEach(b => b.classList.remove('wrong', 'right'));
-            nextBtn.style.display = 'none';
-            nextBtn.disabled = true;
+            hideQuiz();
+            introPopup.classList.remove('show');
+            showNext(false);
             succeeded = false;
 
             velStat.classList.toggle('adjust', !m.forgetAlt);
@@ -1597,28 +1683,30 @@
             const correct = getType(alt, m.body);
             const btn = { LEO: 'leoBtn', MEO: 'meoBtn', GEO: 'geoBtn' }[choice];
             const el = btn ? document.getElementById(btn) : null;
-            if (m.body === "Earth" && choice !== correct) {
+            if (choice !== correct) {
                 sfx('wrong');
                 spend(12, false);
-                updateMoneyTalk();
                 quiz.classList.add('quiz-wrong');
                 if (el) {
                     el.classList.remove('wrong');
                     void el.offsetWidth;
                     el.classList.add('wrong');
                 }
-                comment("😐 That's not it. Look at the height again, then pick another.");
-                nextBtn.style.display = 'none';
-                nextBtn.disabled = true;
+                quizNote.textContent = 'Not right. Check the height again, then choose another answer.';
+                showNext(false);
                 return;
             }
             sfx('ok');
             quiz.classList.remove('quiz-wrong');
+            quiz.querySelectorAll('button').forEach(b => { b.disabled = true; });
             if (el) el.classList.add('right');
-            comment(m.body === "Earth" ? `🙂 That's right. ${correct}.` : "Not an Earth orbit — we can move on.");
-            quiz.style.display = 'none';
-            nextBtn.style.display = 'block';
-            nextBtn.disabled = false;
+            quizNote.textContent = 'Correct. This is a ' + correct + ' orbit.';
+            setTimeout(() => {
+                hideQuiz();
+                introPopup.classList.remove('show');
+                comment('🙂 Correct. This is a ' + correct + ' orbit.');
+                showNext(true);
+            }, 700);
         }
 
         function nextMission(){
@@ -1632,7 +1720,9 @@
                 comment(`🙂 Campaign complete. ${missionsCompleted} of 6 insertions. Average accuracy: ${avg.toFixed(0)}%.`);
                 launchBtn.disabled = true;
                 resetBtn.disabled = true;
-                nextBtn.style.display = 'none';
+                showNext(false);
+                finalAvg = avg;
+                endBtn.classList.add('show');
                 showEnding(avg);
                 return;
             }
@@ -1660,11 +1750,99 @@
             return { r, energy, e, a, rp, ra, period, vCirc, v: Math.sqrt(vsq) };
         }
 
+        function wrapCanvasText(ctx, text, maxW) {
+            const words = String(text).split(/\s+/);
+            const lines = [];
+            let line = '';
+            words.forEach(word => {
+                const trial = line ? line + ' ' + word : word;
+                if (line && ctx.measureText(trial).width > maxW) {
+                    lines.push(line);
+                    line = word;
+                } else line = trial;
+            });
+            if (line) lines.push(line);
+            return lines;
+        }
+        function roundBox(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function saveEndingImage() {
+            if (!endingSnap) return;
+            const W = 1200, pad = 36, gap = 18;
+            const colW = (W - pad * 2 - gap * 2) / 3;
+            const imgH = 210;
+            const measure = document.createElement('canvas').getContext('2d');
+            measure.font = '22px Segoe UI, sans-serif';
+            const wraps = endingSnap.cards.map(card => wrapCanvasText(measure, card.text, colW - 28));
+            const maxLines = Math.max(1, ...wraps.map(lines => lines.length));
+            const cardH = imgH + 56 + maxLines * 28;
+            const H = 70 + cardH + 28;
+            const canvas = document.createElement('canvas');
+            canvas.width = W * 2;
+            canvas.height = H * 2;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(2, 2);
+            ctx.fillStyle = '#071428';
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = '#66ddff';
+            ctx.font = '600 26px Segoe UI, sans-serif';
+            ctx.fillText(endingSnap.title, pad, 46);
+            const photos = [...popupText.querySelectorAll('.end-card img')];
+            endingSnap.cards.forEach((card, i) => {
+                const x = pad + i * (colW + gap);
+                const y = 68;
+                ctx.fillStyle = '#061018';
+                roundBox(ctx, x, y, colW, cardH, 12);
+                ctx.fill();
+                const im = photos[i];
+                if (im && im.complete && im.naturalWidth) {
+                    ctx.save();
+                    roundBox(ctx, x + 8, y + 8, colW - 16, imgH, 8);
+                    ctx.clip();
+                    const sw = im.naturalWidth, sh = im.naturalHeight;
+                    const scale = Math.max((colW - 16) / sw, imgH / sh);
+                    const dw = sw * scale, dh = sh * scale;
+                    ctx.drawImage(im, x + 8 + (colW - 16 - dw) / 2, y + 8 + (imgH - dh) / 2, dw, dh);
+                    ctx.restore();
+                }
+                ctx.fillStyle = '#66ddff';
+                ctx.font = '700 15px Segoe UI, sans-serif';
+                ctx.fillText(card.head.toUpperCase(), x + 14, y + imgH + 34);
+                ctx.fillStyle = '#e8eef8';
+                ctx.font = '22px Segoe UI, sans-serif';
+                wraps[i].forEach((line, li) => ctx.fillText(line, x + 14, y + imgH + 64 + li * 28));
+            });
+            const finish = blob => {
+                if (!blob) {
+                    comment('😐 The picture could not be saved.');
+                    return;
+                }
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = endingSnap.file;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+            };
+            try {
+                canvas.toBlob(finish, 'image/png');
+            } catch (err) {
+                comment('😐 The picture could not be saved from this page.');
+            }
+        }
+
         function showEnding(avg) {
             afterBrief = null;
-            popupBox.classList.add('wide');
+            hideQuiz();
+            popupBox.classList.add('wide', 'ending');
             popupOk.textContent = 'Stand down';
-            setPopupReady(false);
+            const replay = !!endingSnap;
             const debtOk = debt <= 0;
             const crewOk = totalCasualties <= 0;
             const accOk = avg >= 85;
@@ -1679,6 +1857,15 @@
                 ? 'Every crew member came home. That is what matters most.'
                 : `${totalCasualties} ${totalCasualties === 1 ? 'casualty' : 'casualties'}. I am so sorry. That will stay with us.`;
             const accTalk = `Average insertion accuracy: ${avg.toFixed(0)}%. ${getEndRank(avg)}`;
+            endingSnap = {
+                title: 'Campaign debrief',
+                file: 'orbit-ending.png',
+                cards: [
+                    { head: 'Debt', text: debtTalk },
+                    { head: 'Casualties', text: crewTalk },
+                    { head: 'Accuracy', text: accTalk }
+                ]
+            };
             popupText.innerHTML =
                 `<div class="brief-date">Campaign debrief</div>` +
                 `<div class="end-grid">` +
@@ -1692,7 +1879,14 @@
                 { el: document.getElementById('endTalk1'), text: crewTalk },
                 { el: document.getElementById('endTalk2'), text: accTalk }
             ];
-            endingFill = () => { parts.forEach(p => { p.el.textContent = p.text; }); };
+            if (replay) {
+                parts.forEach(part => { part.el.textContent = part.text; });
+                endingFill = null;
+                setPopupReady(true);
+                return;
+            }
+            setPopupReady(false);
+            endingFill = () => { parts.forEach(part => { part.el.textContent = part.text; }); };
             const next = i => {
                 if (i >= parts.length) { endingFill = null; setPopupReady(true); return; }
                 typeInto(parts[i].el, parts[i].text, () => next(i + 1));
@@ -1707,8 +1901,8 @@
             const acc = recordAccuracy(formulaScore(), true);
             comment(successLines[Math.floor(Math.random() * successLines.length)] + ` (${Math.round(acc)}% accuracy)`);
             bankLeftover();
-            if (missions[current].body === "Earth") quiz.style.display = "block";
-            else { nextBtn.style.display = "block"; nextBtn.disabled = false; }
+            if (missions[current].body === "Earth") showQuiz();
+            else showNext(true);
         }
 
         function markEllipse() {

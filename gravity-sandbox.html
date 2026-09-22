@@ -4,7 +4,7 @@
     <meta name="x-poe-datastore-behavior" content="local_only">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit Sandbox</title>
+    <title>Gravity Sandbox</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
@@ -43,13 +43,11 @@
         input[type=range] { width: 100%; height: 16px; margin: 4px 0 0; accent-color: #4af; }
         .stat.derived input[type=range] { display: none; }
         input[type=text].inline-num {
-            width: 9.5em; margin: 0 4px; padding: 1px 6px;
+            width: 11em; margin: 0 4px; padding: 1px 6px;
             border-radius: 5px; border: 1px solid #4af; background: #061018;
             color: #0f8; font-weight: 700; font-size: 0.92rem;
             font-variant-numeric: tabular-nums;
         }
-        .circ { display: none; }
-        .eqs { display: none; }
         #eqBar {
             position: absolute; bottom: 16px; left: 12px; z-index: 10;
             background: rgba(0,20,40,0.9); padding: 8px 12px; border-radius: 8px; border: 1px solid #4af;
@@ -73,7 +71,7 @@
         #vizFormula {
             position: absolute;
             left: 50%;
-            top: 38%;
+            top: 36%;
             transform: translate(-50%, -50%);
             z-index: 4;
             pointer-events: none;
@@ -97,7 +95,7 @@
             align-items: baseline;
             line-height: 1;
         }
-        #vizV, #vizG, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH {
+        #vizGsym, #vizG, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH, #vizW, #vizMass, #vizWg {
             color: #9cf;
             font-weight: 800;
             font-style: italic;
@@ -105,28 +103,26 @@
             transition: font-size 0.15s ease, text-shadow 0.18s ease;
         }
         #vizG { font-size: 34px; }
-        #vizV.driven, #vizM.driven, #vizR.driven,
-        #vizV.source, #vizM.source, #vizR.source,
+        #vizGsym.driven, #vizM.driven, #vizR.driven,
+        #vizGsym.source, #vizM.source, #vizR.source,
         #vizRsym.driven, #vizBodyR.driven, #vizH.driven,
-        #vizRsym.source, #vizBodyR.source, #vizH.source {
+        #vizRsym.source, #vizBodyR.source, #vizH.source,
+        #vizW.driven, #vizMass.driven, #vizWg.driven,
+        #vizW.source, #vizMass.source, #vizWg.source {
             text-shadow: 0 0 8px #7ee0ff, 0 0 18px rgba(90, 200, 255, 0.65);
         }
-        .viz-sqrt-group {
-            display: flex;
-            align-items: stretch;
-            color: #9cf;
+        #vizR.viz-r2 {
+            display: inline-flex;
+            align-items: flex-start;
+            line-height: 0.88;
         }
-        #vizRadical {
-            flex: 0 0 auto;
-            width: 32px;
-            overflow: visible;
-            filter: drop-shadow(0 0 10px rgba(100, 200, 255, 0.35));
-        }
-        .viz-radicand {
-            border-top: 6px solid #9cf;
-            padding: 8px 16px 6px 10px;
-            margin-left: -3px;
-            box-shadow: 0 -8px 16px rgba(80, 180, 255, 0.12);
+        .viz-r2 sup {
+            font-size: 0.48em;
+            font-style: normal;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: -0.18em;
+            margin-left: 0.02em;
         }
         .viz-frac {
             display: flex;
@@ -177,7 +173,6 @@
         #resetBtn { background: #444; float: right; }
         #launchBtn:hover, #resetBtn:hover { filter: brightness(1.15); }
         #launchBtn:disabled { background: #333; cursor: not-allowed; }
-        #overlay { display: none; }
         #qCard {
             position: absolute; top: 10px; right: 12px; width: 300px;
             background: rgba(0,12,30,0.94); border: 1px solid #4af; border-radius: 12px;
@@ -219,19 +214,19 @@
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 </head>
-<body data-eq="circ">
+<body data-eq="g">
     <div id="ui">
-        <h1>Orbit sandbox</h1>
-        <div class="sub" id="eqSub">Only V, GM and r. Tap a formula below to switch. r is locked.</div>
+        <h1>Gravity sandbox</h1>
+        <div class="sub" id="eqSub">Only g, GM and r. Tap a formula below to switch. r is locked.</div>
 
-        <div class="stat adjust" id="velStat">
-            <span class="sym">V</span> = <input type="text" inputmode="decimal" class="inline-num" id="velInput" value="7.65"> km/s
-            <input type="range" id="velSlider" min="0.5" max="15" step="0.01" value="7.65">
-            <div class="stat-hint">insertion speed</div>
+        <div class="stat adjust" id="gStat">
+            <span class="sym">g</span> = <input type="text" inputmode="decimal" class="inline-num" id="gInput" value="8.69"> N/kg
+            <input type="range" id="gSlider" min="0.4" max="15" step="0.01" value="8.69">
+            <div class="stat-hint">gravitational field strength</div>
         </div>
         <div class="stat adjust" id="gmStat">
-            <span class="sym">GM</span> = <input type="text" inputmode="decimal" class="inline-num" id="gmInput" value="398600"> km³/s²
-            <input type="range" id="gmSlider" min="20000" max="500000" step="100" value="398600">
+            <span class="sym">GM</span> = <input type="text" inputmode="decimal" class="inline-num" id="gmInput" value="398600000"> N km²/kg
+            <input type="range" id="gmSlider" min="2000000" max="500000000" step="100000" value="398600000">
             <div class="stat-hint">central body (G × mass)</div>
         </div>
         <div class="stat adjust" id="bodyRStat">
@@ -240,16 +235,25 @@
             <div class="stat-hint">central body radius</div>
         </div>
         <div class="stat adjust" id="altStat">
-            <span class="sym">h</span> = <input type="text" inputmode="decimal" class="inline-num" id="altInput" value="440"> km
-            <input type="range" id="altSlider" min="100" max="40000" step="1" value="440">
-            <div class="stat-hint">height above the surface, aka altitude</div>
+            <span class="sym">h</span> = <input type="text" inputmode="decimal" class="inline-num" id="altInput" value="390"> km
+            <input type="range" id="altSlider" min="0" max="40000" step="1" value="390">
+            <div class="stat-hint">height above the surface</div>
         </div>
         <div class="stat derived" id="rStat">
-            <span class="sym">r</span> = <span class="r-sum">R + h = </span><span class="value" id="rDisp">6 811</span> km
-            <div class="stat-hint">orbital radius</div>
+            <span class="sym">r</span> = <span class="r-sum">R + h = </span><span class="value" id="rDisp">6 761</span> km
+            <div class="stat-hint">distance from the centre</div>
+        </div>
+        <div class="stat adjust" id="mStat">
+            <span class="sym">m</span> = <input type="text" inputmode="decimal" class="inline-num" id="mInput" value="80"> kg
+            <input type="range" id="mSlider" min="1" max="400" step="1" value="80">
+            <div class="stat-hint">mass of the test object</div>
+        </div>
+        <div class="stat derived" id="wStat">
+            <span class="sym">W</span> = m g = <span class="value" id="wDisp">695</span> N
+            <div class="stat-hint">weight</div>
         </div>
 
-        <button id="launchBtn">LAUNCH</button>
+        <button id="launchBtn">DROP</button>
         <button id="resetBtn">RESET</button>
     </div>
 
@@ -270,26 +274,13 @@
     </div>
 
     <div id="vizFormula" aria-hidden="true">
-        <div id="vizViewCirc" class="viz-view on">
-            <span id="vizV">V</span>
+        <div id="vizViewG" class="viz-view on">
+            <span id="vizGsym">g</span>
             <span class="viz-eq">=</span>
-            <span class="viz-sqrt-group">
-                <svg id="vizRadical" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
-                    <polyline
-                        points="1,50 7,50 12,96 23,5"
-                        fill="none"
-                        stroke="#9cf"
-                        stroke-width="4.2"
-                        stroke-linejoin="miter"
-                        stroke-linecap="butt" />
-                </svg>
-                <span class="viz-radicand">
-                    <span class="viz-frac">
-                        <span id="vizGM"><span id="vizG">G</span><span id="vizM">M</span></span>
-                        <span id="vizBar"></span>
-                        <span id="vizR">r</span>
-                    </span>
-                </span>
+            <span class="viz-frac">
+                <span id="vizGM"><span id="vizG">G</span><span id="vizM">M</span></span>
+                <span id="vizBar"></span>
+                <span id="vizR" class="viz-r2">r<sup>2</sup></span>
             </span>
         </div>
         <div id="vizViewRad" class="viz-view">
@@ -299,11 +290,17 @@
             <span class="viz-eq">+</span>
             <span id="vizH">h</span>
         </div>
+        <div id="vizViewW" class="viz-view">
+            <span id="vizW">W</span>
+            <span class="viz-eq">=</span>
+            <span id="vizMass">m</span>
+            <span id="vizWg">g</span>
+        </div>
     </div>
-
     <div id="eqBar">
-        <div id="eqCirc" class="on">V = √(GM / r)</div>
+        <div id="eqG" class="on">g = GM / r²</div>
         <div id="eqRad">r = R + h</div>
+        <div id="eqW">W = m g</div>
     </div>
 
     <div id="explain">
@@ -321,46 +318,46 @@
         const VIS_R = 3;
         const questions = [
             {
-                text: 'A satellite at a higher orbit needs a higher velocity to stay in orbit.',
-                answer: false,
-                eq: 'circ',
-                pulse: ['velStat', 'rStat', 'eqBar'],
-                try: 'Tap r = R + h and raise h. Then tap V = √(GM / r). r gets bigger and circular V goes down, not up.'
-            },
-            {
-                text: 'A satellite at a lower orbit needs a lower velocity to stay in orbit.',
-                answer: false,
-                eq: 'circ',
-                pulse: ['velStat', 'rStat', 'eqBar'],
-                try: 'Tap r = R + h and lower h. Then tap V = √(GM / r). r gets smaller and circular V goes up.'
-            },
-            {
-                text: "A satellite's mass is considered in the orbital speed formula.",
-                answer: false,
-                eq: 'circ',
-                pulse: ['eqBar', 'velStat', 'gmStat', 'rStat'],
-                try: 'Only V, GM and r are on the board. There is no satellite mass to set.'
-            },
-            {
-                text: 'Mass of the central body is considered in the orbital speed formula.',
+                text: 'Gravity gets weaker as you go higher above a planet.',
                 answer: true,
-                eq: 'circ',
-                pulse: ['gmStat', 'velStat', 'rStat', 'eqBar'],
-                try: 'Raise or lower GM. r will change so V = √(GM / r) still holds. A heavier planet needs a higher circular speed.'
+                eq: 'g',
+                pulse: ['gStat', 'rStat', 'eqBar'],
+                try: 'Tap r = R + h and raise h. Then tap g = GM / r². r gets bigger and g goes down, not up.'
             },
             {
-                text: 'The orbital radius of a satellite is the sum of its altitude plus the central body radius.',
+                text: 'g is zero on a space station because astronauts float.',
+                answer: false,
+                eq: 'g',
+                pulse: ['gStat', 'eqBar'],
+                try: 'Tap r = R + h and set h to about 390 km, like Tiangong. Then tap the g formula again. g is still close to 9 N/kg, not zero. They float because they are falling around Earth.'
+            },
+            {
+                text: "A heavier object has a larger g.",
+                answer: false,
+                eq: 'w',
+                pulse: ['mStat', 'gStat', 'wStat'],
+                try: 'Change m. g does not move. Only W = m g changes. g depends on the planet and the distance, not on the object.'
+            },
+            {
+                text: 'Mass of the central body is in the formula for g.',
                 answer: true,
-                eq: 'rad',
-                pulse: ['rStat', 'bodyRStat', 'altStat'],
-                try: 'Change h or R. r is locked, so it always follows. That is why it has a different colour.'
+                eq: 'g',
+                pulse: ['gmStat', 'gStat', 'eqBar'],
+                try: 'Raise or lower GM. r will change so g still matches g = GM / r². A lighter world (Moon) has a smaller g.'
+            },
+            {
+                text: 'Weight is mass multiplied by g.',
+                answer: true,
+                eq: 'w',
+                pulse: ['wStat', 'mStat', 'gStat'],
+                try: 'Change m or g. W is locked, so it always follows. That is why it has a different colour.'
             }
         ];
 
         let qIndex = 0;
-        let bodyR = 6371, alt = 440, GM = 398600, visGM = 50;
-        let simulating = false, crashed = false, escaped = false, judged = false;
-        let flightT = 0, rMin = Infinity, rMax = 0, launchR = 3, rVis = VIS_R * (6371 + 440) / 6371;
+        let bodyR = 6371, alt = 390, GM = 398600000, visGM = 50, mass = 80, gField = 8.69;
+        let simulating = false, crashed = false, judged = false;
+        let flightT = 0, rVis = VIS_R * (6371 + 390) / 6371;
         let velocity = new THREE.Vector3();
 
         const scene = new THREE.Scene();
@@ -390,11 +387,11 @@
         const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R * 1.06, 32, 32), new THREE.MeshBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.12, side: THREE.BackSide }));
         scene.add(glow);
 
-        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x44ffaa, dashSize: 0.4, gapSize: 0.2, transparent: true, opacity: 0.6 }));
-        scene.add(orbitLine);
+        const dropLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x44ffaa, dashSize: 0.25, gapSize: 0.16, transparent: true, opacity: 0.55 }));
+        scene.add(dropLine);
 
         const sat = new THREE.Group();
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 12), new THREE.MeshPhongMaterial({ color: 0xd4b24a, emissive: 0x443300 }));
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.09, 14, 12), new THREE.MeshPhongMaterial({ color: 0xd4b24a, emissive: 0x443300 }));
         sat.add(ball);
         scene.add(sat);
 
@@ -430,22 +427,30 @@
         scene.add(sun);
 
         const clock = new THREE.Clock();
-        const velInput = document.getElementById('velInput');
-        const velSlider = document.getElementById('velSlider');
+        const gInput = document.getElementById('gInput');
+        const gSlider = document.getElementById('gSlider');
         const gmInput = document.getElementById('gmInput');
         const gmSlider = document.getElementById('gmSlider');
         const bodyRInput = document.getElementById('bodyRInput');
         const bodyRSlider = document.getElementById('bodyRSlider');
         const altInput = document.getElementById('altInput');
         const altSlider = document.getElementById('altSlider');
+        const mInput = document.getElementById('mInput');
+        const mSlider = document.getElementById('mSlider');
         const rDisp = document.getElementById('rDisp');
+        const wDisp = document.getElementById('wDisp');
         const launchBtn = document.getElementById('launchBtn');
         const resetBtn = document.getElementById('resetBtn');
         const qAsk = document.getElementById('qAsk');
         const qAfter = document.getElementById('qAfter');
-        let vel = 7.65;
         let syncing = false;
 
+        function gFrom(gm, r) {
+            return gm / (r * r);
+        }
+        function rFromG(gm, g) {
+            return Math.sqrt(gm / Math.max(g, 0.05));
+        }
         function parseTyped(raw) {
             const s = String(raw).trim().replace(',', '.');
             const v = Number(s);
@@ -457,14 +462,12 @@
             const s = parseFloat(slider.value);
             return Number.isFinite(s) ? s : fallback;
         }
-        function updateOrbitPath(r) {
-            const pts = [];
-            for (let i = 0; i <= 80; i++) {
-                const a = i / 80 * Math.PI * 2;
-                pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
-            }
-            orbitLine.geometry.setFromPoints(pts);
-            orbitLine.computeLineDistances();
+        function updateDropPath(r) {
+            dropLine.geometry.setFromPoints([
+                new THREE.Vector3(VIS_R, 0, 0),
+                new THREE.Vector3(r, 0, 0)
+            ]);
+            dropLine.computeLineDistances();
         }
         function wantedCamDist() {
             return Math.max(8, Math.min(56, 3.6 + rVis * 2.65));
@@ -488,68 +491,66 @@
         function applyChange(which) {
             if (syncing) return;
             syncing = true;
-            if (which === 'h') alt = readClamped(altInput, altSlider, 50, 40000, alt);
+            if (which === 'h') alt = readClamped(altInput, altSlider, 0, 40000, alt);
             if (which === 'R') bodyR = readClamped(bodyRInput, bodyRSlider, 400, 9000, bodyR);
-            if (which === 'GM') GM = readClamped(gmInput, gmSlider, 5000, 600000, GM);
-            if (which === 'V') vel = readClamped(velInput, velSlider, 0.2, 15, vel);
+            if (which === 'GM') GM = readClamped(gmInput, gmSlider, 2000000, 500000000, GM);
+            if (which === 'g') gField = readClamped(gInput, gSlider, 0.35, 15, gField);
+            if (which === 'm') mass = readClamped(mInput, mSlider, 1, 400, mass);
 
             let r = bodyR + alt;
-            if (which === 'V' || which === 'GM') {
-                r = GM / (vel * vel);
+            if (which === 'g' || which === 'GM') {
+                r = rFromG(GM, gField);
                 alt = r - bodyR;
-                if (alt < 50) {
-                    alt = 50;
-                    bodyR = Math.max(400, r - alt);
-                    r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
+                if (alt < 0) {
+                    alt = 0;
+                    r = bodyR;
+                    gField = gFrom(GM, r);
                 }
                 if (alt > 40000) {
                     alt = 40000;
                     r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
+                    gField = gFrom(GM, r);
+                }
+            } else if (which !== 'm') {
+                r = bodyR + alt;
+                gField = gFrom(GM, r);
+                if (gField > 15) {
+                    gField = 15;
+                    r = rFromG(GM, gField);
+                    alt = Math.max(0, r - bodyR);
+                    r = bodyR + alt;
+                    gField = gFrom(GM, r);
+                }
+                if (gField < 0.4) {
+                    gField = 0.4;
+                    r = rFromG(GM, gField);
+                    alt = Math.min(40000, Math.max(0, r - bodyR));
+                    r = bodyR + alt;
+                    gField = gFrom(GM, r);
                 }
             } else {
                 r = bodyR + alt;
-                vel = Math.sqrt(GM / r);
-                if (vel > 15) {
-                    vel = 15;
-                    r = GM / (vel * vel);
-                    alt = r - bodyR;
-                    if (alt < 50) {
-                        alt = 50;
-                        bodyR = Math.max(400, r - alt);
-                        r = bodyR + alt;
-                        vel = Math.sqrt(GM / r);
-                    }
-                }
-                if (vel < 0.5) {
-                    vel = 0.5;
-                    r = GM / (vel * vel);
-                    alt = Math.min(40000, r - bodyR);
-                    if (alt < 50) alt = 50;
-                    r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
-                }
             }
 
+            const W = mass * gField;
             setNum(altInput, altSlider, alt, Math.abs(alt - Math.round(alt)) < 1e-6 ? null : 1);
             setNum(bodyRInput, bodyRSlider, bodyR, null);
             setNum(gmInput, gmSlider, GM, null);
-            setNum(velInput, velSlider, vel, 4);
+            setNum(gInput, gSlider, gField, 2);
+            setNum(mInput, mSlider, mass, null);
             rDisp.textContent = Math.round(r).toLocaleString();
+            wDisp.textContent = Math.round(W).toLocaleString();
             updateViz(r);
 
-            visGM = 50 * (GM / 398600) * (6371 / bodyR);
+            visGM = 50 * (GM / 398600000) * (6371 / bodyR);
             rVis = VIS_R * r / bodyR;
-            const visNeed = Math.sqrt(visGM / rVis);
-            velocity.set(0, 0, visNeed);
+            velocity.set(0, 0, 0);
             sat.position.set(rVis, 0, 0);
             sat.quaternion.identity();
-            updateOrbitPath(rVis);
-            crashed = escaped = judged = false;
+            updateDropPath(rVis);
+            crashed = judged = false;
             if (simulating) {
-                launchR = rVis;
-                flightT = 0; rMin = Infinity; rMax = 0;
+                flightT = 0;
                 clearTrail();
             }
             syncing = false;
@@ -563,47 +564,55 @@
             return minPx + t * (maxPx - minPx);
         }
         function updateViz(r) {
-            const vPx = mapSize(vel, 0.6, 12, 36, 108, false);
-            const mPx = mapSize(GM, 25000, 480000, 28, 96, true);
+            const gPx = mapSize(gField, 0.5, 12, 36, 108, false);
+            const mPx = mapSize(GM, 2500000, 480000000, 28, 96, true);
             const rPx = mapSize(r, 1600, 42000, 28, 96, true);
-            const gPx = 34;
             const bodyPx = mapSize(bodyR, 400, 9000, 28, 88, true);
             const hPx = mapSize(Math.max(alt, 1), 1, 40000, 28, 96, true);
-            document.getElementById('vizV').style.fontSize = vPx + 'px';
+            const massPx = mapSize(mass, 1, 400, 32, 92, false);
+            const wPx = mapSize(mass * gField, 1, 4000, 36, 108, false);
+            document.getElementById('vizGsym').style.fontSize = gPx + 'px';
             document.getElementById('vizM').style.fontSize = mPx + 'px';
             document.getElementById('vizR').style.fontSize = rPx + 'px';
             document.getElementById('vizRsym').style.fontSize = rPx + 'px';
             document.getElementById('vizBodyR').style.fontSize = bodyPx + 'px';
             document.getElementById('vizH').style.fontSize = hPx + 'px';
-            const eqPx = (selectedEq === 'circ' ? vPx : rPx) * 0.42;
+            document.getElementById('vizW').style.fontSize = wPx + 'px';
+            document.getElementById('vizMass').style.fontSize = massPx + 'px';
+            document.getElementById('vizWg').style.fontSize = gPx + 'px';
+            const eqPx = (selectedEq === 'g' ? gPx : selectedEq === 'w' ? wPx : rPx) * 0.42;
             document.querySelectorAll('#vizFormula .viz-eq').forEach(el => { el.style.fontSize = eqPx + 'px'; });
-            document.getElementById('vizBar').style.width = Math.max(gPx + mPx * 1.15, rPx * 1.2) + 'px';
-            const roofH = Math.max(gPx, mPx) + rPx + 36;
-            const radical = document.getElementById('vizRadical');
-            radical.style.height = roofH + 'px';
-            radical.style.width = Math.max(26, roofH * 0.24) + 'px';
+            document.getElementById('vizBar').style.width = Math.max(34 + mPx * 1.15, rPx * 1.45) + 'px';
         }
         function updateDisplays() { applyChange('h'); }
 
         const eqViews = {
-            circ: {
-                stats: ['velStat', 'gmStat', 'rStat'],
-                view: 'vizViewCirc',
-                btn: 'eqCirc',
-                sub: 'Only V, GM and r. Tap a formula below to switch. r is locked.',
-                title: 'Circular orbit speed',
-                body: 'V = √(GM / r)\n\nThis is how fast the satellite must go to stay in a circle at distance r from the centre.\n\nA heavier planet (bigger GM) needs a higher speed.\nA higher orbit (bigger r) needs a lower speed.\n\nThe satellite’s own mass is not in this formula — only the planet and the distance matter.\n\nG is a constant, so in the big formula only M (the planet’s mass) grows and shrinks. V grows with M and shrinks as r grows.'
+            g: {
+                stats: ['gStat', 'gmStat', 'rStat'],
+                view: 'vizViewG',
+                btn: 'eqG',
+                sub: 'Only g, GM and r. Tap a formula below to switch. r is locked.',
+                title: 'Gravitational field strength',
+                body: 'g = GM / r²\n\nThis is how strong gravity is at distance r from the centre.\n\nA heavier planet (bigger GM) pulls harder.\nA bigger r (higher up, or a bigger world) makes g smaller — notice r is squared.\n\ng is in N/kg, the same as m/s².\n\nThe object’s own mass is not in this formula. That is why a 80 kg taikonaut and a 1 kg tool both “float” the same way on Tiangong.'
             },
             rad: {
                 stats: ['bodyRStat', 'altStat', 'rStat'],
                 view: 'vizViewRad',
                 btn: 'eqRad',
                 sub: 'Only r, R and h. Tap a formula below to switch. r is locked.',
-                title: 'Orbital radius',
-                body: 'r = R + h\n\nR is the planet or moon, measured from its centre to the surface.\nh is how high the satellite sits above that surface (altitude).\n\nAdd them to get r — the distance from the centre out to the satellite.\nYou cannot set r yourself. Change R or h, and r follows.'
+                title: 'Distance from the centre',
+                body: 'r = R + h\n\nR is the planet or moon, measured from its centre to the surface.\nh is how high you are above that surface.\n\nOn the surface, h = 0, so r = R.\nAt Tiangong, h is about 390 km, so r is a little bigger than Earth and g is a little smaller than 9.8 N/kg — not zero.'
+            },
+            w: {
+                stats: ['mStat', 'gStat', 'wStat'],
+                view: 'vizViewW',
+                btn: 'eqW',
+                sub: 'Only W, m and g. Tap a formula below to switch. W is locked.',
+                title: 'Weight',
+                body: 'W = m g\n\nWeight is a force, measured in newtons.\nMass m stays the same wherever you go.\ng changes: Earth about 9.8 N/kg, Moon about 1.6 N/kg, Mars about 3.7 N/kg.\n\nSo the same rover weighs less on the Moon, even though its mass has not changed.'
             }
         };
-        let selectedEq = 'circ';
+        let selectedEq = 'g';
         function selectEq(id, explainIfSame) {
             const spec = eqViews[id];
             if (!spec) return;
@@ -614,7 +623,7 @@
             selectedEq = id;
             document.body.dataset.eq = id;
             document.getElementById('eqSub').textContent = spec.sub;
-            ['velStat', 'gmStat', 'bodyRStat', 'altStat', 'rStat'].forEach(sid => {
+            ['gStat', 'gmStat', 'bodyRStat', 'altStat', 'rStat', 'mStat', 'wStat'].forEach(sid => {
                 document.getElementById(sid).classList.toggle('eq-off', !spec.stats.includes(sid));
             });
             document.querySelectorAll('#eqBar div').forEach(el => el.classList.toggle('on', el.id === spec.btn));
@@ -628,21 +637,23 @@
             document.getElementById('explainBody').textContent = body;
             explain.classList.add('show');
         }
-        document.getElementById('eqCirc').onclick = () => selectEq('circ', true);
+        document.getElementById('eqG').onclick = () => selectEq('g', true);
         document.getElementById('eqRad').onclick = () => selectEq('rad', true);
+        document.getElementById('eqW').onclick = () => selectEq('w', true);
         document.getElementById('explainOk').onclick = () => explain.classList.remove('show');
         explain.addEventListener('click', e => {
             if (e.target === explain) explain.classList.remove('show');
         });
         const linkMap = {
-            h: { src: 'altStat', stats: ['velStat', 'rStat'], vizSrc: 'vizH', viz: ['vizRsym', 'vizV'] },
-            R: { src: 'bodyRStat', stats: ['velStat', 'rStat'], vizSrc: 'vizBodyR', viz: ['vizRsym', 'vizV'] },
-            GM: { src: 'gmStat', stats: ['altStat', 'rStat'], vizSrc: 'vizM', viz: ['vizR'] },
-            V: { src: 'velStat', stats: ['altStat', 'rStat'], vizSrc: 'vizV', viz: ['vizR'] }
+            h: { src: 'altStat', stats: ['rStat', 'gStat', 'wStat'], vizSrc: 'vizH', viz: ['vizRsym', 'vizGsym'] },
+            R: { src: 'bodyRStat', stats: ['rStat', 'gStat'], vizSrc: 'vizBodyR', viz: ['vizRsym'] },
+            GM: { src: 'gmStat', stats: ['altStat', 'gStat', 'rStat', 'wStat'], vizSrc: 'vizM', viz: ['vizR', 'vizGsym'] },
+            g: { src: 'gStat', stats: ['altStat', 'rStat', 'wStat'], vizSrc: 'vizGsym', viz: ['vizR', 'vizWg', 'vizW'] },
+            m: { src: 'mStat', stats: ['wStat'], vizSrc: 'vizMass', viz: ['vizW'] }
         };
         let linkClearT = 0;
         function clearLinkLook() {
-            document.querySelectorAll('.stat.source, .stat.driven, #vizV, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH').forEach(el => {
+            document.querySelectorAll('.stat.source, .stat.driven, #vizGsym, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH, #vizW, #vizMass, #vizWg').forEach(el => {
                 el.classList.remove('source', 'driven');
             });
         }
@@ -680,14 +691,15 @@
                 applyChange(which);
             });
         }
-        bindTune(velSlider, velInput, 'V');
+        bindTune(gSlider, gInput, 'g');
         bindTune(gmSlider, gmInput, 'GM');
         bindTune(bodyRSlider, bodyRInput, 'R');
         bindTune(altSlider, altInput, 'h');
+        bindTune(mSlider, mInput, 'm');
 
         function resetSim() {
-            simulating = crashed = escaped = judged = false;
-            flightT = 0; rMin = Infinity; rMax = 0;
+            simulating = crashed = judged = false;
+            flightT = 0;
             sat.visible = true;
             clearTrail();
             launchBtn.disabled = false;
@@ -699,13 +711,14 @@
             simulating = true;
             launchBtn.disabled = true;
             applyChange('h');
-            launchR = rVis;
-            flightT = 0; rMin = Infinity; rMax = 0; judged = false;
+            velocity.set(0, 0, 0);
+            flightT = 0; judged = false;
             clearTrail();
         };
         resetBtn.onclick = () => {
             syncing = true;
-            bodyR = 6371; alt = 440; GM = 398600; vel = Math.sqrt(GM / (bodyR + alt));
+            bodyR = 6371; alt = 390; GM = 398600000; mass = 80;
+            gField = gFrom(GM, bodyR + alt);
             syncing = false;
             resetSim();
         };
@@ -757,27 +770,17 @@
         function animate() {
             requestAnimationFrame(animate);
             const dt = Math.min(clock.getDelta(), 0.04) * 0.9;
-            if (simulating && !crashed && !escaped) {
+            if (simulating && !crashed) {
                 const pos = sat.position, r = pos.length();
                 const accel = pos.clone().normalize().multiplyScalar(-visGM / (r * r));
                 velocity.add(accel.multiplyScalar(dt));
                 pos.add(velocity.clone().multiplyScalar(dt));
                 pushTrail(pos.x, pos.y, pos.z);
-                if (velocity.lengthSq() > 1e-8) {
-                    sat.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), velocity.clone().normalize());
-                }
                 flightT += dt;
-                if (flightT > 0.12) {
-                    rMin = Math.min(rMin, r);
-                    rMax = Math.max(rMax, r);
-                }
-                const energy = 0.5 * velocity.lengthSq() - visGM / r;
-                if (r < VIS_R) {
+                if (r < VIS_R * 1.04) {
                     crashed = true; judged = true;
-                } else if (energy > 0 && r > launchR * 1.4) {
-                    escaped = true; judged = true;
-                } else if (!judged && flightT > 2.4) {
-                    judged = true;
+                    pos.setLength(VIS_R * 1.04);
+                    velocity.set(0, 0, 0);
                 }
             }
             controls.update();
@@ -792,7 +795,7 @@
         });
 
         updateDisplays();
-        selectEq('circ');
+        selectEq('g');
         showQuestion();
         animate();
     </script>
