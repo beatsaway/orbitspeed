@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contract Rockets</title>
+  <style>
+    :root {
+      --ink: #e8f4ff;
+      --muted: #9eb4c9;
+      --line: #1d3c56;
+      --cyan: #6df;
+      --gold: #ffd56a;
+      --panel: #071018ee;
+      --bad: #ff8d7a;
+      --ok: #7dffa8;
+      --warn: #ffd56a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font-family: "Segoe UI", sans-serif; }
+    body { overflow: hidden; }
+    #app { display: flex; height: 100%; }
+    #stage { position: relative; flex: 1; min-width: 0; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    aside {
+      width: 340px; flex: none; padding: 16px 16px 18px;
+      background: var(--panel); border-right: 1px solid var(--line);
+      overflow: hidden; display: flex; flex-direction: column; gap: 10px;
+    }
+    #controls { flex: 1 1 auto; min-height: 0; overflow: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; }
+    .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .kicker { color: var(--cyan); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; margin: 0; }
+    .dots { display: flex; gap: 10px; flex-wrap: wrap; }
+    .dotbtn {
+      background: transparent; color: var(--muted); border: 0; padding: 0;
+      font-weight: 550; cursor: pointer; font-size: 0.82rem;
+    }
+    .dotbtn:hover { color: var(--ink); }
+    #hud {
+      position: fixed; top: 12px; right: 12px; z-index: 20;
+      min-width: 196px; padding: 8px 12px;
+      background: rgba(0, 12, 30, 0.93); border: 1px solid #4af;
+      border-radius: 10px; font-size: 0.82rem; line-height: 1.35;
+    }
+    #hud .hud-row { display: flex; justify-content: space-between; gap: 16px; }
+    #hud .hud-row + .hud-row { margin-top: 3px; }
+    #hud .hud-row span { opacity: 0.75; }
+    #hud .hud-row b { font-variant-numeric: tabular-nums; color: #ffd700; }
+    #hud .hud-row b.ok { color: #86efac; }
+    #hud .hud-row b.bad { color: #ff6b6b; }
+    #about-rep {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      width: 100%; margin-top: 3px; background: transparent; color: inherit;
+      border: 0; border-radius: 0; padding: 0; font-weight: 400; font-size: inherit;
+      cursor: pointer; text-align: left;
+    }
+    #about-rep > span:first-of-type { opacity: 0.75; }
+    #about-rep b { color: #e8f4ff; font-weight: 700; min-width: 4.6rem; text-align: right; }
+    .rep-track {
+      position: relative; flex: 1; height: 10px; border-radius: 99px;
+      background: #102033; overflow: hidden;
+    }
+    .rep-track::before {
+      content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+      background: #9eb4c9; transform: translateX(-1px);
+    }
+    #repFill { position: absolute; top: 0; bottom: 0; width: 0; }
+    #repFill.good { background: #86efac; }
+    #repFill.bad { background: #ff6b6b; }
+    #costLine { margin: 0; font-size: 0.92rem; }
+    #costHint { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+    #cargoLine { margin: 0; color: var(--muted); font-size: 0.85rem; }
+    .swatch { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+    .swatch.magenta { background: #ff2bd6; }
+    .swatch.cyan { background: #3de4ff; }
+    label.ctrl { display: block; }
+    label.ctrl span { display: block; font-size: 0.92rem; margin-bottom: 4px; }
+    input[type="range"] { width: 100%; accent-color: #4af; }
+    select {
+      width: 100%; font: inherit; color: var(--ink); background: #102033;
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+    }
+    .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; }
+    .actions { display: flex; gap: 8px; }
+    button {
+      font: inherit; color: #041018; background: var(--cyan); border: 0; border-radius: 10px;
+      padding: 10px 12px; font-weight: 700; cursor: pointer;
+    }
+    button.ghost { background: #071018cc; color: var(--ink); border: 1px solid #2a6a88; }
+    button:disabled { opacity: 0.45; cursor: default; }
+    #launch { flex: 1; }
+    #mission-btn {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      z-index: 2; max-width: calc(100% - 28px); white-space: nowrap;
+    }
+    #quipbox {
+      position: absolute; right: 14px; bottom: 14px; z-index: 5;
+      max-width: min(300px, calc(100% - 28px));
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; pointer-events: none;
+      background: rgba(0, 12, 30, 0.92); border: 1px solid #4af; border-radius: 12px;
+    }
+    #face { font-size: 2.2rem; line-height: 1; }
+    #quip { margin: 0; font-size: 0.92rem; line-height: 1.35; }
+    #flash {
+      position: absolute; inset: 0; background: #fff8e8; opacity: 0; pointer-events: none; z-index: 3;
+    }
+    #pop {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: #07111c88; padding: 18px; z-index: 4;
+    }
+    #pop[hidden] { display: none; }
+    .card {
+      width: min(420px, 100%); max-height: calc(100% - 8px); overflow: auto;
+      background: #071018; border: 1px solid #2a6a88;
+      border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 16px 50px #000a;
+    }
+    .card h2 { margin: 4px 0 8px; font-size: 1.35rem; }
+    .card img { display: block; width: 100%; height: 148px; object-fit: cover; border-radius: 10px; margin: 0 0 10px; background: #041018; }
+    .card img[hidden] { display: none; }
+    .card p { margin: 0 0 14px; line-height: 1.45; }
+    #popBody p { margin: 0 0 8px; }
+    #popBody p:last-child { margin-bottom: 14px; }
+    #popBody img { height: 112px; margin: 2px 0 6px; }
+    .card button { width: 100%; }
+    .card.happy { border-color: #e6b84d; }
+    .card.sad { border-color: #c45b4a; }
+    .card.happy h2 { color: var(--gold); }
+    .card.sad h2 { color: var(--bad); }
+    @media (max-width: 800px) {
+      #app { flex-direction: column; }
+      #stage { height: 42vh; flex: none; order: -1; }
+      aside { width: auto; flex: 1; min-height: 0; border-right: 0; border-top: 1px solid var(--line); }
+      #mission-btn { top: 92px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside>
+      <p class="kicker" id="kicker">Contract 1 of 12</p>
+      <p id="cargoLine"></p>
+      <div class="dots">
+        <button type="button" class="dotbtn" id="about-cg"><i class="swatch magenta"></i>Centre of gravity</button>
+        <button type="button" class="dotbtn" id="about-cp"><i class="swatch cyan"></i>Centre of pressure</button>
+      </div>
+      <div id="controls"></div>
+      <p id="costLine">This launch costs ¥0</p>
+      <p id="costHint">More fuel and bigger fins cost more.</p>
+      <div class="actions">
+        <button class="ghost" id="reset" type="button">Reset</button>
+        <button id="launch" type="button">Launch</button>
+      </div>
+    </aside>
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <button class="ghost" id="mission-btn" type="button">Mission</button>
+      <div id="quipbox"><span id="face">🙂</span><p id="quip">Design the rocket, then launch.</p></div>
+      <div id="flash"></div>
+      <div id="pop" hidden>
+        <div class="card" id="card">
+          <img id="popPic" alt="" hidden />
+          <p class="kicker" id="popKicker"></p>
+          <h2 id="popTitle"></h2>
+          <div id="popBody"></div>
+          <button id="popBtn" type="button">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="hud">
+    <div class="hud-row"><span>Budget</span><b id="hudBudget">¥0</b></div>
+    <div class="hud-row"><span>Savings</span><b id="hudSavings" class="ok">¥0</b></div>
+    <div class="hud-row"><span>Debt</span><b id="hudDebt" class="ok">¥0</b></div>
+    <button type="button" id="about-rep"><span>Reputation</span><span class="rep-track"><span id="repFill"></span></span><b id="hudRep">Steady</b></button>
+  </div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="balance.js"></script>
+  <script>
+    const MIN_REP = 0;
+    const MIN_FUEL = 24;
+    const DEBT_LIMIT = 50;
+    const PAYLOAD_LOOK = {
+      foam: { metalness: 0.02, roughness: 0.9, scale: 1.25, emissive: 0x4a3a22, emissiveIntensity: 0.18 },
+      alloy: { metalness: 0.82, roughness: 0.22, scale: 1.0, emissive: 0x1a2430, emissiveIntensity: 0.12 },
+      steel: { metalness: 0.9, roughness: 0.32, scale: 0.86, emissive: 0x22262a, emissiveIntensity: 0.2 },
+      lead: { metalness: 0.18, roughness: 0.7, scale: 0.62, emissive: 0x101214, emissiveIntensity: 0.05 }
+    };
+    const CONTROLS = {
+      payloadPos: { label: "Payload position", min: 0, max: 100, step: 1, left: "Towards the nose", right: "Just above the fuel" },
+      noseLen: { label: "Nose length", min: 0.5, max: 2.4, step: 0.05, left: "Short", right: "Long" },
+      bodyLen: { label: "Body length", min: 2.6, max: 8, step: 0.1, left: "Short", right: "Long" },
+      finSize: { label: "Fin size", min: 0.3, max: 2.2, step: 0.05, left: "Small", right: "Big" },
+      finPos: { label: "Fin position", min: 0, max: 100, step: 1, left: "At the tail", right: "Higher up" },
+      nozzle: { label: "Nozzle weight", min: 2, max: 80, step: 1, left: "Light", right: "Heavy" },
+      fuel: { label: "Fuel", min: 0, max: 90, step: 1, left: "Empty", right: "Full" }
+    };
+    const BASE = { noseLen: 1.2, bodyLen: 5.4, finSize: 1.45, finPos: 0, payload: "steel", payloadPos: 15, nozzle: 8, fuel: 32 };
+    function start(over) { return Object.assign({}, BASE, over); }
+    const MISSIONS = [
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Coast weather camera", cargo: "Weather camera", kg: 32, payload: "steel", pic: "art/01-coast.png",
+        budget: 20, reward: 18, free: ["payloadPos", "finSize"],
+        pitch: "China's space agency needs a 32 kg weather camera over the coast. It sits too low, and the fins are small.",
+        start: start({ payload: "steel", payloadPos: 85, finSize: 0.5 }) },
+      { client: "Jalsetu Shipping",         kind: "Business launch · India",
+        title: "Harbour ship tracker", cargo: "Ship tracker", kg: 32, payload: "steel", pic: "art/02-harbour.png",
+        budget: 20, reward: 18, free: ["finSize", "fuel"],
+        pitch: "Jalsetu Shipping in India wants a 32 kg tracker over a harbour. The fins are small and the tank is nearly empty.",
+        start: start({ payload: "steel", finSize: 0.5, fuel: 10 }) },
+      { client: "Chengdu Youth Lab",         kind: "Business launch · China",
+        title: "School experiment", cargo: "Classroom capsule", kg: 32, payload: "steel", pic: "art/03-school.png",
+        budget: 22, reward: 20, free: ["payloadPos", "finSize", "nozzle"],
+        pitch: "A school in Chengdu is sending a 32 kg classroom capsule. It sits low, with small fins and a heavy nozzle.",
+        start: start({ payload: "steel", payloadPos: 90, finSize: 0.5, nozzle: 55 }) },
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Ocean watch", cargo: "Ocean buoy pack", kg: 50, payload: "lead", pic: "art/04-ocean.png",
+        budget: 22, reward: 20, free: ["fuel", "payloadPos", "finSize"],
+        pitch: "China's space agency wants a long look at the ocean. The 50 kg buoy pack sits low on a full tank.",
+        start: start({ payload: "lead", payloadPos: 70, fuel: 88, finSize: 0.8 }) },
+      { client: "Tianhe Supply",         kind: "Business launch · China",
+        title: "Station lab boxes", cargo: "Supply box", kg: 32, payload: "steel", pic: "art/05-station.png",
+        budget: 24, reward: 22, free: ["finPos", "nozzle", "fuel"],
+        pitch: "Tianhe Supply is sending a 32 kg lab box to a space station. The fins are high, the nozzle is heavy, and the tank is nearly empty.",
+        start: start({ payload: "steel", finPos: 75, nozzle: 60, fuel: 12 }) },
+      { client: "Cerrado Link", kind: "Business launch · Brazil",
+        title: "Navigation satellite", cargo: "Navigation satellite", kg: 32, payload: "steel", pic: "art/06-nav.png",
+        budget: 24, reward: 22, free: ["bodyLen", "finSize", "payloadPos", "fuel"],
+        pitch: "Cerrado Link in Brazil needs a 32 kg satellite to help ships find their way. Short rocket, small fins, nearly empty tank.",
+        start: start({ payload: "steel", bodyLen: 3.0, finSize: 0.55, payloadPos: 80, fuel: 12 }) },
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Moon radio", cargo: "Moon radio", kg: 32, payload: "steel", pic: "art/07-moon.png",
+        budget: 26, reward: 24, free: ["finPos", "payloadPos", "nozzle"],
+        pitch: "China's space agency wants a 32 kg radio towards the Moon. The fins are high, the radio sits low, and the nozzle is heavy.",
+        start: start({ payload: "steel", finPos: 80, payloadPos: 85, nozzle: 50 }) },
+      { client: "Al Noor Imaging", kind: "Business launch · UAE",
+        title: "Asteroid camera", cargo: "Asteroid camera", kg: 32, payload: "steel", pic: "art/08-asteroid.png",
+        budget: 28, reward: 26, free: ["noseLen", "finSize", "fuel"],
+        pitch: "Al Noor Imaging in the UAE wants asteroid photos. The 32 kg camera has a short nose, small fins, and a very full tank.",
+        start: start({ payload: "steel", noseLen: 0.55, finSize: 0.55, fuel: 80 }) },
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Sun telescope", cargo: "Sun telescope", kg: 32, payload: "steel", pic: "art/09-sun.png",
+        budget: 30, reward: 28, free: ["nozzle", "finSize", "fuel", "finPos"],
+        pitch: "China's space agency wants a 32 kg telescope for the Sun. Heavy nozzle, small fins, nearly empty tank.",
+        start: start({ payload: "steel", nozzle: 58, finSize: 0.5, fuel: 12, finPos: 55 }) },
+      { client: "Nordhavn Research", kind: "Business launch · Norway",
+        title: "Polar ice map", cargo: "Ice camera", kg: 32, payload: "steel", pic: "art/10-ice.png",
+        budget: 32, reward: 30, free: ["finPos", "finSize", "fuel", "payloadPos"],
+        pitch: "Nordhavn Research in Norway is mapping polar ice. The 32 kg camera sits low, with small fins and a full tank.",
+        start: start({ payload: "steel", finPos: 72, finSize: 0.55, fuel: 85, payloadPos: 90 }) },
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Station cargo", cargo: "Cargo rack", kg: 32, payload: "steel", pic: "art/11-cargo.png",
+        budget: 34, reward: 32, free: ["bodyLen", "noseLen", "finSize", "fuel", "payloadPos", "nozzle"],
+        pitch: "China's space agency is sending a 32 kg rack to a space station. Short rocket, small fins, empty tank, heavy nozzle.",
+        start: start({ payload: "steel", bodyLen: 3.1, noseLen: 0.65, finSize: 0.55, fuel: 12, payloadPos: 85, nozzle: 46 }) },
+      { client: "China National Space Administration", kind: "Government contract · China",
+        title: "Practice crew flight", cargo: "Practice weight", kg: 32, payload: "steel", pic: "art/12-ferry.png",
+        budget: 40, reward: 36, free: ["noseLen", "payloadPos", "bodyLen", "finSize", "finPos", "nozzle", "fuel"],
+        pitch: "A practice flight for a future crew rocket. The 32 kg test weight is not set up to fly straight.",
+        start: start({ payload: "steel", noseLen: 0.65, payloadPos: 90, bodyLen: 3.2, finSize: 0.5, finPos: 65, nozzle: 50, fuel: 12 }) }
+    ];
+
+    const canvas = document.getElementById("view");
+    const flashEl = document.getElementById("flash");
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07111c);
+    scene.fog = new THREE.Fog(0x07111c, 22, 70);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 280);
+    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 0.9));
+    const sun = new THREE.DirectionalLight(0xfff2dd, 1.25);
+    sun.position.set(6, 14, 8);
+    scene.add(sun);
+    scene.add(new THREE.AmbientLight(0x8eb4d8, 0.25));
+
+    const site = new THREE.Group();
+    scene.add(site);
+    const sea = new THREE.Mesh(
+      new THREE.CircleGeometry(90, 48),
+      new THREE.MeshStandardMaterial({ color: 0x071826, roughness: 0.35, metalness: 0.4 })
+    );
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.set(0, -0.12, 22);
+    site.add(sea);
+    function terrainHeight(x, z) {
+      const roll = Math.sin(x * 0.16) * Math.cos(z * 0.13)
+        + Math.sin(x * 0.05 + z * 0.07) * 1.35
+        + Math.sin(x * 0.37 + 1.7) * Math.sin(z * 0.31) * 0.55;
+      const d = Math.hypot(x, z);
+      const away = Math.min(1, Math.max(0, (d - 7) / 8));
+      let h = roll * 1.2 * away;
+      if (z > 12) h -= (z - 12) * 0.055 * away;
+      return h;
+    }
+    const groundGeo = new THREE.PlaneGeometry(96, 96, 72, 72);
+    groundGeo.rotateX(-Math.PI / 2);
+    const gPos = groundGeo.attributes.position;
+    const gCol = new Float32Array(gPos.count * 3);
+    for (let i = 0; i < gPos.count; i++) {
+      const x = gPos.getX(i);
+      const z = gPos.getZ(i);
+      const h = terrainHeight(x, z);
+      gPos.setY(i, h);
+      const mix = Math.sin(x * 0.21 + 0.4) * Math.cos(z * 0.18);
+      let r = 0.24;
+      let g = 0.22;
+      let b = 0.16;
+      if (h < -0.15) { r = 0.1; g = 0.18; b = 0.22; }
+      else if (mix > 0.45) { r = 0.38; g = 0.36; b = 0.32; }
+      else if (mix < -0.25) { r = 0.2; g = 0.34; b = 0.16; }
+      else if (mix > 0.1) { r = 0.42; g = 0.36; b = 0.22; }
+      gCol[i * 3] = r;
+      gCol[i * 3 + 1] = g;
+      gCol[i * 3 + 2] = b;
+    }
+    groundGeo.setAttribute("color", new THREE.BufferAttribute(gCol, 3));
+    groundGeo.computeVertexNormals();
+    const ground = new THREE.Mesh(
+      groundGeo,
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.02 })
+    );
+    site.add(ground);
+    const pad = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.1, 3.45, 0.46, 40),
+      new THREE.MeshStandardMaterial({ color: 0x2c3848, metalness: 0.4, roughness: 0.5 })
+    );
+    pad.position.y = 0.23;
+    site.add(pad);
+    const deck = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.15, 2.15, 0.08, 32),
+      new THREE.MeshStandardMaterial({ color: 0x465366, metalness: 0.55, roughness: 0.35 })
+    );
+    deck.position.y = 0.48;
+    site.add(deck);
+    function groundRing(inner, outer, y, color) {
+      const mark = new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, 48),
+        new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide })
+      );
+      mark.rotation.x = -Math.PI / 2;
+      mark.position.y = y;
+      site.add(mark);
+    }
+    groundRing(1.5, 1.68, 0.53, 0x66ddff);
+    groundRing(2.55, 2.72, 0.47, 0xffb15a);
+    const trench = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 0.18, 8),
+      new THREE.MeshStandardMaterial({ color: 0x070b10, roughness: 0.85 })
+    );
+    trench.position.set(0, 0.02, 3.6);
+    site.add(trench);
+    const steel = new THREE.MeshStandardMaterial({ color: 0x9aafc4, metalness: 0.65, roughness: 0.32 });
+    const room = new THREE.MeshStandardMaterial({ color: 0x1c2836, metalness: 0.35, roughness: 0.62 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0xb9e7ff, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.08,
+      depthWrite: false, side: THREE.DoubleSide
+    });
+    const frameX = -2.65;
+    const frameFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.16, 12), steel);
+    frameFoot.position.set(frameX, 0.54, 0);
+    site.add(frameFoot);
+    const poleH = 5.2;
+    const poleBase = 0.62;
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, poleH, 8), steel);
+    pole.position.set(frameX, poleBase + poleH / 2, 0);
+    site.add(pole);
+    const armLen = 1.15;
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(armLen, 0.08, 0.08), steel);
+    arm.position.set(frameX + 0.07 + armLen / 2, poleBase + poleH - 1.15, 0);
+    site.add(arm);
+    const beacon = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 12, 10),
+      new THREE.MeshBasicMaterial({ color: 0xff3355 })
+    );
+    beacon.position.set(frameX, poleBase + poleH + 0.11, 0);
+    site.add(beacon);
+    const beaconLight = new THREE.PointLight(0xff3355, 0.8, 7, 2);
+    beaconLight.position.copy(beacon.position);
+    site.add(beaconLight);
+
+    const tx = -5.7;
+    const tz = 1.15;
+    const tower = new THREE.Group();
+    tower.position.set(tx, terrainHeight(tx, tz), tz);
+    site.add(tower);
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.15, 0.36, 20), room);
+    base.position.y = 0.12;
+    tower.add(base);
+    const shaftH = 3.8;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.38, shaftH, 14), steel);
+    shaft.position.y = 0.3 + shaftH / 2;
+    tower.add(shaft);
+    const neckY = 0.3 + shaftH;
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 0.18, 0.55, 28), steel);
+    dish.position.y = neckY + 0.12;
+    tower.add(dish);
+    const podY = neckY + 0.42;
+    const podFloor = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.42, 0.08, 28), room);
+    podFloor.position.y = podY;
+    tower.add(podFloor);
+    const podGlass = new THREE.Mesh(new THREE.CylinderGeometry(1.38, 1.38, 1.45, 28, 1, true), glassMat);
+    podGlass.position.y = podY + 0.78;
+    podGlass.renderOrder = 4;
+    tower.add(podGlass);
+    const podRoof = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.42, 0.12, 28), steel);
+    podRoof.position.y = podY + 1.52;
+    tower.add(podRoof);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.48, 0.045, 8, 28), steel);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = podY + 0.78;
+    tower.add(ring);
+    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.06, 1.7, 8), steel);
+    spire.position.y = podY + 1.52 + 0.85;
+    tower.add(spire);
+    const roomLight = new THREE.PointLight(0xffe0b0, 1.3, 5, 2);
+    roomLight.position.y = podY + 0.8;
+    tower.add(roomLight);
+    const screens = [];
+    const crew = [];
+    function makeWorker(clothHex, skinHex) {
+      const person = new THREE.Group();
+      const cloth = new THREE.MeshStandardMaterial({ color: clothHex, roughness: 0.78 });
+      const skin = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.7 });
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), skin);
+      head.position.y = 0.62;
+      person.add(head);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.12), cloth);
+      body.position.y = 0.38;
+      person.add(body);
+      const armGeo = new THREE.BoxGeometry(0.07, 0.22, 0.07);
+      armGeo.translate(0, -0.11, 0);
+      const leftArm = new THREE.Mesh(armGeo, cloth);
+      leftArm.position.set(-0.16, 0.48, 0.02);
+      leftArm.rotation.x = -1.15;
+      person.add(leftArm);
+      const rightArm = new THREE.Mesh(armGeo, cloth);
+      rightArm.position.set(0.16, 0.48, 0.02);
+      rightArm.rotation.x = -1.15;
+      person.add(rightArm);
+      const legGeo = new THREE.BoxGeometry(0.08, 0.16, 0.08);
+      const leftLeg = new THREE.Mesh(legGeo, cloth);
+      leftLeg.position.set(-0.06, 0.16, 0.05);
+      leftLeg.rotation.x = -1.25;
+      person.add(leftLeg);
+      const rightLeg = leftLeg.clone();
+      rightLeg.position.x = 0.06;
+      person.add(rightLeg);
+      const chair = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.05, 0.24), room);
+      chair.position.set(0, 0.1, -0.02);
+      person.add(chair);
+      person.userData = {
+        head: head, leftArm: leftArm, rightArm: rightArm,
+        phase: Math.random() * 6, nextWave: 0.8 + Math.random() * 2.5, waving: 0
+      };
+      return person;
+    }
+    [[0.4, 0x2f6fed, 0xf0c7a0], [2.5, 0x3d9a6a, 0xe7c2a0], [4.6, 0xc45b4a, 0xd9a07a]].forEach((seat) => {
+      const ang = seat[0];
+      const person = makeWorker(seat[1], seat[2]);
+      person.position.set(Math.cos(ang) * 0.62, podY + 0.1, Math.sin(ang) * 0.62);
+      person.rotation.y = Math.PI / 2 - ang;
+      person.scale.setScalar(1.05);
+      tower.add(person);
+      crew.push(person);
+      const screen = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.22, 0.28),
+        new THREE.MeshStandardMaterial({ color: 0x102838, emissive: 0x3de4ff, emissiveIntensity: 0.55, roughness: 0.4 })
+      );
+      screen.position.set(Math.cos(ang) * 1.02, podY + 0.48, Math.sin(ang) * 1.02);
+      screen.rotation.y = Math.PI / 2 - ang;
+      tower.add(screen);
+      screens.push(screen);
+    });
+
+    function makeSky(count, radius, size, color) {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        const r = radius;
+        pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+        pos[i * 3 + 1] = r * Math.cos(phi);
+        pos[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+      }
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      return new THREE.Points(geo, new THREE.PointsMaterial({
+        color: color, size: size, sizeAttenuation: false, fog: false, depthWrite: false
+      }));
+    }
+    const skyFar = makeSky(1200, 130, 1.35, 0xb7c9de);
+    const skyNear = makeSky(380, 92, 2.05, 0xf7fbff);
+    scene.add(skyFar);
+    scene.add(skyNear);
+    let starScroll = 0;
+
+    const pivot = new THREE.Group();
+    scene.add(pivot);
+    let rocket = new THREE.Group();
+    pivot.add(rocket);
+    let boom = null;
+    let live = null;
+
+    const DOT = Math.PI / 4;
+    let yaw = DOT;
+    let pitch = 0.32;
+    let zoom = 1;
+    let lookY = 2.55;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    let budget = 0;
+    let savings = 0;
+    let debt = 0;
+    let reputation = 50;
+    let index = 0;
+    let shape = {};
+    let mode = "intro";
+    let info = null;
+    let fly = null;
+    let signed = 0;
+    let popAction = null;
+    const texCache = {};
+
+    function money(mil) {
+      return formatYen(Math.round(mil * 1000000));
+    }
+    function formatYen(n) {
+      return (n < 0 ? "−" : "") + "¥" + Math.abs(Math.round(n)).toLocaleString();
+    }
+    const shownYen = { budget: 0, savings: 0, debt: 0 };
+    let moneyFrom = { budget: 0, savings: 0, debt: 0 };
+    let moneyTo = null;
+    let moneyT0 = 0;
+    function repWord(n) {
+      if (n <= 12) return "Ruined";
+      if (n <= 28) return "Shaky";
+      if (n < 42) return "Uneasy";
+      if (n < 56) return "Steady";
+      if (n < 74) return "Trusted";
+      if (n < 88) return "Strong";
+      return "Famous";
+    }
+    function paintRep() {
+      const fill = document.getElementById("repFill");
+      const t = (reputation - 50) / 50;
+      const w = Math.abs(t) * 50;
+      fill.className = t < 0 ? "bad" : "good";
+      fill.style.left = (t < 0 ? 50 - w : 50) + "%";
+      fill.style.width = w + "%";
+      document.getElementById("hudRep").textContent = repWord(reputation);
+    }
+    function paintMoney() {
+      document.getElementById("hudBudget").textContent = formatYen(shownYen.budget);
+      document.getElementById("hudSavings").textContent = formatYen(shownYen.savings);
+      document.getElementById("hudDebt").textContent = formatYen(shownYen.debt);
+    }
+    function refreshHud() {
+      document.getElementById("hudBudget").className = budget <= 0 ? "bad" : "";
+      document.getElementById("hudSavings").className = savings > 0 ? "ok" : "";
+      document.getElementById("hudDebt").className = debt > 0 ? "bad" : "ok";
+      paintRep();
+      moneyFrom = { budget: shownYen.budget, savings: shownYen.savings, debt: shownYen.debt };
+      moneyTo = {
+        budget: Math.round(budget * 1000000),
+        savings: Math.round(savings * 1000000),
+        debt: Math.round(debt * 1000000)
+      };
+      moneyT0 = performance.now();
+    }
+    function stepMoney() {
+      if (!moneyTo) return;
+      const progress = Math.min((performance.now() - moneyT0) / 900, 1);
+      ["budget", "savings", "debt"].forEach((key) => {
+        shownYen[key] = Math.round(moneyFrom[key] + (moneyTo[key] - moneyFrom[key]) * progress);
+      });
+      paintMoney();
+      if (progress >= 1) moneyTo = null;
+    }
+    function assignedBudget(base) {
+      return Math.round(base * (0.9 + reputation / 500) * 10) / 10;
+    }
+    function launchCost(next) {
+      return Math.round((4 + next.fuel * 0.16 + next.finSize * 3.5) * 10) / 10;
+    }
+    function spend(amount) {
+      let left = amount;
+      if (budget >= left) { budget -= left; left = 0; }
+      else { left -= budget; budget = 0; }
+      if (left > 0) {
+        if (savings >= left) { savings -= left; left = 0; }
+        else { left -= savings; savings = 0; debt += left; }
+      }
+      refreshHud();
+    }
+    function bank() {
+      if (debt > 0) {
+        const pay = Math.min(debt, budget);
+        debt -= pay;
+        budget -= pay;
+      }
+      savings += budget;
+      budget = 0;
+      refreshHud();
+    }
+
+    function paintTex(id) {
+      const c = document.createElement("canvas");
+      c.width = 128;
+      c.height = 128;
+      const g = c.getContext("2d");
+      if (id === "foam") {
+        g.fillStyle = "#fff4dc";
+        g.fillRect(0, 0, 128, 128);
+        for (let i = 0; i < 40; i++) {
+          g.fillStyle = "rgba(210,190,150," + (0.25 + Math.random() * 0.4) + ")";
+          g.beginPath();
+          g.arc(Math.random() * 128, Math.random() * 128, 6 + Math.random() * 14, 0, Math.PI * 2);
+          g.fill();
+        }
+      } else if (id === "alloy") {
+        g.fillStyle = "#d5dee8";
+        g.fillRect(0, 0, 128, 128);
+        for (let y = 0; y < 128; y += 3) {
+          g.strokeStyle = y % 6 === 0 ? "rgba(255,255,255,0.45)" : "rgba(80,96,112,0.25)";
+          g.beginPath();
+          g.moveTo(0, y);
+          g.lineTo(128, y);
+          g.stroke();
+        }
+      } else if (id === "steel") {
+        g.fillStyle = "#6e787f";
+        g.fillRect(0, 0, 128, 128);
+        g.strokeStyle = "rgba(230,236,240,0.28)";
+        for (let i = -128; i < 256; i += 5) {
+          g.beginPath();
+          g.moveTo(i, 0);
+          g.lineTo(i + 128, 128);
+          g.stroke();
+        }
+      } else {
+        g.fillStyle = "#3a4046";
+        g.fillRect(0, 0, 128, 128);
+        for (let i = 0; i < 90; i++) {
+          g.fillStyle = Math.random() > 0.5 ? "#2a2e32" : "#6a7278";
+          g.fillRect(Math.random() * 128, Math.random() * 128, 2 + Math.random() * 3, 2);
+        }
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    }
+    function payloadTex(id) {
+      if (!texCache[id]) texCache[id] = paintTex(id);
+      return texCache[id];
+    }
+
+    function resize() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / Math.max(h, 1);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    canvas.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup", () => { dragging = false; });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      yaw -= (e.clientX - lastX) * 0.008;
+      pitch = Math.max(-0.2, Math.min(1.05, pitch + (e.clientY - lastY) * 0.006));
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      zoom = Math.max(0.65, Math.min(1.7, zoom + e.deltaY * 0.001));
+    }, { passive: false });
+
+    function aimCamera(followY, followX, extra) {
+      const y = followY == null ? lookY : followY;
+      const x = followX || 0;
+      const dist = Math.max(8, 7.2 + lookY * 1.7) * zoom * (extra || 1);
+      const cp = Math.cos(pitch);
+      camera.position.set(x + dist * Math.sin(yaw) * cp, y + dist * Math.sin(pitch), dist * Math.cos(yaw) * cp);
+      camera.lookAt(x + 0.15, y, 0);
+    }
+
+    function disposeObject(obj) {
+      obj.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material && child.material.map !== payloadTex("foam") && child.material.map !== payloadTex("alloy") && child.material.map !== payloadTex("steel") && child.material.map !== payloadTex("lead")) {
+          if (child.material) child.material.dispose();
+        } else if (child.material && !child.material.map) {
+          child.material.dispose();
+        } else if (child.material) {
+          child.material.dispose();
+        }
+      });
+    }
+
+    function clearBoom() {
+      if (!boom) return;
+      scene.remove(boom);
+      boom.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      });
+      boom = null;
+    }
+
+    function plastic(color, extra) {
+      return new THREE.MeshStandardMaterial(Object.assign({ color: color, roughness: 0.45, metalness: 0.08 }, extra || {}));
+    }
+
+    function nozzleSize(weight) {
+      const s = 0.42 + (weight / 80) * 1.15;
+      return { len: 0.25 + 0.5 * s, s: s };
+    }
+
+    function buildRocket(next) {
+      clearBoom();
+      disposeObject(rocket);
+      pivot.remove(rocket);
+      rocket = new THREE.Group();
+      const bodyR = 0.5;
+      const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(bodyR, bodyR, next.bodyLen, 28),
+        new THREE.MeshStandardMaterial({
+          color: 0xe7f2fb, transparent: true, opacity: 0.2, roughness: 0.05,
+          metalness: 0.2, depthWrite: false
+        })
+      );
+      body.position.y = next.bodyLen / 2;
+      body.renderOrder = 3;
+      rocket.add(body);
+
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(bodyR * 0.98, next.noseLen, 28),
+        plastic(0xd24b3c, { transparent: true, opacity: 0.45, depthWrite: false })
+      );
+      nose.position.y = next.bodyLen + next.noseLen / 2;
+      rocket.add(nose);
+      const collar = new THREE.Mesh(
+        new THREE.CylinderGeometry(bodyR * 1.02, bodyR * 1.02, 0.08, 24),
+        plastic(0x1c2836, { metalness: 0.4, roughness: 0.45 })
+      );
+      collar.position.y = next.bodyLen;
+      rocket.add(collar);
+
+      const look = PAYLOAD_LOOK[next.payload];
+      const cargo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.46, 0.34, 0.46),
+        new THREE.MeshStandardMaterial({
+          color: 0xff2bd6,
+          emissive: 0xff2bd6,
+          emissiveIntensity: 0.35,
+          roughness: 0.35,
+          metalness: 0.15,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false
+        })
+      );
+      cargo.scale.setScalar(look.scale);
+      cargo.position.y = next.payloadY;
+      cargo.renderOrder = 1;
+      rocket.add(cargo);
+
+      const fillH = Math.max(0, next.fuelH);
+      let fuelMesh = null;
+      let core = null;
+      if (fillH > 0.04) {
+        fuelMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(bodyR * 0.62, bodyR * 0.62, fillH, 20),
+          new THREE.MeshStandardMaterial({
+            color: 0x39e4ff, emissive: 0x0c6f92, emissiveIntensity: 0.85,
+            roughness: 0.18, metalness: 0.15, transparent: true, opacity: 0.42, depthWrite: false
+          })
+        );
+        fuelMesh.position.y = fillH / 2;
+        rocket.add(fuelMesh);
+        core = new THREE.Mesh(
+          new THREE.CylinderGeometry(bodyR * 0.28, bodyR * 0.28, Math.max(0.04, fillH * 0.92), 12),
+          new THREE.MeshBasicMaterial({ color: 0xd8fbff, transparent: true, opacity: 0.28, depthWrite: false })
+        );
+        core.position.y = fillH / 2;
+        rocket.add(core);
+      }
+
+      const nz = nozzleSize(next.nozzle);
+      const nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(bodyR * 0.34, bodyR * (0.55 + nz.s * 0.35), nz.len, 24),
+        plastic(0xb87333, { metalness: 0.7, roughness: 0.28 })
+      );
+      nozzle.position.y = -nz.len / 2;
+      rocket.add(nozzle);
+
+      const shape2d = new THREE.Shape();
+      const span = next.span;
+      const chord = next.chord;
+      const root = bodyR * 0.92;
+      shape2d.moveTo(root, 0);
+      shape2d.lineTo(root + span, chord * 0.2);
+      shape2d.lineTo(root + span * 0.86, chord * 0.78);
+      shape2d.lineTo(root, chord);
+      for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(
+          new THREE.ShapeGeometry(shape2d),
+          plastic(0x2c6bed, { side: THREE.DoubleSide, roughness: 0.5 })
+        );
+        fin.position.y = next.slide;
+        fin.rotation.y = i * Math.PI / 2;
+        rocket.add(fin);
+      }
+
+      const cgY = next.total - next.cg;
+      const cpY = next.total - next.cp;
+      addDot(cgY, 0xff2bd6);
+      addDot(cpY, 0x3de4ff);
+      function addDot(y, color) {
+        const dot = new THREE.Mesh(
+          new THREE.SphereGeometry(0.07, 14, 12),
+          new THREE.MeshBasicMaterial({ color: color })
+        );
+        dot.position.set(0, y, 0);
+        dot.renderOrder = 6;
+        rocket.add(dot);
+      }
+
+      const plume = new THREE.Group();
+      plume.position.y = -nz.len - 0.05;
+      const outer = new THREE.Mesh(
+        new THREE.ConeGeometry(0.55, 2.4, 16),
+        new THREE.MeshBasicMaterial({ color: 0xff5a12, transparent: true, opacity: 0.55 })
+      );
+      outer.rotation.x = Math.PI;
+      outer.position.y = -1.2;
+      const mid = new THREE.Mesh(
+        new THREE.ConeGeometry(0.32, 1.7, 14),
+        new THREE.MeshBasicMaterial({ color: 0xffc14a, transparent: true, opacity: 0.8 })
+      );
+      mid.rotation.x = Math.PI;
+      mid.position.y = -0.85;
+      const heart = new THREE.Mesh(
+        new THREE.ConeGeometry(0.14, 1.05, 12),
+        new THREE.MeshBasicMaterial({ color: 0xfff6d0 })
+      );
+      heart.rotation.x = Math.PI;
+      heart.position.y = -0.5;
+      plume.add(outer, mid, heart);
+      const emberGeo = new THREE.BufferGeometry();
+      const emberArr = new Float32Array(70 * 3);
+      for (let i = 0; i < 70; i++) resetEmber(emberArr, i, true);
+      emberGeo.setAttribute("position", new THREE.BufferAttribute(emberArr, 3));
+      const embers = new THREE.Points(emberGeo, new THREE.PointsMaterial({ color: 0xffe08a, size: 0.08 }));
+      plume.add(embers);
+      const flameLight = new THREE.PointLight(0xff7a22, 0, 8);
+      flameLight.position.y = -0.4;
+      plume.add(flameLight);
+      plume.visible = false;
+      rocket.add(plume);
+
+      const cgLocal = next.total - next.cg;
+      rocket.position.y = -cgLocal;
+      pivot.position.set(0, cgLocal + nz.len, 0);
+      pivot.rotation.set(0, 0, 0);
+      pivot.userData.homeY = pivot.position.y;
+      pivot.add(rocket);
+      lookY = Math.max(1.8, next.total * 0.42);
+      live = { fuel: fuelMesh, fuelH: fillH, core: core, plume: plume, outer: outer, mid: mid, embers: embers, emberArr: emberArr, light: flameLight };
+    }
+
+    function resetEmber(arr, i, scatter) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.22;
+      arr[i * 3] = Math.cos(a) * r;
+      arr[i * 3 + 1] = scatter ? -Math.random() * 2.4 : 0;
+      arr[i * 3 + 2] = Math.sin(a) * r;
+    }
+
+    function flightKind(next) {
+      if (next.flight === "tumble") return "tumble";
+      if (next.flight === "wobble") return "wobble";
+      if (next.flight === "swerve") return "swerve";
+      if (next.fuel < MIN_FUEL) return "dry";
+      return "good";
+    }
+
+    function paint() {
+      info = RocketBalance.analyze(shape);
+      const mission = MISSIONS[index];
+      document.getElementById("kicker").textContent = "Contract " + (index + 1) + " of 12";
+      document.getElementById("cargoLine").textContent = mission.cargo + " · " + mission.kg + " kg";
+      document.getElementById("mission-btn").textContent = mission.title;
+      document.getElementById("costLine").textContent = "This launch costs " + money(launchCost(info));
+      refreshHud();
+      buildRocket(info);
+    }
+
+    function buildControls() {
+      const mission = MISSIONS[index];
+      const box = document.getElementById("controls");
+      box.innerHTML = "";
+      mission.free.forEach((key) => {
+        const spec = CONTROLS[key];
+        const label = document.createElement("label");
+        label.className = "ctrl";
+        const head = document.createElement("span");
+        head.textContent = spec.label;
+        label.append(head);
+        let input;
+        if (spec.type === "select") {
+          input = document.createElement("select");
+          spec.options.forEach((pair) => {
+            const opt = document.createElement("option");
+            opt.value = pair[0];
+            opt.textContent = pair[1];
+            input.append(opt);
+          });
+          input.value = shape[key];
+          input.addEventListener("change", () => {
+            if (mode !== "build") return;
+            shape[key] = input.value;
+            paint();
+          });
+        } else {
+          input = document.createElement("input");
+          input.type = "range";
+          input.min = spec.min;
+          input.max = spec.max;
+          input.step = spec.step;
+          input.value = shape[key];
+          input.addEventListener("input", () => {
+            if (mode !== "build") return;
+            shape[key] = Number(input.value);
+            paint();
+          });
+        }
+        label.append(input);
+        if (spec.left) {
+          const ends = document.createElement("div");
+          ends.className = "ends";
+          ends.innerHTML = "<span>" + spec.left + "</span><span>" + spec.right + "</span>";
+          label.append(ends);
+        }
+        box.append(label);
+      });
+    }
+
+    function syncControls() {
+      const mission = MISSIONS[index];
+      const nodes = document.querySelectorAll("#controls input, #controls select");
+      nodes.forEach((node, i) => { node.value = shape[mission.free[i]]; });
+    }
+
+    let audioCtx = null;
+    let typeState = null;
+    let engine = null;
+
+    function ensureAudio() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!audioCtx) audioCtx = new AC();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+    document.addEventListener("pointerdown", () => { ensureAudio(); });
+
+    const talkNotes = [659.25, 783.99, 880, 987.77, 1174.66];
+    function typeTick(ch) {
+      if (!audioCtx || audioCtx.state !== "running") return;
+      if (!ch || !/[A-Za-z0-9]/.test(ch)) return;
+      const ctx = audioCtx;
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      const freq = talkNotes[(Math.random() * talkNotes.length) | 0] * (0.97 + Math.random() * 0.06);
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(200, freq * 0.78), t + 0.032);
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(1100, t);
+      filter.Q.setValueAtTime(1.4, t);
+      gain.gain.setValueAtTime(0.055, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.034);
+      osc.connect(filter).connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.04);
+    }
+    function clickSfx() {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(880, t);
+      gain.gain.setValueAtTime(0.03, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.07);
+    }
+
+    function stopType() { typeState = null; }
+
+    function typeNodes(nodes) {
+      const full = nodes.map((node) => node.textContent);
+      nodes.forEach((node) => { node.textContent = ""; });
+      typeState = { nodes: nodes, full: full, ni: 0, ci: 0, acc: 0 };
+    }
+
+    let quipState = null;
+    const FAIL_LINES = [
+      ["😬", "Not that design."],
+      ["😮", "It did not go straight."],
+      ["😅", "The launch cost is gone. Have another go."],
+      ["😬", "Back on the pad. Try a new design."]
+    ];
+    function say(emoji, text) {
+      document.getElementById("face").textContent = emoji;
+      const el = document.getElementById("quip");
+      el.textContent = "";
+      quipState = { el: el, full: text, i: 0, acc: 0 };
+    }
+    function stepQuip(dt) {
+      if (!quipState) return;
+      quipState.acc += Math.min(dt, 0.05) * 1000;
+      while (quipState && quipState.acc >= 20) {
+        quipState.acc -= 20;
+        if (quipState.i >= quipState.full.length) { quipState = null; return; }
+        const ch = quipState.full[quipState.i];
+        quipState.el.textContent += ch;
+        typeTick(ch);
+        quipState.i += 1;
+      }
+    }
+
+    function stepType(dt) {
+      if (!typeState) return;
+      typeState.acc += Math.min(dt, 0.05) * 1000;
+      while (typeState && typeState.acc >= 20) {
+        typeState.acc -= 20;
+        while (typeState.ni < typeState.nodes.length && typeState.ci >= typeState.full[typeState.ni].length) {
+          typeState.ni += 1;
+          typeState.ci = 0;
+        }
+        if (typeState.ni >= typeState.nodes.length) { typeState = null; return; }
+        const ch = typeState.full[typeState.ni][typeState.ci];
+        typeState.nodes[typeState.ni].textContent += ch;
+        typeTick(ch);
+        typeState.ci += 1;
+      }
+    }
+
+    function noiseBuffer(seconds) {
+      const ctx = ensureAudio();
+      const len = Math.floor(ctx.sampleRate * seconds);
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      return buf;
+    }
+
+    function startEngine() {
+      stopEngine();
+      const ctx = ensureAudio();
+      const now = ctx.currentTime;
+      const src = ctx.createBufferSource();
+      src.buffer = noiseBuffer(2);
+      src.loop = true;
+      const rumble = ctx.createBiquadFilter();
+      rumble.type = "lowpass";
+      rumble.frequency.value = 220;
+      const rumbleGain = ctx.createGain();
+      rumbleGain.gain.value = 0.5;
+      const roar = ctx.createBiquadFilter();
+      roar.type = "bandpass";
+      roar.frequency.value = 480;
+      roar.Q.value = 0.85;
+      const roarGain = ctx.createGain();
+      roarGain.gain.value = 0.38;
+      const hiss = ctx.createBiquadFilter();
+      hiss.type = "highpass";
+      hiss.frequency.value = 2800;
+      const hissGain = ctx.createGain();
+      hissGain.gain.value = 0.06;
+      const sub = ctx.createOscillator();
+      sub.type = "sine";
+      sub.frequency.value = 42;
+      const body = ctx.createOscillator();
+      body.type = "triangle";
+      body.frequency.value = 84;
+      const tone = ctx.createGain();
+      tone.gain.value = 0.2;
+      const flutter = ctx.createOscillator();
+      flutter.frequency.value = 13;
+      const flutterGain = ctx.createGain();
+      flutterGain.gain.value = 160;
+      flutter.connect(flutterGain).connect(roar.frequency);
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.9, now + 0.16);
+      src.connect(rumble).connect(rumbleGain).connect(master);
+      src.connect(roar).connect(roarGain).connect(master);
+      src.connect(hiss).connect(hissGain).connect(master);
+      sub.connect(tone);
+      body.connect(tone);
+      tone.connect(master);
+      master.connect(ctx.destination);
+      const crack = ctx.createBufferSource();
+      crack.buffer = noiseBuffer(0.4);
+      const crackFilter = ctx.createBiquadFilter();
+      crackFilter.type = "bandpass";
+      crackFilter.frequency.setValueAtTime(160, now);
+      crackFilter.frequency.exponentialRampToValueAtTime(2400, now + 0.2);
+      const crackGain = ctx.createGain();
+      crackGain.gain.setValueAtTime(0.42, now);
+      crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+      crack.connect(crackFilter).connect(crackGain).connect(ctx.destination);
+      src.start();
+      sub.start();
+      body.start();
+      flutter.start();
+      crack.start(now);
+      engine = { src: src, sub: sub, body: body, flutter: flutter, rumble: rumble, roar: roar, master: master, fading: false };
+    }
+
+    function stopEngine() {
+      if (!engine || engine.fading) return;
+      engine.fading = true;
+      const ctx = audioCtx;
+      const now = ctx.currentTime;
+      engine.master.gain.cancelScheduledValues(now);
+      engine.master.gain.setValueAtTime(Math.max(engine.master.gain.value, 0.0001), now);
+      engine.master.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+      const done = engine;
+      setTimeout(() => {
+        try { done.src.stop(); done.sub.stop(); done.body.stop(); done.flutter.stop(); } catch (e) { /* already stopped */ }
+      }, 500);
+      engine = null;
+    }
+
+    function boomSound() {
+      const ctx = ensureAudio();
+      const now = ctx.currentTime;
+      const crack = ctx.createBufferSource();
+      crack.buffer = noiseBuffer(0.22);
+      const high = ctx.createBiquadFilter();
+      high.type = "highpass";
+      high.frequency.value = 700;
+      const crackGain = ctx.createGain();
+      crackGain.gain.setValueAtTime(0.62, now);
+      crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+      crack.connect(high).connect(crackGain).connect(ctx.destination);
+      crack.start(now);
+      const blast = ctx.createBufferSource();
+      blast.buffer = noiseBuffer(1.15);
+      const low = ctx.createBiquadFilter();
+      low.type = "lowpass";
+      low.frequency.setValueAtTime(1500, now);
+      low.frequency.exponentialRampToValueAtTime(60, now + 0.75);
+      const blastGain = ctx.createGain();
+      blastGain.gain.setValueAtTime(0.58, now);
+      blastGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
+      blast.connect(low).connect(blastGain).connect(ctx.destination);
+      blast.start(now);
+      const sub = ctx.createOscillator();
+      sub.type = "sine";
+      sub.frequency.setValueAtTime(120, now);
+      sub.frequency.exponentialRampToValueAtTime(22, now + 0.62);
+      const subGain = ctx.createGain();
+      subGain.gain.setValueAtTime(0.48, now);
+      subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.75);
+      sub.connect(subGain).connect(ctx.destination);
+      sub.start(now);
+      sub.stop(now + 0.78);
+      const ring = ctx.createOscillator();
+      ring.type = "triangle";
+      ring.frequency.setValueAtTime(540, now);
+      ring.frequency.exponentialRampToValueAtTime(160, now + 0.28);
+      const ringGain = ctx.createGain();
+      ringGain.gain.setValueAtTime(0.14, now);
+      ringGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+      ring.connect(ringGain).connect(ctx.destination);
+      ring.start(now);
+      ring.stop(now + 0.34);
+      [0.11, 0.19, 0.31].forEach((delay, i) => {
+        const pop = ctx.createBufferSource();
+        pop.buffer = noiseBuffer(0.09);
+        const popFilter = ctx.createBiquadFilter();
+        popFilter.type = "bandpass";
+        popFilter.frequency.value = 680 - i * 140;
+        const popGain = ctx.createGain();
+        popGain.gain.setValueAtTime(0.2, now + delay);
+        popGain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.07);
+        pop.connect(popFilter).connect(popGain).connect(ctx.destination);
+        pop.start(now + delay);
+      });
+    }
+
+    function cheer() {
+      const ctx = ensureAudio();
+      if (!ctx || ctx.state !== "running") return;
+      const now = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        osc.type = "triangle";
+        osc.frequency.value = freq;
+        const gain = ctx.createGain();
+        const start = now + i * 0.07;
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(0.07, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    }
+
+    function openCard(tone, kicker, title, body, button, action, block, pic) {
+      const card = document.getElementById("card");
+      card.className = "card" + (tone ? " " + tone : "");
+      const img = document.getElementById("popPic");
+      if (pic) { img.hidden = false; img.src = pic; img.alt = title; }
+      else img.hidden = true;
+      const kickEl = document.getElementById("popKicker");
+      const titleEl = document.getElementById("popTitle");
+      kickEl.textContent = kicker;
+      titleEl.textContent = title;
+      const box = document.getElementById("popBody");
+      box.replaceChildren();
+      const lines = [kickEl, titleEl];
+      (Array.isArray(body) ? body : [body]).forEach((part) => {
+        if (part && typeof part === "object") {
+          const step = document.createElement("img");
+          step.src = part.pic;
+          step.alt = "";
+          box.append(step);
+        }
+        const p = document.createElement("p");
+        p.textContent = part && typeof part === "object" ? part.text : part;
+        box.append(p);
+        lines.push(p);
+      });
+      document.getElementById("popBtn").textContent = button;
+      document.getElementById("pop").hidden = false;
+      popAction = action;
+      if (block) {
+        document.getElementById("launch").disabled = true;
+        document.getElementById("reset").disabled = true;
+      }
+      typeNodes(lines);
+    }
+
+    function showMission() {
+      const mission = MISSIONS[index];
+      openCard(
+        "",
+        mission.kind,
+        mission.title,
+        [mission.pitch, "Budget " + money(budget) + ". This launch costs " + money(launchCost(shape)) + ". You keep what is left."],
+        "Design the rocket",
+        () => {
+          mode = "build";
+          document.getElementById("launch").disabled = false;
+          document.getElementById("reset").disabled = false;
+        },
+        true,
+        mission.pic
+      );
+    }
+
+    function openMission() {
+      const mission = MISSIONS[index];
+      shape = Object.assign({}, mission.start);
+      budget = assignedBudget(mission.budget);
+      mode = "build";
+      buildControls();
+      paint();
+      showMission();
+    }
+
+    function spawnBoom(at) {
+      clearBoom();
+      boom = new THREE.Group();
+      boom.position.copy(at);
+      const fire = new THREE.Mesh(
+        new THREE.SphereGeometry(0.42, 20, 16),
+        new THREE.MeshBasicMaterial({ color: 0xfff6d8 })
+      );
+      const mid = new THREE.Mesh(
+        new THREE.SphereGeometry(0.78, 20, 16),
+        new THREE.MeshBasicMaterial({ color: 0xff7a18, transparent: true, opacity: 0.92 })
+      );
+      const smoke = new THREE.Mesh(
+        new THREE.SphereGeometry(1.05, 18, 14),
+        new THREE.MeshBasicMaterial({ color: 0x4e3b36, transparent: true, opacity: 0.45 })
+      );
+      const wave = new THREE.Mesh(
+        new THREE.RingGeometry(0.12, 0.28, 48),
+        new THREE.MeshBasicMaterial({ color: 0xfff3c4, transparent: true, opacity: 0.95, side: THREE.DoubleSide })
+      );
+      wave.rotation.x = -Math.PI / 2;
+      const wave2 = new THREE.Mesh(
+        new THREE.RingGeometry(0.2, 0.34, 36),
+        new THREE.MeshBasicMaterial({ color: 0xff5a1a, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+      );
+      boom.add(fire, mid, smoke, wave, wave2);
+      const bits = [];
+      for (let i = 0; i < 46; i++) {
+        const bit = new THREE.Mesh(
+          new THREE.BoxGeometry(0.1 + Math.random() * 0.22, 0.08, 0.08 + Math.random() * 0.2),
+          new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0xd24b3c : i % 3 === 1 ? 0xf2f5f8 : 0x2c6bed, emissive: 0xff6a22, emissiveIntensity: 0.55 })
+        );
+        const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.85 + 0.15, Math.random() - 0.5).normalize();
+        bit.userData.vel = dir.multiplyScalar(8 + Math.random() * 16);
+        bit.userData.spin = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
+        boom.add(bit);
+        bits.push(bit);
+      }
+      const sparkCount = 180;
+      const sparkGeo = new THREE.BufferGeometry();
+      const sparkArr = new Float32Array(sparkCount * 3);
+      const sparkVel = [];
+      for (let i = 0; i < sparkCount; i++) {
+        sparkVel.push(new THREE.Vector3(Math.random() - 0.5, Math.random() * 1.1, Math.random() - 0.5).multiplyScalar(9 + Math.random() * 14));
+      }
+      sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkArr, 3));
+      const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: 0xffe7a0, size: 0.16, sizeAttenuation: true }));
+      boom.add(sparks);
+      const blast = new THREE.PointLight(0xfff1c2, 22, 28);
+      const blast2 = new THREE.PointLight(0xff4a10, 12, 18);
+      boom.add(blast, blast2);
+      boom.userData = {
+        fire: fire, mid: mid, smoke: smoke, wave: wave, wave2: wave2,
+        bits: bits, sparks: sparks, sparkArr: sparkArr, sparkVel: sparkVel, sparkCount: sparkCount,
+        light: blast, light2: blast2, age: 0
+      };
+      scene.add(boom);
+      stopEngine();
+      boomSound();
+      rocket.visible = false;
+      if (live && live.plume) live.plume.visible = false;
+      flashEl.style.opacity = "0.72";
+    }
+
+    function finishFlight() {
+      stopEngine();
+      if (live && live.plume) live.plume.visible = false;
+      const mission = MISSIONS[index];
+      if (fly.kind === "good") {
+        const leftover = budget;
+        bank();
+        reputation = Math.min(100, reputation + 8);
+        refreshHud();
+        signed += 1;
+        say(leftover > 0.05 ? "😄" : "🙂", leftover > 0.05 ? "Straight flight. You kept what was left." : "It flew, but the budget was all spent.");
+        cheer();
+        const kept = leftover > 0.05
+          ? "You kept " + money(leftover) + " from the budget. That is your profit."
+          : "The budget was all spent, so this contract made no profit.";
+        if (index === MISSIONS.length - 1) {
+          const happy = debt === 0;
+          mode = "end";
+          openCard(
+            happy ? "happy" : "sad",
+            happy ? "Happy ending" : "Sad ending",
+            happy ? "The company has no debt" : "The company still owes money",
+            happy
+              ? [
+                "You have finished all twelve jobs.",
+                kept,
+                "Your savings are " + money(savings) + ". Your debt is " + money(debt) + "."
+              ]
+              : [
+                "You have finished all twelve jobs.",
+                kept,
+                "The company still owes " + money(debt) + ". Your savings are " + money(savings) + "."
+              ],
+            "Play again",
+            () => location.reload(),
+            true,
+            happy ? "art/end-clear.png" : "art/end-debt.png"
+          );
+          return;
+        }
+        mode = "result";
+        openCard(
+          "",
+          "Flight complete",
+          mission.title + " is up",
+          [
+            "The flight was straight.",
+            kept,
+            "Your savings are " + money(savings) + ". Your debt is " + money(debt) + ". Reputation is " + repWord(reputation) + "."
+          ],
+          "Next contract",
+          () => { index += 1; openMission(); },
+          true
+        );
+        return;
+      }
+      reputation = Math.max(MIN_REP, reputation - 10);
+      refreshHud();
+      if (debt >= DEBT_LIMIT && budget <= 0 && savings <= 0) {
+        mode = "end";
+        quipState = null;
+        document.getElementById("face").textContent = "😟";
+        document.getElementById("quip").textContent = "The company has to close.";
+        openCard(
+          "sad",
+          "Sad ending",
+          "The company has run out of money",
+          [
+            "The debt is " + money(debt) + ". The company has to close.",
+            "You finished " + signed + " job" + (signed === 1 ? "" : "s") + "."
+          ],
+          "Play again",
+          () => location.reload(),
+          true,
+          "art/end-close.png"
+        );
+        return;
+      }
+      mode = "build";
+      document.getElementById("launch").disabled = false;
+      document.getElementById("reset").disabled = false;
+      paint();
+      const line = FAIL_LINES[Math.floor(Math.random() * FAIL_LINES.length)];
+      say(line[0], line[1]);
+    }
+
+    function doLaunch() {
+      if (mode !== "build") return;
+      stopType();
+      document.getElementById("pop").hidden = true;
+      startEngine();
+      spend(launchCost(info));
+      mode = "fly";
+      document.getElementById("launch").disabled = true;
+      document.getElementById("reset").disabled = true;
+      const call = { kind: flightKind(info) };
+      const burn = 0.45 + (info.fuel / 90) * 3.5;
+      fly = { kind: call.kind, age: 0, spin: 0.6, vy: 2, phase: "burn", burn: burn, boomAge: 0 };
+      if (live) {
+        live.plume.visible = true;
+        live.light.intensity = 4;
+      }
+    }
+
+    document.body.addEventListener("click", (event) => {
+      if (event.target.closest("button")) clickSfx();
+    });
+    document.getElementById("launch").addEventListener("click", doLaunch);
+    document.getElementById("reset").addEventListener("click", () => {
+      if (mode !== "build") return;
+      shape = Object.assign({}, MISSIONS[index].start);
+      syncControls();
+      paint();
+    });
+    document.getElementById("mission-btn").addEventListener("click", () => {
+      if (mode !== "build") return;
+      showMission();
+    });
+    document.getElementById("popBtn").addEventListener("click", () => {
+      stopType();
+      document.getElementById("pop").hidden = true;
+      const fn = popAction;
+      popAction = null;
+      if (fn) fn();
+    });
+
+    document.getElementById("about-cg").addEventListener("click", () => {
+      if (mode !== "build") return;
+      openCard("", "Magenta dot", "Centre of gravity", [
+        "The magenta dot is the centre of gravity. It sits on the middle line, from the nose tip down to the nozzle.",
+        "Hang the rocket from this dot and it stays level. A heavy payload near the nose pulls the dot up. Fuel and a heavy nozzle pull it down."
+      ], "Close", () => {
+        document.getElementById("launch").disabled = false;
+        document.getElementById("reset").disabled = false;
+      }, false, "art/cg-teach.png");
+    });
+    document.getElementById("about-cp").addEventListener("click", () => {
+      if (mode !== "build") return;
+      openCard("", "Cyan dot", "Centre of pressure", [
+        "The cyan dot is the centre of pressure. It is where the air pushes hardest.",
+        "Bigger fins at the tail move this dot down the rocket.",
+        "For a steady flight, the magenta dot sits a little closer to the nose than the cyan one."
+      ], "Close", () => {
+        document.getElementById("launch").disabled = false;
+        document.getElementById("reset").disabled = false;
+      }, false, "art/cp-teach.png");
+    });
+    document.getElementById("about-rep").addEventListener("click", () => {
+      if (mode !== "build") return;
+      openCard("", repWord(reputation), "How reputation works", [
+        "The mark sits in the middle when your reputation is steady.",
+        "Successful launches push it to the right, into the green. Failed launches push it to the left, into the red.",
+        "A stronger reputation means a slightly bigger budget on the next contract."
+      ], "Close", () => {
+        document.getElementById("launch").disabled = false;
+        document.getElementById("reset").disabled = false;
+      }, false);
+    });
+
+    const clock = new THREE.Clock();
+    function frame() {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.elapsedTime;
+      stepType(dt);
+      stepQuip(dt);
+      stepMoney();
+      const yBefore = pivot.position.y;
+      if (mode === "fly" && fly) {
+        fly.age += dt;
+        if (fly.phase === "burn" || fly.phase === "coast" || fly.phase === "fall") {
+          if (live && live.plume.visible) {
+            const flick = 0.82 + Math.sin(t * 46) * 0.18;
+            live.outer.scale.set(flick, 0.75 + Math.sin(t * 31) * 0.2, flick);
+            live.mid.scale.y = 0.85 + Math.sin(t * 52) * 0.2;
+            live.light.intensity = 3.2 + Math.sin(t * 40) * 1.4;
+            const arr = live.emberArr;
+            for (let i = 0; i < 70; i++) {
+              arr[i * 3 + 1] -= (5 + (i % 5)) * dt;
+              if (arr[i * 3 + 1] < -2.6) resetEmber(arr, i, false);
+            }
+            live.embers.geometry.attributes.position.needsUpdate = true;
+          }
+          if (live && live.fuel && fly.phase === "burn") {
+            const left = Math.max(0, 1 - fly.age / Math.max(fly.burn, 0.2));
+            live.fuel.scale.y = Math.max(0.04, left);
+            live.fuel.position.y = (live.fuelH * Math.max(0.04, left)) / 2;
+            live.core.scale.y = Math.max(0.04, left);
+            live.core.position.y = live.fuel.position.y;
+          }
+          const homeY = pivot.userData.homeY;
+          if (fly.kind === "good") {
+            if (fly.age < fly.burn) {
+              const peak = 10 + (info.fuel / 90) * 26;
+              fly.vy = Math.min(peak, fly.vy + 28 * dt);
+              live.plume.visible = true;
+            } else {
+              fly.phase = "coast";
+              fly.vy *= Math.exp(-0.55 * dt);
+              if (live) live.plume.visible = false;
+            }
+            pivot.position.y += fly.vy * dt;
+            pivot.rotation.z = Math.sin(fly.age * 9) * 0.05 * Math.exp(-fly.age);
+            if (fly.age > fly.burn + 0.85) finishFlight();
+          } else if (fly.kind === "dry") {
+            if (fly.age < fly.burn) {
+              fly.vy = Math.min(7, fly.vy + 12 * dt);
+              pivot.position.y += fly.vy * dt;
+            } else {
+              fly.phase = "fall";
+              if (live) live.plume.visible = false;
+              fly.vy -= 20 * dt;
+              pivot.position.y += fly.vy * dt;
+              pivot.rotation.z += dt * 0.4;
+              if (fly.vy < -6) {
+                fly.phase = "boom";
+                spawnBoom(pivot.position.clone());
+              }
+            }
+          } else if (fly.kind === "wobble") {
+            const amp = Math.min(1.05, 0.2 + fly.age * 0.7);
+            pivot.rotation.z = Math.sin(fly.age * 6) * amp;
+            pivot.position.x = Math.sin(fly.age * 6) * amp * 0.45;
+            pivot.position.y += 1.4 * dt;
+            if (fly.age > 1.05) { fly.phase = "boom"; spawnBoom(pivot.position.clone()); }
+          } else if (fly.kind === "swerve") {
+            pivot.rotation.z = Math.min(1.15, fly.age * 0.9);
+            fly.vy = Math.min(12, fly.vy + 10 * dt);
+            pivot.position.x += Math.sin(pivot.rotation.z) * fly.vy * dt;
+            pivot.position.y += Math.cos(pivot.rotation.z) * fly.vy * dt;
+            if (fly.age > 1.25) { fly.phase = "boom"; spawnBoom(pivot.position.clone()); }
+          } else {
+            fly.spin += 3.2 * dt;
+            pivot.rotation.z += fly.spin * dt;
+            pivot.position.x = Math.sin(pivot.rotation.z) * 0.4;
+            pivot.position.y = homeY + Math.sin(fly.age * 3) * 0.2;
+            if (fly.age > 0.9) { fly.phase = "boom"; spawnBoom(pivot.position.clone()); }
+          }
+        }
+        if (fly.phase === "boom" && boom) {
+          const b = boom.userData;
+          b.age += dt;
+          fly.boomAge = b.age;
+          const k = Math.min(1, b.age / 0.75);
+          b.fire.scale.setScalar(1 + k * 2.2);
+          b.mid.scale.setScalar(1 + k * 3.6);
+          b.mid.material.opacity = 0.92 * (1 - k * 0.9);
+          b.smoke.scale.setScalar(1 + k * 6.5);
+          b.smoke.material.opacity = 0.42 * (1 - k);
+          b.wave.scale.setScalar(1 + k * 18);
+          b.wave.material.opacity = 0.9 * (1 - k);
+          b.wave2.scale.setScalar(1 + k * 12);
+          b.wave2.material.opacity = 0.7 * (1 - k);
+          b.wave2.rotation.z = b.age * 3;
+          b.light.intensity = 20 * (1 - k);
+          b.light2.intensity = 10 * (1 - k);
+          b.bits.forEach((bit) => {
+            bit.userData.vel.y -= 11 * dt;
+            bit.position.addScaledVector(bit.userData.vel, dt);
+            bit.rotation.x += bit.userData.spin.x * dt * 8;
+            bit.rotation.y += bit.userData.spin.y * dt * 8;
+          });
+          for (let i = 0; i < b.sparkCount; i++) {
+            b.sparkVel[i].y -= 10 * dt;
+            b.sparkArr[i * 3] += b.sparkVel[i].x * dt;
+            b.sparkArr[i * 3 + 1] += b.sparkVel[i].y * dt;
+            b.sparkArr[i * 3 + 2] += b.sparkVel[i].z * dt;
+          }
+          b.sparks.geometry.attributes.position.needsUpdate = true;
+          flashEl.style.opacity = String(Math.max(0, 0.7 - b.age * 1.6));
+          if (b.age > 1.2) finishFlight();
+        }
+      } else {
+        flashEl.style.opacity = "0";
+        camera.fov = 42;
+        camera.updateProjectionMatrix();
+      }
+      if (mode === "fly" && fly && fly.kind === "good") {
+        camera.fov = 42 + Math.min(12, fly.vy * 0.35);
+        camera.updateProjectionMatrix();
+      }
+      if (engine && !engine.fading && fly) {
+        const now = audioCtx.currentTime;
+        const burning = fly.phase === "burn";
+        const lift = Math.min(40, fly.vy || 0);
+        engine.rumble.frequency.setTargetAtTime(burning ? 240 + lift * 2 : 90, now, 0.08);
+        engine.roar.frequency.setTargetAtTime(burning ? 420 + lift * 8 : 150, now, 0.08);
+        engine.sub.frequency.setTargetAtTime(36 + lift * 0.7, now, 0.08);
+        engine.body.frequency.setTargetAtTime(72 + lift * 1.5, now, 0.08);
+        if (!burning) stopEngine();
+      }
+      crew.forEach((person) => {
+        const bits = person.userData;
+        bits.head.rotation.x = Math.sin(t * 1.7 + bits.phase) * 0.22;
+        bits.head.rotation.y = Math.sin(t * 0.33 + bits.phase) * 0.14;
+        bits.leftArm.rotation.x = -1.15 + Math.sin(t * 6.2 + bits.phase) * 0.07;
+        if (t > bits.nextWave && bits.waving <= 0) {
+          bits.waving = 0.9;
+          bits.nextWave = t + 2.2 + Math.random() * 4.8;
+        }
+        if (bits.waving > 0) {
+          bits.waving -= dt;
+          bits.rightArm.rotation.z = -0.55;
+          bits.rightArm.rotation.x = -0.2 + Math.sin(t * 16) * 0.9;
+        } else {
+          bits.rightArm.rotation.z = 0;
+          bits.rightArm.rotation.x = -1.15 + Math.sin(t * 5 + bits.phase) * 0.05;
+        }
+      });
+      screens.forEach((screen, i) => {
+        screen.material.emissiveIntensity = 0.28 + Math.abs(Math.sin(t * 3.1 + i)) * 0.55;
+      });
+      if (!dragging) yaw += dt * 0.015;
+      const rose = pivot.position.y - yBefore;
+      const climbing = mode === "fly" && fly && rose > 0 && fly.kind !== "tumble" && !(fly.kind === "dry" && fly.phase !== "burn");
+      if (climbing) starScroll += rose;
+      skyFar.rotation.x = starScroll * 0.006;
+      skyNear.rotation.x = starScroll * 0.011;
+      beaconLight.intensity = 0.45 + Math.abs(Math.sin(t * 2.6)) * 2.1;
+
+      const watching = mode === "fly" || mode === "result" || mode === "end";
+      const followY = watching ? pivot.position.y : lookY;
+      const followX = watching ? pivot.position.x : 0;
+      const boomPull = boom && fly && fly.phase === "boom" ? 1.55 : 1;
+      aimCamera(followY, followX, boomPull);
+      if (boom && fly && fly.phase === "boom") {
+        const kick = Math.max(0, 0.32 * (1 - boom.userData.age));
+        camera.position.x += (Math.random() - 0.5) * kick;
+        camera.position.y += (Math.random() - 0.5) * kick;
+      }
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+
+    resize();
+    refreshHud();
+    openCard(
+      "",
+      "Qinglan Launch",
+      "You are the founder",
+      [
+        "You are the founder and CEO of Qinglan Launch. You fly rockets for China, and for other countries too.",
+        "Each job is already won. The money you do not spend is your profit. A crash spends money and can put you into debt."
+      ],
+      "Start the company",
+      () => openMission(),
+      true,
+      "art/founder.png"
+    );
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
