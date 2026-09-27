@@ -29,7 +29,10 @@
     background: #07080c;
     color: var(--ink);
     font-family: Outfit, system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
   }
+  input, textarea { user-select: text; -webkit-user-select: text; }
   canvas {
     display: block;
     position: fixed;
@@ -542,8 +545,6 @@
     letter-spacing: 0;
     white-space: normal;
     pointer-events: auto;
-    user-select: text;
-    -webkit-user-select: text;
   }
   #ui:has(#maths:not([hidden])) { pointer-events: auto; }
   #maths[hidden], #results[hidden] { display: none; }
@@ -599,18 +600,6 @@
   #maths ol { margin: 0 0 12px; padding-left: 1.25em; }
   #maths li { margin: 0 0 8px; }
   #maths p, #results .lead { margin: 0 0 12px; color: var(--ink); }
-  #maths .card h3,
-  #maths .card p,
-  #maths .card li,
-  #maths .card ol {
-    user-select: text;
-    -webkit-user-select: text;
-    cursor: text;
-  }
-  #maths .card ::selection {
-    background: #f3ecdf;
-    color: #16140f;
-  }
   #maths p.formula {
     margin: 0 0 14px;
     font-family: "Cormorant Garamond", Georgia, serif;
