@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rocket sandbox</title>
+  <style>
+    :root { --ink: #e7f2ff; --muted: #9eb4c8; --cyan: #6df; --line: #24384c; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font-family: "Segoe UI", sans-serif; }
+    #app { display: flex; height: 100%; }
+    aside {
+      width: 320px; flex: none; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px;
+      background: #0c1826; border-right: 1px solid var(--line); min-height: 0;
+    }
+    h1 { margin: 0; font-size: 1.15rem; color: var(--cyan); }
+    .sub { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+    #controls { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+    label.ctrl span { display: block; font-size: 0.88rem; margin-bottom: 3px; }
+    label.ctrl select, label.ctrl input[type="range"] { width: 100%; }
+    .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.72rem; }
+    #result { margin: 0; font-size: 1rem; font-weight: 700; }
+    #result.good { color: #9dface; }
+    #result.bad { color: #ffb0a8; }
+    .key { margin: 0; color: var(--muted); font-size: 0.8rem; }
+    .key b.cg { color: #ff2bd6; }
+    .key b.cp { color: #3de4ff; }
+    .actions { display: flex; gap: 8px; }
+    button {
+      font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+      background: var(--cyan); color: #041018;
+    }
+    button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    #launch { flex: 1; }
+    button:disabled { opacity: 0.45; cursor: default; }
+    #stage { flex: 1; position: relative; min-width: 0; }
+    canvas { width: 100%; height: 100%; display: block; }
+    @media (max-width: 800px) {
+      #app { flex-direction: column; }
+      #stage { height: 46vh; flex: none; order: -1; }
+      aside { width: auto; flex: 1; border-right: 0; border-top: 1px solid var(--line); }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside>
+      <h1>Rocket sandbox</h1>
+      <p class="sub">Every control from the contracts is free here. Change the rocket, then launch.</p>
+      <div id="controls"></div>
+      <p id="result" class="good">Flies straight</p>
+      <p class="key"><b class="cg">Magenta</b> centre of gravity · <b class="cp">Cyan</b> centre of pressure</p>
+      <div class="actions">
+        <button class="ghost" id="reset" type="button">Reset</button>
+        <button id="launch" type="button">Launch</button>
+      </div>
+    </aside>
+    <div id="stage"><canvas id="view"></canvas></div>
+  </div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="balance.js"></script>
+  <script>
+    const MIN_FUEL = 18;
+    const PAYLOADS = [
+      ["foam", "Foam crate"],
+      ["alloy", "Alloy box"],
+      ["steel", "Steel block"],
+      ["lead", "Lead brick"]
+    ];
+    const CONTROLS = [
+      { key: "payload", label: "Payload", type: "select" },
+      { key: "payloadPos", label: "Payload position", min: 0, max: 100, step: 1, left: "Towards the nose", right: "Just above the fuel" },
+      { key: "noseLen", label: "Nose length", min: 0.5, max: 2.4, step: 0.05, left: "Short", right: "Long" },
+      { key: "bodyLen", label: "Body length", min: 2.6, max: 8, step: 0.1, left: "Short", right: "Long" },
+      { key: "finSize", label: "Fin size", min: 0.3, max: 2.2, step: 0.05, left: "Small", right: "Big" },
+      { key: "finPos", label: "Fin position", min: 0, max: 100, step: 1, left: "At the tail", right: "Higher up" },
+      { key: "nozzle", label: "Nozzle weight", min: 2, max: 80, step: 1, left: "Light", right: "Heavy" },
+      { key: "fuel", label: "Fuel", min: 0, max: 90, step: 1, left: "Empty", right: "Full" }
+    ];
+    const BASE = { noseLen: 1.2, bodyLen: 5.4, finSize: 1.45, finPos: 0, payload: "steel", payloadPos: 15, nozzle: 8, fuel: 32 };
+    const WORDS = {
+      good: ["Flies straight", "good"],
+      wobble: ["Wobbles", "bad"],
+      tumble: ["Tumbles", "bad"],
+      swerve: ["Swerves", "bad"],
+      dry: ["Not enough fuel", "bad"]
+    };
+
+    let shape = Object.assign({}, BASE);
+    let info = null;
+    let mode = "build";
+    let fly = null;
+    let live = null;
+
+    const canvas = document.getElementById("view");
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07111c);
+    scene.fog = new THREE.Fog(0x07111c, 18, 55);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
+    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 0.9));
+    const sun = new THREE.DirectionalLight(0xfff2dd, 1.2);
+    sun.position.set(6, 14, 8);
+    scene.add(sun);
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(40, 40),
+      new THREE.MeshStandardMaterial({ color: 0x1a2836, roughness: 0.9 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+    const pad = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.2, 2.4, 0.28, 32),
+      new THREE.MeshStandardMaterial({ color: 0x2c3848, metalness: 0.4, roughness: 0.5 })
+    );
+    pad.position.y = 0.14;
+    scene.add(pad);
+
+    const pivot = new THREE.Group();
+    scene.add(pivot);
+    let rocket = new THREE.Group();
+    pivot.add(rocket);
+
+    let yaw = Math.PI / 4;
+    let pitch = 0.32;
+    let lookY = 2.4;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function resize() {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / Math.max(h, 1);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+    canvas.addEventListener("pointerdown", (e) => {
+      if (e.target !== canvas) return;
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    window.addEventListener("pointerup", () => { dragging = false; });
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      yaw -= (e.clientX - lastX) * 0.008;
+      pitch = Math.max(-0.1, Math.min(1.05, pitch + (e.clientY - lastY) * 0.006));
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    function aim(followY, followX) {
+      const y = followY == null ? lookY : followY;
+      const x = followX || 0;
+      const dist = Math.max(8, 7 + lookY * 1.5);
+      const c = Math.cos(pitch);
+      camera.position.set(x + dist * Math.sin(yaw) * c, y + dist * Math.sin(pitch), dist * Math.cos(yaw) * c);
+      camera.lookAt(x, y, 0);
+    }
+
+    function flightKind(next) {
+      if (next.flight === "tumble") return "tumble";
+      if (next.flight === "wobble") return "wobble";
+      if (next.flight === "swerve") return "swerve";
+      if (next.fuel < MIN_FUEL) return "dry";
+      return "good";
+    }
+
+    function say(kind) {
+      const pair = WORDS[kind];
+      const el = document.getElementById("result");
+      el.textContent = pair[0];
+      el.className = pair[1];
+    }
+
+    function nozzleSize(weight) {
+      const s = 0.42 + (weight / 80) * 1.15;
+      return { len: 0.25 + 0.5 * s, s: s };
+    }
+
+    function buildRocket(next) {
+      pivot.remove(rocket);
+      rocket.traverse((node) => { if (node.geometry) node.geometry.dispose(); });
+      rocket = new THREE.Group();
+      const bodyR = 0.5;
+      const shell = new THREE.MeshStandardMaterial({ color: 0xe7f2fb, transparent: true, opacity: 0.28, roughness: 0.08, depthWrite: false });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(bodyR, bodyR, next.bodyLen, 24), shell);
+      body.position.y = next.bodyLen / 2;
+      rocket.add(body);
+      const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(bodyR * 0.98, next.noseLen, 24),
+        new THREE.MeshStandardMaterial({ color: 0xd24b3c, transparent: true, opacity: 0.55, depthWrite: false })
+      );
+      nose.position.y = next.bodyLen + next.noseLen / 2;
+      rocket.add(nose);
+      const scales = { foam: 1.25, alloy: 1, steel: 0.86, lead: 0.62 };
+      const cargo = new THREE.Mesh(
+        new THREE.BoxGeometry(0.46, 0.34, 0.46),
+        new THREE.MeshStandardMaterial({ color: 0xff2bd6, emissive: 0xff2bd6, emissiveIntensity: 0.35, transparent: true, opacity: 0.6, depthWrite: false })
+      );
+      cargo.scale.setScalar(scales[next.payload] || 1);
+      cargo.position.y = next.payloadY;
+      rocket.add(cargo);
+      const fillH = Math.max(0, next.fuelH);
+      let fuelMesh = null;
+      if (fillH > 0.04) {
+        fuelMesh = new THREE.Mesh(
+          new THREE.CylinderGeometry(bodyR * 0.62, bodyR * 0.62, fillH, 16),
+          new THREE.MeshStandardMaterial({ color: 0x39e4ff, emissive: 0x0c6f92, emissiveIntensity: 0.7, transparent: true, opacity: 0.45, depthWrite: false })
+        );
+        fuelMesh.position.y = fillH / 2;
+        rocket.add(fuelMesh);
+      }
+      const nz = nozzleSize(next.nozzle);
+      const nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(bodyR * 0.34, bodyR * (0.55 + nz.s * 0.35), nz.len, 20),
+        new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.7, roughness: 0.28 })
+      );
+      nozzle.position.y = -nz.len / 2;
+      rocket.add(nozzle);
+      const shape2d = new THREE.Shape();
+      const root = bodyR * 0.92;
+      shape2d.moveTo(root, 0);
+      shape2d.lineTo(root + next.span, next.chord * 0.2);
+      shape2d.lineTo(root + next.span * 0.86, next.chord * 0.78);
+      shape2d.lineTo(root, next.chord);
+      for (let i = 0; i < 4; i++) {
+        const fin = new THREE.Mesh(new THREE.ShapeGeometry(shape2d), new THREE.MeshStandardMaterial({ color: 0x2c6bed, side: THREE.DoubleSide }));
+        fin.position.y = next.slide;
+        fin.rotation.y = i * Math.PI / 2;
+        rocket.add(fin);
+      }
+      function addDot(y, color) {
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 14, 12), new THREE.MeshBasicMaterial({ color: color }));
+        dot.position.y = y;
+        rocket.add(dot);
+      }
+      addDot(next.total - next.cg, 0xff2bd6);
+      addDot(next.total - next.cp, 0x3de4ff);
+      const plume = new THREE.Mesh(
+        new THREE.ConeGeometry(0.4, 1.8, 12),
+        new THREE.MeshBasicMaterial({ color: 0xff7a22, transparent: true, opacity: 0.85 })
+      );
+      plume.rotation.x = Math.PI;
+      plume.position.y = -nz.len - 1;
+      plume.visible = false;
+      rocket.add(plume);
+      const cgLocal = next.total - next.cg;
+      rocket.position.y = -cgLocal;
+      pivot.position.set(0, cgLocal + nz.len, 0);
+      pivot.rotation.set(0, 0, 0);
+      pivot.userData.homeY = pivot.position.y;
+      pivot.add(rocket);
+      lookY = Math.max(1.8, next.total * 0.42);
+      live = { plume: plume, fuel: fuelMesh, fuelH: fillH };
+    }
+
+    function paint() {
+      info = RocketBalance.analyze(shape);
+      const kind = flightKind(info);
+      if (mode === "build") say(kind);
+      buildRocket(info);
+    }
+
+    function buildControls() {
+      const box = document.getElementById("controls");
+      box.replaceChildren();
+      CONTROLS.forEach((spec) => {
+        const label = document.createElement("label");
+        label.className = "ctrl";
+        const head = document.createElement("span");
+        head.textContent = spec.label;
+        label.append(head);
+        let input;
+        if (spec.type === "select") {
+          input = document.createElement("select");
+          PAYLOADS.forEach((pair) => {
+            const opt = document.createElement("option");
+            opt.value = pair[0];
+            opt.textContent = pair[1];
+            input.append(opt);
+          });
+          input.value = shape.payload;
+          input.addEventListener("change", () => {
+            if (mode !== "build") return;
+            shape.payload = input.value;
+            paint();
+          });
+        } else {
+          input = document.createElement("input");
+          input.type = "range";
+          input.min = spec.min;
+          input.max = spec.max;
+          input.step = spec.step;
+          input.value = shape[spec.key];
+          input.addEventListener("input", () => {
+            if (mode !== "build") return;
+            shape[spec.key] = Number(input.value);
+            paint();
+          });
+        }
+        input.dataset.key = spec.key;
+        label.append(input);
+        if (spec.left) {
+          const ends = document.createElement("div");
+          ends.className = "ends";
+          ends.innerHTML = "<span>" + spec.left + "</span><span>" + spec.right + "</span>";
+          label.append(ends);
+        }
+        box.append(label);
+      });
+    }
+
+    function setLocked(locked) {
+      document.querySelectorAll("#controls input, #controls select").forEach((node) => { node.disabled = locked; });
+      document.getElementById("launch").disabled = locked;
+      document.getElementById("reset").disabled = locked;
+    }
+
+    function doLaunch() {
+      if (mode !== "build") return;
+      const kind = flightKind(info);
+      mode = "fly";
+      setLocked(true);
+      fly = { kind: kind, age: 0, spin: 0.6, vy: 2, burn: 0.45 + (info.fuel / 90) * 3.5 };
+      if (live) live.plume.visible = true;
+    }
+
+    function finish() {
+      const kind = fly.kind;
+      mode = "build";
+      fly = null;
+      if (live) live.plume.visible = false;
+      setLocked(false);
+      paint();
+      say(kind);
+    }
+
+    document.getElementById("launch").addEventListener("click", doLaunch);
+    document.getElementById("reset").addEventListener("click", () => {
+      if (mode !== "build") return;
+      shape = Object.assign({}, BASE);
+      buildControls();
+      paint();
+    });
+
+    const clock = new THREE.Clock();
+    function frame() {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.elapsedTime;
+      if (mode === "fly" && fly) {
+        fly.age += dt;
+        if (live && live.plume.visible) {
+          const flick = 0.85 + Math.sin(t * 40) * 0.15;
+          live.plume.scale.set(flick, 0.8 + Math.sin(t * 28) * 0.2, flick);
+        }
+        if (live && live.fuel && fly.age < fly.burn) {
+          const left = Math.max(0.04, 1 - fly.age / Math.max(fly.burn, 0.2));
+          live.fuel.scale.y = left;
+          live.fuel.position.y = (live.fuelH * left) / 2;
+        }
+        const homeY = pivot.userData.homeY;
+        if (fly.kind === "good") {
+          if (fly.age < fly.burn) fly.vy = Math.min(10 + (info.fuel / 90) * 26, fly.vy + 28 * dt);
+          else {
+            fly.vy *= Math.exp(-0.55 * dt);
+            if (live) live.plume.visible = false;
+          }
+          pivot.position.y += fly.vy * dt;
+          pivot.rotation.z = Math.sin(fly.age * 9) * 0.05 * Math.exp(-fly.age);
+          if (fly.age > fly.burn + 0.85) finish();
+        } else if (fly.kind === "dry") {
+          if (fly.age < fly.burn) {
+            fly.vy = Math.min(7, fly.vy + 12 * dt);
+            pivot.position.y += fly.vy * dt;
+          } else {
+            if (live) live.plume.visible = false;
+            fly.vy -= 20 * dt;
+            pivot.position.y += fly.vy * dt;
+            pivot.rotation.z += dt * 0.4;
+            if (fly.vy < -6) finish();
+          }
+        } else if (fly.kind === "wobble") {
+          const amp = Math.min(1.05, 0.2 + fly.age * 0.7);
+          pivot.rotation.z = Math.sin(fly.age * 6) * amp;
+          pivot.position.x = Math.sin(fly.age * 6) * amp * 0.45;
+          pivot.position.y += 1.4 * dt;
+          if (fly.age > 1.05) finish();
+        } else if (fly.kind === "swerve") {
+          pivot.rotation.z = Math.min(1.15, fly.age * 0.9);
+          fly.vy = Math.min(12, fly.vy + 10 * dt);
+          pivot.position.x += Math.sin(pivot.rotation.z) * fly.vy * dt;
+          pivot.position.y += Math.cos(pivot.rotation.z) * fly.vy * dt;
+          if (fly.age > 1.25) finish();
+        } else {
+          fly.spin += 3.2 * dt;
+          pivot.rotation.z += fly.spin * dt;
+          pivot.position.x = Math.sin(pivot.rotation.z) * 0.4;
+          pivot.position.y = homeY + Math.sin(fly.age * 3) * 0.2;
+          if (fly.age > 0.9) finish();
+        }
+      }
+      const watching = mode === "fly";
+      aim(watching ? pivot.position.y : lookY, watching ? pivot.position.x : 0);
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+
+    resize();
+    buildControls();
+    paint();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

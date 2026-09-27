@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Centre of gravity · 30 min lesson</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #526076;
+      --line: #dce3ec;
+      --bg: #eef3f8;
+      --card: #fff;
+      --navy: #10243f;
+      --accent: #c45c26;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 17px/1.5 "Segoe UI", system-ui, sans-serif;
+    }
+    .site {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--navy);
+      color: #f4f7fb;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .site-inner {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 6px 12px 0;
+    }
+    .bar {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .kicker {
+      margin: 0;
+      color: #9ec4ee;
+      font-size: 0.72rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .site h1 {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+    nav {
+      display: flex;
+      gap: 2px;
+      margin: 4px -12px 0;
+      padding: 0 8px 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav a {
+      flex: 0 0 auto;
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: #d5e2f0;
+      font-size: 0.78rem;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    nav a:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    nav a:focus-visible { outline: 3px solid #f0b429; outline-offset: 2px; }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 16px 16px 56px;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px 16px 14px;
+      margin: 0 0 12px;
+      scroll-margin-top: 4.6rem;
+    }
+    h2 {
+      margin: 0 0 8px;
+      font-size: 1.15rem;
+      line-height: 1.3;
+    }
+    .time {
+      display: inline-block;
+      margin: 0 8px 8px 0;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--navy);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      vertical-align: middle;
+    }
+    h3 {
+      margin: 16px 0 4px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    p { margin: 0 0 8px; }
+    p:last-child { margin-bottom: 0; }
+    ul, ol { margin: 6px 0 0; padding-left: 1.2rem; }
+    li { margin: 6px 0; }
+    li:last-child { margin-bottom: 0; }
+    main a { color: #1d4ed8; font-weight: 700; }
+    .listen {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f8f4ef;
+    }
+    .listen h3 { margin-top: 0; }
+    @media (min-width: 720px) {
+      main { padding-top: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site">
+    <div class="site-inner">
+      <div class="bar">
+        <h1>Centre of gravity</h1>
+        <p class="kicker">Science · Rocket stability · 30 min</p>
+      </div>
+      <nav aria-label="Lesson sections">
+        <a href="#objectives">Objectives</a>
+        <a href="#outcomes">Outcomes</a>
+        <a href="#do-now">Do now</a>
+        <a href="#demonstrate">I do</a>
+        <a href="#setup">We do</a>
+        <a href="#test">You do</a>
+        <a href="#plenary">Close</a>
+        <a href="#resources">Kit</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section id="objectives">
+      <h2>Learning objectives</h2>
+      <ul>
+        <li>Say what the centre of gravity is, and what the centre of pressure is.</li>
+        <li>Explain that a rocket stays straight when the centre of gravity sits closer to the nose than the centre of pressure.</li>
+      </ul>
+    </section>
+
+    <section id="outcomes">
+      <h2>Learning outcomes</h2>
+      <ul>
+        <li>Balance the forks and post both definitions.</li>
+        <li>Play Qinglan Launch and submit the form, with a screenshot of the result.</li>
+        <li>Take a side in the closing debate.</li>
+      </ul>
+    </section>
+
+    <section id="do-now">
+      <span class="time">6 min</span>
+      <h2>Do now</h2>
+      <h3>Teacher</h3>
+      <p>Two bottles, two forks, and one toothpick per pair. Ask: “How do you balance the forks with a toothpick on the bottle?” Do not give the method. Walk and listen.</p>
+      <h3>Students</h3>
+      <p>Balance the forks on the toothpick, and the toothpick on the rim. Talk about where the weight seems to sit.</p>
+      <h3>Check</h3>
+      <p>A pair can show a balance and say the weight is not at the toothpick tip. The name comes later.</p>
+    </section>
+
+    <section id="demonstrate">
+      <span class="time">4 min</span>
+      <h2>I do</h2>
+      <h3>Factual</h3>
+      <ul>
+        <li>What is the centre of gravity?</li>
+      </ul>
+      <h3>Teacher</h3>
+      <p>The centre of gravity is the point where the weight is centred. On the forks, that point hangs below the rim, so they stay put. Post: “What is the centre of gravity?”</p>
+      <h3>Students</h3>
+      <p>Watch one successful balance. Comment from the forks, not from a copied definition.</p>
+      <h3>Check</h3>
+      <p>Read three posts. Accept “where the weight balances”, not “where the air pushes”.</p>
+    </section>
+
+    <section id="setup">
+      <span class="time">5 min</span>
+      <h2>We do</h2>
+      <h3>Factual</h3>
+      <ul>
+        <li>What is the centre of pressure?</li>
+      </ul>
+      <h3>Conceptual</h3>
+      <ul>
+        <li>Why does a rocket stay straight only when the centre of gravity is closer to the nose than the centre of pressure?</li>
+      </ul>
+      <h3>Teacher</h3>
+      <p>Open <a href="index.html">Qinglan Launch</a> and point to the two dots. Magenta is weight. Cyan is the air’s push. Post: “What is the centre of pressure?” Ask which dot must sit closer to the nose.</p>
+      <h3>Students</h3>
+      <p>Answer the second post. In pairs, say which dot is closer to the nose on a rocket that should fly straight.</p>
+      <h3>Check</h3>
+      <p>Cold-call: centre of pressure is the air’s push, not the weight. Magenta sits closer to the nose than cyan.</p>
+    </section>
+
+    <section id="test">
+      <span class="time">12 min</span>
+      <h2>You do</h2>
+      <h3>Teacher</h3>
+      <p>Send students to <a href="index.html">Qinglan Launch</a>. Leave the form open. If time runs out before a company ending, they screenshot the result on screen.</p>
+      <h3>Students</h3>
+      <ol>
+        <li>Play the rocket.</li>
+        <li>Complete the form.</li>
+        <li>Upload a screenshot of the result they reached.</li>
+      </ol>
+      <div class="listen">
+        <h3>Listen for</h3>
+        <p>Form, 100 points.</p>
+        <ol>
+          <li>Centre of gravity: the point where the rocket’s weight is centred. (20)</li>
+          <li>Centre of pressure: the point where the air’s push is centred.</li>
+          <li>What stabilises a rocket: centre of gravity above centre of pressure.</li>
+          <li>Lower the centre of gravity: payload in a lower position.</li>
+          <li>Lower the centre of pressure: fins down and bigger. Retitle this item before class if the form still says “centre of gravity”.</li>
+          <li>Screenshot of the end result.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="plenary">
+      <span class="time">3 min</span>
+      <h2>Close</h2>
+      <h3>Debatable</h3>
+      <ul>
+        <li>Is a more stable rocket always a better rocket?</li>
+      </ul>
+      <h3>Teacher</h3>
+      <p>Take one agree and one disagree. Do not close it with a single right answer.</p>
+      <h3>Students</h3>
+      <p>Vote, then one sentence each way. Use a tumble, a wobble, or a rocket that turned off course.</p>
+      <h3>Check</h3>
+      <p>An agree names a crash from a bad balance. A disagree names a rocket so stable it flew a curve instead of straight up.</p>
+    </section>
+
+    <section id="resources">
+      <h2>Kit</h2>
+      <ul>
+        <li>Two metal forks, one wooden toothpick, and one bottle per pair</li>
+        <li>Google Classroom for the two posts</li>
+        <li><a href="index.html">Qinglan Launch</a></li>
+        <li>Google Form “Centre of Gravity &amp; Centre of Pressure”</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

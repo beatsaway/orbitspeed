@@ -7,7 +7,7 @@
     <title>Gravity Sandbox</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+        body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
         #ui {
             position: absolute; top: 10px; left: 12px; background: rgba(0,12,30,0.93);
             padding: 10px 12px; border-radius: 12px; width: 300px;
@@ -209,6 +209,28 @@
             45% { box-shadow: 0 0 22px 4px rgba(255,193,77,0.85); }
         }
         .eqs.pulse-eq, #eqBar.pulse-eq { animation: pulseGlow 0.75s ease 3; }
+        #ui {
+            position: fixed; top: 0; left: 0; bottom: 0; width: 340px; height: 100%;
+            max-height: none; margin: 0; border-radius: 0; border: 0;
+            border-right: 1px solid #1d3c56; background: #071018ee; padding: 16px 16px 18px;
+        }
+        h1 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+        #launchBtn, #resetBtn { float: none; width: calc(50% - 6px); }
+        #launchBtn { background: #6df; color: #041018; border-radius: 10px; }
+        #resetBtn { margin-left: 8px; background: transparent; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px; }
+        #launchBtn:disabled { background: #102033; color: #9eb4c9; }
+        #eqBar { left: 356px; background: #071018ee; border: 1px solid #1d3c56; border-radius: 12px; }
+        #vizFormula { left: calc(50% + 170px); }
+        #qCard { background: #071018; border: 1px solid #2a6a88; border-radius: 16px; }
+        #nextQ { background: #6df; color: #041018; }
+        @media (max-width: 800px) {
+            #ui {
+                position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
+                height: auto; max-height: calc(100vh - 28px); border-radius: 16px; border: 1px solid #1d3c56;
+            }
+            #eqBar { left: 12px; }
+            #vizFormula { left: 50%; }
+        }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -362,12 +384,25 @@
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000011);
+        function stageBox() {
+            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
+            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
+        }
         const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
         camera.position.set(0, 4, 10);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(innerWidth, innerHeight);
-        renderer.domElement.style.position = 'absolute';
-        renderer.domElement.style.inset = '0';
+        function fitStage() {
+            const b = stageBox();
+            camera.aspect = b.w / b.h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(b.w, b.h);
+            const el = renderer.domElement;
+            el.style.position = 'absolute';
+            el.style.inset = 'auto';
+            el.style.left = b.x + 'px';
+            el.style.top = b.y + 'px';
+        }
+        fitStage();
         document.body.appendChild(renderer.domElement);
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -788,11 +823,7 @@
             renderer.render(scene, camera);
         }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = innerWidth / innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(innerWidth, innerHeight);
-        });
+        window.addEventListener('resize', fitStage);
 
         updateDisplays();
         selectEq('g');

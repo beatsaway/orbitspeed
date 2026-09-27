@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tumbler doll</title>
+  <style>
+    :root { --ink: #e7f2ff; --muted: #9eb4c8; --line: #24384c; --cyan: #3de4ff; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font: 16px/1.45 "Segoe UI", sans-serif; overflow: hidden; }
+    canvas { position: fixed; inset: 0; display: block; }
+    a { color: var(--muted); font-size: 0.82rem; margin-right: 8px; }
+    #bar { position: fixed; left: 16px; top: 14px; z-index: 2; }
+    h1 { margin: 0 0 4px; font-size: 1.25rem; }
+    #note { margin: 8px 0 0; max-width: 380px; color: var(--muted); font-size: 0.9rem; }
+    #panel { position: fixed; left: 16px; bottom: 16px; z-index: 2; width: min(380px, calc(100% - 32px)); background: #0d1b2acc; border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+    label { display: grid; grid-template-columns: 120px 1fr 36px; gap: 8px; align-items: center; }
+    output { color: var(--cyan); text-align: right; }
+    button { margin-top: 10px; font: inherit; font-weight: 700; border: 0; border-radius: 999px; padding: 8px 14px; background: var(--cyan); color: #041018; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="bar">
+    <h1>Tumbler doll</h1>
+    <div><a href="index.html">Lesson</a><a href="seesaw.html">Seesaw</a><a href="plane.html">Plane</a></div>
+    <p id="note">Knock it over. A low weight rocks it back upright. Too high, and it stays down.</p>
+  </div>
+  <div id="panel">
+    <label>Weight height <input id="height" type="range" min="0.25" max="1.55" step="0.01" value="0.42"><output id="heightOut">0.42</output></label>
+    <button id="poke" type="button">Knock</button>
+  </div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    const R = 1.05;
+    const canvas = document.getElementById("view");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07111c);
+    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 1.05));
+    const sun = new THREE.DirectionalLight(0xfff2dd, 1.15);
+    sun.position.set(3, 8, 5);
+    scene.add(sun);
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 40);
+    camera.position.set(0.15, 1.35, 5.4);
+    camera.lookAt(0, 0.85, 0);
+    const ground = new THREE.Mesh(new THREE.CircleGeometry(7, 48), new THREE.MeshStandardMaterial({ color: 0x142433, roughness: 0.92 }));
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.01;
+    scene.add(ground);
+
+    const doll = new THREE.Group();
+    const base = new THREE.Mesh(
+      new THREE.SphereGeometry(R, 36, 24, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5),
+      new THREE.MeshStandardMaterial({ color: 0xf6d7b4, transparent: true, opacity: 0.62, roughness: 0.35, depthWrite: false })
+    );
+    const belly = new THREE.Mesh(
+      new THREE.SphereGeometry(R * 1.01, 36, 24, 0, Math.PI * 2, 0, Math.PI * 0.52),
+      new THREE.MeshStandardMaterial({ color: 0xe23b4a, roughness: 0.45 })
+    );
+    const neck = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.34, 0.5, 0.28, 20),
+      new THREE.MeshStandardMaterial({ color: 0xf6d7b4, roughness: 0.5 })
+    );
+    neck.position.y = 0.72;
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.46, 28, 20),
+      new THREE.MeshStandardMaterial({ color: 0xf6d7b4, roughness: 0.48 })
+    );
+    head.position.y = 1.18;
+    const hat = new THREE.Mesh(
+      new THREE.ConeGeometry(0.28, 0.34, 18),
+      new THREE.MeshStandardMaterial({ color: 0x2f6fed, roughness: 0.5 })
+    );
+    hat.position.y = 1.62;
+    function cheek(x) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), new THREE.MeshStandardMaterial({ color: 0xe07a8a }));
+      mesh.position.set(x, 1.08, 0.4);
+      return mesh;
+    }
+    function eye(x) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), new THREE.MeshBasicMaterial({ color: 0x142033 }));
+      mesh.position.set(x, 1.24, 0.4);
+      return mesh;
+    }
+    const smile = new THREE.Mesh(
+      new THREE.TorusGeometry(0.1, 0.018, 8, 16, Math.PI),
+      new THREE.MeshBasicMaterial({ color: 0x142033 })
+    );
+    smile.position.set(0, 1.05, 0.4);
+    smile.rotation.z = Math.PI;
+    smile.rotation.x = 0.3;
+    const weight = new THREE.Mesh(new THREE.SphereGeometry(0.2, 18, 14), new THREE.MeshBasicMaterial({ color: 0xff2bd6 }));
+    doll.add(base, belly, neck, head, hat, cheek(-0.16), cheek(0.16), eye(-0.13), eye(0.13), smile, weight);
+    scene.add(doll);
+
+    let height = 0.42;
+    let theta = 0;
+    let omega = 0;
+    let dragging = false;
+    let lastX = 0;
+
+    function placeWeight() {
+      weight.position.set(0, height - R, 0);
+    }
+    placeWeight();
+
+    const slider = document.getElementById("height");
+    slider.addEventListener("input", () => {
+      height = Number(slider.value);
+      document.getElementById("heightOut").textContent = height.toFixed(2);
+      placeWeight();
+      document.getElementById("note").textContent = height < R
+        ? "Weight is low in the round bottom. Knock it, and it rocks back up."
+        : "Weight is above the middle. Knock it, and it stays down.";
+    });
+    document.getElementById("poke").addEventListener("click", () => { omega += 7.5; });
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (e.target !== canvas) return;
+      dragging = true;
+      lastX = e.clientX;
+    });
+    window.addEventListener("pointerup", () => { dragging = false; });
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - lastX;
+      theta = Math.max(-1.15, Math.min(1.15, theta + dx * 0.008));
+      omega = dx * 0.04;
+      lastX = e.clientX;
+    });
+
+    function resize() {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth / Math.max(innerHeight, 1);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+    resize();
+    const clock = new THREE.Clock();
+    function frame() {
+      const dt = Math.min(clock.getDelta(), 0.033);
+      if (!dragging) {
+        const lever = R - height;
+        const alpha = -lever * Math.sin(theta) * 18 - omega * 0.42;
+        omega += alpha * dt;
+        theta += omega * dt;
+        const fallen = 1.05;
+        if (Math.abs(theta) > fallen) {
+          theta = Math.sign(theta) * fallen;
+          omega *= lever > 0 ? -0.55 : -0.12;
+        }
+      }
+      doll.rotation.z = theta;
+      doll.position.x = Math.sin(theta) * R;
+      doll.position.y = R;
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

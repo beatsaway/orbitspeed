@@ -4,7 +4,7 @@
     <title>Orbit Commander</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+        body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
         #hud {
             position: absolute; top: 10px; right: 12px;
             min-width: 210px; padding: 8px 12px;
@@ -268,6 +268,38 @@
         }
         .end-card h3 { color: #6df; font-size: 0.82rem; margin: 8px 0 4px; letter-spacing: 0.04em; text-transform: uppercase; }
         .end-talk { font-size: 0.9rem; line-height: 1.4; min-height: 4.2em; white-space: pre-wrap; margin: 0; }
+        #ui {
+            position: fixed; top: 0; left: 0; bottom: 0; width: 340px; height: 100%;
+            max-height: none; margin: 0; border-radius: 0; border: 0;
+            border-right: 1px solid #1d3c56; background: #071018ee;
+            box-shadow: none; backdrop-filter: none; padding: 16px 16px 18px;
+        }
+        h1 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+        #launchBtn, #resetBtn { float: none; width: calc(50% - 6px); }
+        #launchBtn { background: #6df; color: #041018; border-radius: 10px; }
+        #resetBtn { margin-left: 8px; background: transparent; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px; }
+        #ui > button:disabled { background: #102033; color: #9eb4c9; border-color: #1d3c56; }
+        #detailBtn, #endBtn {
+            left: calc(50% + 170px);
+            background: #071018cc; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px;
+        }
+        #control {
+            right: 14px; bottom: 14px; left: auto;
+            max-width: min(300px, calc(100% - 380px));
+            background: rgba(0, 12, 30, 0.92); border: 1px solid #4af; border-radius: 12px;
+            font-size: 0.92rem; padding: 10px 12px; box-shadow: none;
+        }
+        .popup-box { background: #071018; border: 1px solid #2a6a88; border-radius: 16px; box-shadow: 0 16px 50px #000a; }
+        #introPopup { background: #07111c88; }
+        #popupOk, #nextBtn, #saveEndBtn { background: #6df; color: #041018; }
+        @media (max-width: 800px) {
+            #ui {
+                position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
+                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid #1d3c56;
+            }
+            #detailBtn, #endBtn { left: 50%; }
+            #control { max-width: min(300px, calc(100% - 28px)); }
+        }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -401,12 +433,12 @@
         };
 
         const missions = [
-            { date: "April 1970", name: "Dongfanghong-1", body: "Earth", alt: 440, realV: 7.65005, cost: 10, forgetAlt: false, find: "V", crew: 0, craft: "ball", face: "🙂", art: "missions/01-dongfanghong-1.webp", brief: "This is Dongfanghong-1, our first satellite. You need the speed. GM and r are on the board. Use V = √(GM / r), set that speed, then launch." },
-            { date: "October 2003", name: "Shenzhou-5", body: "Earth", alt: 343, realV: 7.70511, cost: 12, forgetAlt: false, find: "V", crew: 1, craft: "capsule", face: "🚀", art: "missions/02-shenzhou-5.webp", brief: "Crewed flight — Yang Liwei is on board. r is hidden this time. Add R and h to get r, then find V from V = √(GM / r). Set the speed, then launch." },
-            { date: "September 2011", name: "Tiangong-1", body: "Earth", alt: 350, realV: 7.70110, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "station", face: "😐", art: "missions/03-tiangong-1.webp", brief: "This is Tiangong-1, our first space laboratory. The speed is already set. You need the height. Find r from r = GM / V², then h = r − R. Set that altitude, then launch." },
-            { date: "December 2015", name: "Gaofen-4", body: "Earth", alt: 35786, realV: 3.07493, cost: 14, forgetAlt: true, find: "h", crew: 0, craft: "geo", face: "🧐", art: "missions/04-gaofen-4.webp", brief: "Gaofen-4 is going into geostationary orbit. Speed is given; you need the height. Find r from r = GM / V², then h = r − R. It will be a long way up." },
-            { date: "July 2018", name: "BeiDou-3 MEO", body: "Earth", alt: 21528, realV: 3.77986, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "nav", face: "🙂", art: "missions/05-beidou-3.webp", brief: "BeiDou-3 sits in medium Earth orbit. Speed is given again. Find r from r = GM / V², then set h = r − R." },
-            { date: "October 2007", name: "Chang'e-1", body: "Moon", alt: 200, realV: 1.59099, cost: 15, forgetAlt: true, find: "h", crew: 0, craft: "lunar", face: "🌙", art: "missions/06-change-1.webp", brief: "Chang'e-1 will orbit the Moon. GM is already on the board, so you don't need to work it out. Speed is given. Find h from r = GM / V² and h = r − R." }
+            { date: "April 1970", name: "Dongfanghong-1", body: "Earth", alt: 440, realV: 7.65005, cost: 10, forgetAlt: false, find: "V", crew: 0, craft: "ball", face: "🙂", art: "missions/01-dongfanghong-1.png", brief: "This is Dongfanghong-1, our first satellite. You need the speed. GM and r are on the board. Use V = √(GM / r), set that speed, then launch." },
+            { date: "October 2003", name: "Shenzhou-5", body: "Earth", alt: 343, realV: 7.70511, cost: 12, forgetAlt: false, find: "V", crew: 1, craft: "capsule", face: "🚀", art: "missions/02-shenzhou-5.png", brief: "Crewed flight — Yang Liwei is on board. r is hidden this time. Add R and h to get r, then find V from V = √(GM / r). Set the speed, then launch." },
+            { date: "September 2011", name: "Tiangong-1", body: "Earth", alt: 350, realV: 7.70110, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "station", face: "😐", art: "missions/03-tiangong-1.png", brief: "This is Tiangong-1, our first space laboratory. The speed is already set. You need the height. Find r from r = GM / V², then h = r − R. Set that altitude, then launch." },
+            { date: "December 2015", name: "Gaofen-4", body: "Earth", alt: 35786, realV: 3.07493, cost: 14, forgetAlt: true, find: "h", crew: 0, craft: "geo", face: "🧐", art: "missions/04-gaofen-4.png", brief: "Gaofen-4 is going into geostationary orbit. Speed is given; you need the height. Find r from r = GM / V², then h = r − R. It will be a long way up." },
+            { date: "July 2018", name: "BeiDou-3 MEO", body: "Earth", alt: 21528, realV: 3.77986, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "nav", face: "🙂", art: "missions/05-beidou-3.png", brief: "BeiDou-3 sits in medium Earth orbit. Speed is given again. Find r from r = GM / V², then set h = r − R." },
+            { date: "October 2007", name: "Chang'e-1", body: "Moon", alt: 200, realV: 1.59099, cost: 15, forgetAlt: true, find: "h", crew: 0, craft: "lunar", face: "🌙", art: "missions/06-change-1.png", brief: "Chang'e-1 will orbit the Moon. GM is already on the board, so you don't need to work it out. Speed is given. Find h from r = GM / V² and h = r − R." }
         ];
 
         const escapeLines = [
@@ -440,13 +472,26 @@
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000011);
+        function stageBox() {
+            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
+            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
+        }
         const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
         camera.position.set(0, 4, 10);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(innerWidth, innerHeight);
-        renderer.domElement.style.position = 'absolute';
-        renderer.domElement.style.inset = '0';
-        renderer.domElement.style.zIndex = '0';
+        function fitStage() {
+            const b = stageBox();
+            camera.aspect = b.w / b.h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(b.w, b.h);
+            const el = renderer.domElement;
+            el.style.position = 'absolute';
+            el.style.inset = 'auto';
+            el.style.left = b.x + 'px';
+            el.style.top = b.y + 'px';
+            el.style.zIndex = '0';
+        }
+        fitStage();
         document.body.appendChild(renderer.domElement);
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -1869,9 +1914,9 @@
             popupText.innerHTML =
                 `<div class="brief-date">Campaign debrief</div>` +
                 `<div class="end-grid">` +
-                `<div class="end-card"><img src="endings/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.webp" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
-                `<div class="end-card"><img src="endings/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.webp" alt="Casualties"><h3>Casualties</h3><p class="end-talk" id="endTalk1"></p></div>` +
-                `<div class="end-card"><img src="endings/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.webp" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
+                `<div class="end-card"><img src="endings/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.png" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
+                `<div class="end-card"><img src="endings/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.png" alt="Casualties"><h3>Casualties</h3><p class="end-talk" id="endTalk1"></p></div>` +
+                `<div class="end-card"><img src="endings/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.png" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
                 `</div>`;
             introPopup.classList.add('show');
             const parts = [
@@ -2008,7 +2053,7 @@
         }
         animate();
 
-        window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+        window.addEventListener('resize', fitStage);
         showPreIntro();
     </script>
 

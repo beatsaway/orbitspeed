@@ -69,9 +69,9 @@
     const cg = moment / mass;
     const margin = (cp - cg) / D;
     let flight = "good";
-    if (margin < 0.35) flight = "tumble";
-    else if (margin < 1) flight = "wobble";
-    else if (margin > 2.6) flight = "swerve";
+    if (margin < 0.2) flight = "tumble";
+    else if (margin < 0.7) flight = "wobble";
+    else if (margin > 3.2) flight = "swerve";
 
     return {
       noseLen: noseLen, bodyLen: bodyLen, finSize: finSize, finPos: finPos,

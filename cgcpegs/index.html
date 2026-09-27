@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Centre of gravity and centre of pressure</title>
+  <style>
+    :root { --ink: #e7f2ff; --muted: #9eb4c8; --magenta: #ff2bd6; --cyan: #3de4ff; --line: #24384c; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font: 16px/1.45 "Segoe UI", sans-serif; overflow: hidden; }
+    #view { position: fixed; inset: 0; display: block; }
+    header { position: fixed; top: 14px; left: 16px; right: 340px; z-index: 2; }
+    h1 { margin: 0 0 8px; font-size: 1.25rem; }
+    .more { margin: 8px 0 0; display: flex; gap: 8px; }
+    .more a { color: var(--muted); font-size: 0.82rem; }
+    nav { display: flex; flex-wrap: wrap; gap: 8px; }
+    nav button, .choice { font: inherit; cursor: pointer; border-radius: 999px; border: 1px solid var(--line); background: #0d1b2a; color: var(--ink); padding: 6px 12px; }
+    nav button.on { background: var(--cyan); color: #041018; border-color: transparent; font-weight: 700; }
+    #quiz { position: fixed; top: 14px; right: 14px; width: 300px; z-index: 2; background: #0d1b2acc; border: 1px solid var(--line); border-radius: 14px; padding: 14px; backdrop-filter: blur(8px); }
+    #quiz p { margin: 0 0 10px; }
+    #why { margin: 10px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .choices { display: flex; gap: 8px; }
+    .choice.good { background: #1d6b45; border-color: #1d6b45; }
+    .choice.bad { background: #8a3030; border-color: #8a3030; }
+    #panel { position: fixed; left: 16px; bottom: 16px; width: min(460px, calc(100% - 32px)); z-index: 2; background: #0d1b2acc; border: 1px solid var(--line); border-radius: 14px; padding: 14px; backdrop-filter: blur(8px); }
+    #panel h2 { margin: 0 0 4px; font-size: 1.05rem; }
+    #note { margin: 0 0 10px; color: var(--muted); font-size: 0.92rem; }
+    .sliders { display: grid; gap: 8px; }
+    label { display: grid; grid-template-columns: 148px 1fr 48px; gap: 8px; align-items: center; font-size: 0.9rem; }
+    output { color: var(--cyan); text-align: right; }
+    #hint { position: fixed; right: 16px; bottom: 16px; z-index: 2; color: var(--muted); font-size: 0.85rem; }
+    .cg { color: var(--magenta); }
+    .cp { color: var(--cyan); }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <header>
+    <h1>The rocket is a seesaw</h1>
+    <nav id="nav"></nav>
+    <p class="more"><a href="tumbler.html">Tumbler</a><a href="seesaw.html">Seesaw</a><a href="plane.html">Plane</a></p>
+  </header>
+  <aside id="quiz">
+    <p id="ask"></p>
+    <div class="choices">
+      <button class="choice" id="say-true" type="button">True</button>
+      <button class="choice" id="say-false" type="button">False</button>
+    </div>
+    <p id="why" hidden></p>
+  </aside>
+  <section id="panel">
+    <h2 id="title"></h2>
+    <p id="note"></p>
+    <div class="sliders" id="sliders"></div>
+  </section>
+  <p id="hint">Drag to look around. <b class="cg">Magenta</b> is the pivot. <b class="cp">Cyan</b> is one push.</p>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    const D = 0.4;
+    const BALANCE = { leftKg: 4, rightKg: 4, leftPos: 80, rightPos: 80 };
+    const LEVER = { gap: 1.5 };
+    const NOSE = { kg: 3 };
+    const FIN = { size: 40 };
+    const NOSE_FIN = 24;
+    const FIN_NOSE = 1;
+
+    const CG = 0xff2bd6;
+    const CP = 0x3de4ff;
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd5e4f2, metalness: 0.25, roughness: 0.4 });
+    const wood = new THREE.MeshStandardMaterial({ color: 0xc4a574, roughness: 0.7 });
+    const finMat = new THREE.MeshStandardMaterial({ color: 0x9fd0ff, roughness: 0.45 });
+
+    function rocketCG(nose) {
+      return (nose * -1.5 + 1.25) / (nose + 5);
+    }
+    function rocketCP(fin) {
+      return 0.05 + fin / 90;
+    }
+    function calibres(cg, cp) {
+      return (cp - cg) / D;
+    }
+    function kindOf(cal) {
+      if (cal < 1) return "short";
+      if (cal <= 2) return "good";
+      return "long";
+    }
+    function gapSentence(cal) {
+      const n = Math.round(cal * 10) / 10;
+      const turn = "Turn = push × " + n + " body diameters. ";
+      if (cal < 1) return turn + "Under one diameter the turn is weak, so the beam keeps wobbling.";
+      if (cal <= 2) return turn + "One to two diameters is enough to straighten, without chasing every gust.";
+      return turn + "Over two diameters the turn is so strong that the beam weathercocks into the wind.";
+    }
+
+    const EXAMPLES = [
+      {
+        name: "Balance",
+        store: BALANCE,
+        ask: "The magenta dot is the pivot the beam balances on.",
+        answer: true,
+        why: "That dot is the centre of gravity. On a rocket it is the fulcrum of the lever. Air is not pushing here, so there is no centre of pressure.",
+        sliders: [
+          ["leftKg", "Left weight (kg)", 1, 12, 1],
+          ["rightKg", "Right weight (kg)", 1, 12, 1],
+          ["leftPos", "Left distance", 20, 100, 1],
+          ["rightPos", "Right distance", 20, 100, 1]
+        ]
+      },
+      {
+        name: "Lever",
+        store: LEVER,
+        ask: "The useful gap is about one to two body diameters.",
+        answer: true,
+        why: "Turn = push × gap. Under one diameter the rocket cannot right itself. Over two, it overcorrects and turns into the wind.",
+        sliders: [
+          ["gap", "Gap (diameters)", 0.3, 3.5, 0.1]
+        ]
+      },
+      {
+        name: "Nose weight",
+        store: NOSE,
+        ask: "Nose weight moves the magenta pivot forward and widens the gap.",
+        answer: true,
+        why: "The centre of pressure stays put, because the shape has not changed. A heavier nose moves the pivot towards the nose, so the lever arm grows.",
+        sliders: [
+          ["kg", "Nose weight (kg)", 1, 12, 1]
+        ]
+      },
+      {
+        name: "Fin size",
+        store: FIN,
+        ask: "The centre of pressure is a ring around the body.",
+        answer: false,
+        why: "Pressure acts all over the skin, but the sideways pushes add up to one force. For the stability rule that force is one dot on the centre line, behind the pivot. Bigger fins move that dot back.",
+        sliders: [
+          ["size", "Fin size", 8, 100, 1]
+        ]
+      }
+    ];
+
+    const canvas = document.getElementById("view");
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07111c);
+    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 0.95));
+    const sun = new THREE.DirectionalLight(0xfff2dd, 1.15);
+    sun.position.set(4, 8, 6);
+    scene.add(sun);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
+    const world = new THREE.Group();
+    scene.add(world);
+    let yaw = 0.55;
+    let pitch = 0.42;
+    let dist = 7;
+    let look = new THREE.Vector3(0, 0.2, 0);
+    let motion = null;
+
+    function resize() {
+      const w = innerWidth;
+      const h = innerHeight;
+      renderer.setSize(w, h);
+      camera.aspect = w / Math.max(h, 1);
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    canvas.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    window.addEventListener("pointerup", () => { dragging = false; });
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      yaw -= (e.clientX - lastX) * 0.008;
+      pitch = Math.max(-0.15, Math.min(1.05, pitch + (e.clientY - lastY) * 0.006));
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    function aim() {
+      const c = Math.cos(pitch);
+      camera.position.set(
+        look.x + dist * Math.sin(yaw) * c,
+        look.y + dist * Math.sin(pitch),
+        look.z + dist * Math.cos(yaw) * c
+      );
+      camera.lookAt(look);
+    }
+
+    function clearWorld() {
+      motion = null;
+      while (world.children.length) {
+        const child = world.children.pop();
+        world.remove(child);
+        child.traverse((node) => {
+          if (node.geometry) node.geometry.dispose();
+        });
+      }
+    }
+
+    function sphere(parent, x, y, z, color, r) {
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 16, 12),
+        new THREE.MeshBasicMaterial({ color: color })
+      );
+      mesh.position.set(x, y, z);
+      parent.add(mesh);
+      return mesh;
+    }
+
+    function fulcrum() {
+      const pivot = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.62, 4), wood);
+      pivot.position.y = -0.28;
+      world.add(pivot);
+    }
+
+    function pushArrow(parent, x) {
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.55, 0.05), new THREE.MeshBasicMaterial({ color: CP }));
+      shaft.position.set(x, 0.42, 0);
+      parent.add(shaft);
+      const head = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.2, 10), new THREE.MeshBasicMaterial({ color: CP }));
+      head.position.set(x, 0.78, 0);
+      parent.add(head);
+    }
+
+    function diameterMarks(parent, origin) {
+      [1, 2].forEach((n) => {
+        const mark = new THREE.Mesh(
+          new THREE.BoxGeometry(0.03, 0.28, 0.03),
+          new THREE.MeshBasicMaterial({ color: 0x9eb4c8 })
+        );
+        mark.position.set(origin + n * D, 0.22, 0);
+        parent.add(mark);
+      });
+    }
+
+    function windMarks() {
+      for (let i = 0; i < 3; i++) {
+        const gust = new THREE.Mesh(
+          new THREE.BoxGeometry(0.55, 0.035, 0.035),
+          new THREE.MeshBasicMaterial({ color: 0x9eb4c8 })
+        );
+        gust.position.set(-1.7, 1.15 - i * 0.22, 0);
+        world.add(gust);
+      }
+    }
+
+    function buildBalance() {
+      const half = 2.2;
+      const leftX = -BALANCE.leftPos / 100 * half;
+      const rightX = BALANCE.rightPos / 100 * half;
+      const mass = BALANCE.leftKg + BALANCE.rightKg;
+      const cg = (BALANCE.leftKg * leftX + BALANCE.rightKg * rightX) / mass;
+      const beam = new THREE.Group();
+      world.add(beam);
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(half * 2, 0.12, 0.28), bodyMat);
+      beam.add(plank);
+      function weight(x, kg, color) {
+        const size = 0.28 + kg * 0.04;
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(size, size, size),
+          new THREE.MeshStandardMaterial({ color: color, roughness: 0.6 })
+        );
+        mesh.position.set(x, 0.06 + size / 2, 0);
+        beam.add(mesh);
+      }
+      weight(leftX, BALANCE.leftKg, 0xf0c7a0);
+      weight(rightX, BALANCE.rightKg, 0x9fd0ff);
+      sphere(beam, cg, 0.2, 0, CG, 0.09);
+      fulcrum();
+      const tip = Math.max(-0.42, Math.min(0.42, -cg / half * 0.8));
+      beam.rotation.z = tip;
+      look.set(0, 0.25, 0);
+      dist = 6.5;
+      document.getElementById("note").textContent = "Only gravity. The beam tips towards the heavier side. The magenta dot is the centre of gravity, and it would be the pivot. Nothing here is a centre of pressure.";
+    }
+
+    function buildLever() {
+      const gap = LEVER.gap;
+      const cal = gap;
+      const beam = new THREE.Group();
+      world.add(beam);
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.14, 0.22), bodyMat);
+      beam.add(plank);
+      sphere(beam, 0, 0.2, 0, CG, 0.1);
+      sphere(beam, gap * D, 0.2, 0, CP, 0.09);
+      pushArrow(beam, gap * D);
+      diameterMarks(beam, 0);
+      fulcrum();
+      if (kindOf(cal) === "long") windMarks();
+      motion = { group: beam, kind: kindOf(cal) };
+      look.set(0.35, 0.25, 0);
+      dist = 6.8;
+      document.getElementById("note").textContent = gapSentence(cal) + " Pale marks sit one and two diameters behind the pivot. The cyan mark is one dot, not a ring.";
+    }
+
+    function buildRocket(nose, fin) {
+      const cg = rocketCG(nose);
+      const cp = rocketCP(fin);
+      const cal = calibres(cg, cp);
+      const beam = new THREE.Group();
+      world.add(beam);
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(D / 2, D / 2, 3.3, 18), bodyMat);
+      tube.rotation.z = Math.PI / 2;
+      tube.position.x = -0.15 - cg;
+      beam.add(tube);
+      const noseCone = new THREE.Mesh(new THREE.ConeGeometry(D / 2, 0.7, 16), bodyMat);
+      noseCone.rotation.z = Math.PI / 2;
+      noseCone.position.x = -1.85 - cg;
+      beam.add(noseCone);
+      sphere(beam, -2.05 - cg, 0, 0, 0xf0c7a0, 0.1 + nose * 0.018);
+      const span = 0.22 + fin * 0.007;
+      for (let i = 0; i < 4; i++) {
+        const flight = new THREE.Mesh(new THREE.BoxGeometry(0.42, span, 0.035), finMat);
+        flight.position.set(1.35 - cg, 0, 0);
+        flight.rotation.x = i * Math.PI / 2;
+        flight.translateY(span * 0.55);
+        beam.add(flight);
+      }
+      sphere(beam, 0, D / 2 + 0.04, 0, CG, 0.09);
+      sphere(beam, cp - cg, D / 2 + 0.04, 0, CP, 0.08);
+      pushArrow(beam, cp - cg);
+      diameterMarks(beam, 0);
+      fulcrum();
+      if (kindOf(cal) === "long") windMarks();
+      motion = { group: beam, kind: kindOf(cal) };
+      look.set(0.15, 0.2, 0);
+      dist = 7.4;
+      document.getElementById("note").textContent = gapSentence(cal) + " Magenta is the pivot. Cyan is the single push on the centre line.";
+    }
+
+    const builders = [
+      buildBalance,
+      buildLever,
+      function () { buildRocket(NOSE.kg, NOSE_FIN); },
+      function () { buildRocket(FIN_NOSE, FIN.size); }
+    ];
+    let current = 0;
+
+    function rebuild() {
+      clearWorld();
+      builders[current]();
+    }
+
+    function fillSliders() {
+      const box = document.getElementById("sliders");
+      const example = EXAMPLES[current];
+      box.replaceChildren();
+      document.getElementById("title").textContent = example.name;
+      example.sliders.forEach((spec) => {
+        const row = document.createElement("label");
+        const name = document.createElement("span");
+        name.textContent = spec[1];
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = spec[2];
+        input.max = spec[3];
+        input.step = spec[4];
+        input.value = example.store[spec[0]];
+        const out = document.createElement("output");
+        out.textContent = example.store[spec[0]];
+        input.addEventListener("input", () => {
+          example.store[spec[0]] = Number(input.value);
+          out.textContent = String(example.store[spec[0]]);
+          rebuild();
+        });
+        row.append(name, input, out);
+        box.append(row);
+      });
+    }
+
+    function fillQuiz() {
+      const example = EXAMPLES[current];
+      document.getElementById("ask").textContent = example.ask;
+      document.getElementById("why").hidden = true;
+      document.getElementById("why").textContent = "";
+      document.querySelectorAll(".choice").forEach((button) => {
+        button.className = "choice";
+        button.disabled = false;
+      });
+    }
+
+    function pick(index) {
+      current = index;
+      yaw = 0.55;
+      pitch = 0.42;
+      document.querySelectorAll("#nav button").forEach((button, i) => {
+        button.className = i === index ? "on" : "";
+      });
+      fillSliders();
+      fillQuiz();
+      rebuild();
+    }
+
+    function answer(saidTrue) {
+      const example = EXAMPLES[current];
+      const right = saidTrue === example.answer;
+      document.querySelectorAll(".choice").forEach((button) => { button.disabled = true; });
+      document.getElementById(saidTrue ? "say-true" : "say-false").classList.add(right ? "good" : "bad");
+      if (!right) document.getElementById(example.answer ? "say-true" : "say-false").classList.add("good");
+      const why = document.getElementById("why");
+      why.hidden = false;
+      why.textContent = (right ? "Yes. " : "Not quite. ") + example.why;
+    }
+
+    const nav = document.getElementById("nav");
+    EXAMPLES.forEach((example, i) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = example.name;
+      button.addEventListener("click", () => pick(i));
+      nav.append(button);
+    });
+    document.getElementById("say-true").addEventListener("click", () => answer(true));
+    document.getElementById("say-false").addEventListener("click", () => answer(false));
+
+    const clock = new THREE.Clock();
+    resize();
+    pick(1);
+    function frame() {
+      const t = clock.getElapsedTime();
+      if (motion) {
+        const cycle = t % 6;
+        if (motion.kind === "short") motion.group.rotation.z = Math.sin(t * 2.4) * 0.48;
+        else if (motion.kind === "good") motion.group.rotation.z = Math.sin(cycle * 3.2) * 0.26 * Math.exp(-cycle * 0.85);
+        else motion.group.rotation.z = -0.62 * (1 - Math.exp(-cycle * 1.3));
+      }
+      aim();
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

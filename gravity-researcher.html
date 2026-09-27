@@ -4,7 +4,7 @@
     <title>Gravity Researcher</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #000; font-family: 'Segoe UI', system-ui, sans-serif; color: #fff; }
+        body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
         #hud {
             position: absolute; top: 10px; right: 12px;
             min-width: 210px; padding: 8px 12px;
@@ -292,6 +292,38 @@
         }
         .end-card h3 { color: #6df; font-size: 0.82rem; margin: 8px 0 4px; letter-spacing: 0.04em; text-transform: uppercase; }
         .end-talk { font-size: 0.9rem; line-height: 1.4; min-height: 4.2em; white-space: pre-wrap; margin: 0; }
+        #ui {
+            position: fixed; top: 0; left: 0; bottom: 0; width: 340px; height: 100%;
+            max-height: none; margin: 0; border-radius: 0; border: 0;
+            border-right: 1px solid #1d3c56; background: #071018ee;
+            box-shadow: none; backdrop-filter: none; padding: 16px 16px 18px;
+        }
+        h1 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
+        #launchBtn, #resetBtn { float: none; width: calc(50% - 6px); }
+        #launchBtn { background: #6df; color: #041018; border-radius: 10px; }
+        #resetBtn { margin-left: 8px; background: transparent; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px; }
+        #ui > button:disabled { background: #102033; color: #9eb4c9; border-color: #1d3c56; }
+        #detailBtn, #endBtn {
+            left: calc(50% + 170px);
+            background: #071018cc; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px;
+        }
+        #control {
+            right: 14px; bottom: 14px; left: auto;
+            max-width: min(300px, calc(100% - 380px));
+            background: rgba(0, 12, 30, 0.92); border: 1px solid #4af; border-radius: 12px;
+            font-size: 0.92rem; padding: 10px 12px; box-shadow: none;
+        }
+        .popup-box { background: #071018; border: 1px solid #2a6a88; border-radius: 16px; box-shadow: 0 16px 50px #000a; }
+        #introPopup { background: #07111c88; }
+        #popupOk, #nextBtn, #saveEndBtn { background: #6df; color: #041018; }
+        @media (max-width: 800px) {
+            #ui {
+                position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
+                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid #1d3c56;
+            }
+            #detailBtn, #endBtn { left: 50%; }
+            #control { max-width: min(300px, calc(100% - 28px)); }
+        }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -531,16 +563,29 @@
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000011);
+        function stageBox() {
+            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
+            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
+        }
         const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
         camera.position.set(0, 4, 10);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.12;
-        renderer.setSize(innerWidth, innerHeight);
-        renderer.domElement.style.position = 'absolute';
-        renderer.domElement.style.inset = '0';
-        renderer.domElement.style.zIndex = '0';
+        function fitStage() {
+            const b = stageBox();
+            camera.aspect = b.w / b.h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(b.w, b.h);
+            const el = renderer.domElement;
+            el.style.position = 'absolute';
+            el.style.inset = 'auto';
+            el.style.left = b.x + 'px';
+            el.style.top = b.y + 'px';
+            el.style.zIndex = '0';
+        }
+        fitStage();
         document.body.appendChild(renderer.domElement);
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
@@ -2687,7 +2732,7 @@
         }
         animate();
 
-        window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+        window.addEventListener('resize', fitStage);
         dressWorld(missions[0]);
         rVis = VIS_R + 0.08;
         sat.position.set(rVis, 0, 0);

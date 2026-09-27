@@ -178,7 +178,7 @@
   <script src="balance.js"></script>
   <script>
     const MIN_REP = 0;
-    const MIN_FUEL = 24;
+    const MIN_FUEL = 18;
     const DEBT_LIMIT = 50;
     const PAYLOAD_LOOK = {
       foam: { metalness: 0.02, roughness: 0.9, scale: 1.25, emissive: 0x4a3a22, emissiveIntensity: 0.18 },
@@ -200,62 +200,62 @@
     const MISSIONS = [
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Coast weather camera", cargo: "Weather camera", kg: 32, payload: "steel", pic: "art/01-coast.png",
-        budget: 20, reward: 18, free: ["payloadPos", "finSize"],
+        budget: 40, reward: 36, free: ["payloadPos", "finSize"],
         pitch: "China's space agency needs a 32 kg weather camera over the coast. It sits too low, and the fins are small.",
         start: start({ payload: "steel", payloadPos: 85, finSize: 0.5 }) },
       { client: "Jalsetu Shipping",         kind: "Business launch · India",
         title: "Harbour ship tracker", cargo: "Ship tracker", kg: 32, payload: "steel", pic: "art/02-harbour.png",
-        budget: 20, reward: 18, free: ["finSize", "fuel"],
+        budget: 40, reward: 36, free: ["finSize", "fuel"],
         pitch: "Jalsetu Shipping in India wants a 32 kg tracker over a harbour. The fins are small and the tank is nearly empty.",
         start: start({ payload: "steel", finSize: 0.5, fuel: 10 }) },
       { client: "Chengdu Youth Lab",         kind: "Business launch · China",
         title: "School experiment", cargo: "Classroom capsule", kg: 32, payload: "steel", pic: "art/03-school.png",
-        budget: 22, reward: 20, free: ["payloadPos", "finSize", "nozzle"],
+        budget: 44, reward: 40, free: ["payloadPos", "finSize", "nozzle"],
         pitch: "A school in Chengdu is sending a 32 kg classroom capsule. It sits low, with small fins and a heavy nozzle.",
         start: start({ payload: "steel", payloadPos: 90, finSize: 0.5, nozzle: 55 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Ocean watch", cargo: "Ocean buoy pack", kg: 50, payload: "lead", pic: "art/04-ocean.png",
-        budget: 22, reward: 20, free: ["fuel", "payloadPos", "finSize"],
+        budget: 44, reward: 40, free: ["fuel", "payloadPos", "finSize"],
         pitch: "China's space agency wants a long look at the ocean. The 50 kg buoy pack sits low on a full tank.",
         start: start({ payload: "lead", payloadPos: 70, fuel: 88, finSize: 0.8 }) },
       { client: "Tianhe Supply",         kind: "Business launch · China",
         title: "Station lab boxes", cargo: "Supply box", kg: 32, payload: "steel", pic: "art/05-station.png",
-        budget: 24, reward: 22, free: ["finPos", "nozzle", "fuel"],
+        budget: 48, reward: 44, free: ["finPos", "nozzle", "fuel"],
         pitch: "Tianhe Supply is sending a 32 kg lab box to a space station. The fins are high, the nozzle is heavy, and the tank is nearly empty.",
         start: start({ payload: "steel", finPos: 75, nozzle: 60, fuel: 12 }) },
       { client: "Cerrado Link", kind: "Business launch · Brazil",
         title: "Navigation satellite", cargo: "Navigation satellite", kg: 32, payload: "steel", pic: "art/06-nav.png",
-        budget: 24, reward: 22, free: ["bodyLen", "finSize", "payloadPos", "fuel"],
+        budget: 48, reward: 44, free: ["bodyLen", "finSize", "payloadPos", "fuel"],
         pitch: "Cerrado Link in Brazil needs a 32 kg satellite to help ships find their way. Short rocket, small fins, nearly empty tank.",
         start: start({ payload: "steel", bodyLen: 3.0, finSize: 0.55, payloadPos: 80, fuel: 12 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Moon radio", cargo: "Moon radio", kg: 32, payload: "steel", pic: "art/07-moon.png",
-        budget: 26, reward: 24, free: ["finPos", "payloadPos", "nozzle"],
+        budget: 52, reward: 48, free: ["finPos", "payloadPos", "nozzle"],
         pitch: "China's space agency wants a 32 kg radio towards the Moon. The fins are high, the radio sits low, and the nozzle is heavy.",
         start: start({ payload: "steel", finPos: 80, payloadPos: 85, nozzle: 50 }) },
       { client: "Al Noor Imaging", kind: "Business launch · UAE",
         title: "Asteroid camera", cargo: "Asteroid camera", kg: 32, payload: "steel", pic: "art/08-asteroid.png",
-        budget: 28, reward: 26, free: ["noseLen", "finSize", "fuel"],
+        budget: 56, reward: 52, free: ["noseLen", "finSize", "fuel"],
         pitch: "Al Noor Imaging in the UAE wants asteroid photos. The 32 kg camera has a short nose, small fins, and a very full tank.",
         start: start({ payload: "steel", noseLen: 0.55, finSize: 0.55, fuel: 80 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Sun telescope", cargo: "Sun telescope", kg: 32, payload: "steel", pic: "art/09-sun.png",
-        budget: 30, reward: 28, free: ["nozzle", "finSize", "fuel", "finPos"],
+        budget: 60, reward: 56, free: ["nozzle", "finSize", "fuel", "finPos"],
         pitch: "China's space agency wants a 32 kg telescope for the Sun. Heavy nozzle, small fins, nearly empty tank.",
         start: start({ payload: "steel", nozzle: 58, finSize: 0.5, fuel: 12, finPos: 55 }) },
       { client: "Nordhavn Research", kind: "Business launch · Norway",
         title: "Polar ice map", cargo: "Ice camera", kg: 32, payload: "steel", pic: "art/10-ice.png",
-        budget: 32, reward: 30, free: ["finPos", "finSize", "fuel", "payloadPos"],
+        budget: 64, reward: 60, free: ["finPos", "finSize", "fuel", "payloadPos"],
         pitch: "Nordhavn Research in Norway is mapping polar ice. The 32 kg camera sits low, with small fins and a full tank.",
         start: start({ payload: "steel", finPos: 72, finSize: 0.55, fuel: 85, payloadPos: 90 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Station cargo", cargo: "Cargo rack", kg: 32, payload: "steel", pic: "art/11-cargo.png",
-        budget: 34, reward: 32, free: ["bodyLen", "noseLen", "finSize", "fuel", "payloadPos", "nozzle"],
+        budget: 68, reward: 64, free: ["bodyLen", "noseLen", "finSize", "fuel", "payloadPos", "nozzle"],
         pitch: "China's space agency is sending a 32 kg rack to a space station. Short rocket, small fins, empty tank, heavy nozzle.",
         start: start({ payload: "steel", bodyLen: 3.1, noseLen: 0.65, finSize: 0.55, fuel: 12, payloadPos: 85, nozzle: 46 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
         title: "Practice crew flight", cargo: "Practice weight", kg: 32, payload: "steel", pic: "art/12-ferry.png",
-        budget: 40, reward: 36, free: ["noseLen", "payloadPos", "bodyLen", "finSize", "finPos", "nozzle", "fuel"],
+        budget: 80, reward: 72, free: ["noseLen", "payloadPos", "bodyLen", "finSize", "finPos", "nozzle", "fuel"],
         pitch: "A practice flight for a future crew rocket. The 32 kg test weight is not set up to fly straight.",
         start: start({ payload: "steel", noseLen: 0.65, payloadPos: 90, bodyLen: 3.2, finSize: 0.5, finPos: 65, nozzle: 50, fuel: 12 }) }
     ];
@@ -350,128 +350,172 @@
     );
     trench.position.set(0, 0.02, 3.6);
     site.add(trench);
-    const steel = new THREE.MeshStandardMaterial({ color: 0x9aafc4, metalness: 0.65, roughness: 0.32 });
-    const room = new THREE.MeshStandardMaterial({ color: 0x1c2836, metalness: 0.35, roughness: 0.62 });
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0xb9e7ff, transparent: true, opacity: 0.2, roughness: 0.04, metalness: 0.08,
-      depthWrite: false, side: THREE.DoubleSide
+    const steel = new THREE.MeshStandardMaterial({ color: 0x8ea4bb, metalness: 0.72, roughness: 0.28 });
+    const accent = new THREE.MeshStandardMaterial({ color: 0xe07a2f, metalness: 0.4, roughness: 0.42 });
+    const gantry = new THREE.Group();
+    site.add(gantry);
+    const xNear = -5.15;
+    const xFar = -6.85;
+    const zL = -2.35;
+    const zR = -0.05;
+    const postH = 8.6;
+    const postBase = 0.52;
+    const thick = 0.1;
+    function gantryBeam(x1, y1, z1, x2, y2, z2, size) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const dz = z2 - z1;
+      const len = Math.hypot(dx, dy, dz);
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(size || thick, len, size || thick), steel);
+      mesh.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+      mesh.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(dx, dy, dz).normalize()
+      );
+      gantry.add(mesh);
+      return mesh;
+    }
+    [[xNear, zL], [xNear, zR], [xFar, zL], [xFar, zR]].forEach((corner) => {
+      const x = corner[0];
+      const z = corner[1];
+      gantryBeam(x, postBase, z, x, postBase + postH, z, 0.13);
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.5), steel);
+      foot.position.set(x, 0.5, z);
+      gantry.add(foot);
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.06, 0.52), accent);
+      stripe.position.set(x, 0.58, z);
+      gantry.add(stripe);
     });
-    const frameX = -2.65;
-    const frameFoot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.16, 12), steel);
-    frameFoot.position.set(frameX, 0.54, 0);
-    site.add(frameFoot);
-    const poleH = 5.2;
-    const poleBase = 0.62;
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, poleH, 8), steel);
-    pole.position.set(frameX, poleBase + poleH / 2, 0);
-    site.add(pole);
-    const armLen = 1.15;
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(armLen, 0.08, 0.08), steel);
-    arm.position.set(frameX + 0.07 + armLen / 2, poleBase + poleH - 1.15, 0);
-    site.add(arm);
-    const beacon = new THREE.Mesh(
-      new THREE.SphereGeometry(0.11, 12, 10),
+    const levels = 5;
+    for (let i = 0; i < levels; i++) {
+      const y = postBase + 0.85 + i * ((postH - 1.2) / (levels - 1));
+      gantryBeam(xNear, y, zL, xNear, y, zR);
+      gantryBeam(xFar, y, zL, xFar, y, zR);
+      gantryBeam(xNear, y, zL, xFar, y, zL);
+      gantryBeam(xNear, y, zR, xFar, y, zR);
+      if (i < levels - 1) {
+        const y2 = postBase + 0.85 + (i + 1) * ((postH - 1.2) / (levels - 1));
+        gantryBeam(xNear, y, zL, xNear, y2, zR, 0.07);
+        gantryBeam(xNear, y, zR, xNear, y2, zL, 0.07);
+        gantryBeam(xFar, y, zL, xFar, y2, zR, 0.07);
+        gantryBeam(xNear, y, zL, xFar, y2, zL, 0.07);
+        gantryBeam(xNear, y, zR, xFar, y2, zR, 0.07);
+      }
+    }
+    const deckY = postBase + postH - 0.15;
+    const platform = new THREE.Mesh(new THREE.BoxGeometry(xNear - xFar + 0.35, 0.08, zR - zL + 0.35), steel);
+    platform.position.set((xNear + xFar) / 2, deckY, 0);
+    gantry.add(platform);
+    const railY = deckY + 0.42;
+    gantryBeam(xNear, railY, zL, xNear, railY, zR, 0.06);
+    gantryBeam(xFar, railY, zL, xFar, railY, zR, 0.06);
+    gantryBeam(xNear, railY, zL, xFar, railY, zL, 0.06);
+    gantryBeam(xNear, railY, zR, xFar, railY, zR, 0.06);
+    [[xNear, zL], [xNear, zR], [xFar, zL], [xFar, zR]].forEach((corner) => {
+      gantryBeam(corner[0], deckY, corner[1], corner[0], railY, corner[1], 0.05);
+    });
+    const armY = postBase + postH * 0.58;
+    const armEnd = xNear + 0.7;
+    gantryBeam(xNear, armY, zL * 0.35, armEnd, armY, zL * 0.35, 0.08);
+    gantryBeam(xNear, armY, zR * 0.35, armEnd, armY, zR * 0.35, 0.08);
+    gantryBeam(armEnd, armY, zL * 0.35, armEnd, armY, zR * 0.35, 0.08);
+    gantryBeam(xNear, armY - 0.85, 0, armEnd, armY, zL * 0.35, 0.05);
+    gantryBeam(xNear, armY - 0.85, 0, armEnd, armY, zR * 0.35, 0.05);
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 1.8, 8), steel);
+    mast.position.set(xFar, railY + 0.9, zR);
+    gantry.add(mast);
+    const mastTip = new THREE.Mesh(
+      new THREE.SphereGeometry(0.07, 10, 8),
       new THREE.MeshBasicMaterial({ color: 0xff3355 })
     );
-    beacon.position.set(frameX, poleBase + poleH + 0.11, 0);
-    site.add(beacon);
-    const beaconLight = new THREE.PointLight(0xff3355, 0.8, 7, 2);
-    beaconLight.position.copy(beacon.position);
+    mastTip.position.set(xFar, railY + 1.8, zR);
+    gantry.add(mastTip);
+    [[xFar, zL], [xNear, zR]].forEach((spot) => {
+      const beacon = new THREE.Mesh(
+        new THREE.SphereGeometry(0.1, 12, 10),
+        new THREE.MeshBasicMaterial({ color: 0xff3355 })
+      );
+      beacon.position.set(spot[0], railY + 0.28, spot[1]);
+      gantry.add(beacon);
+    });
+    const beaconLight = new THREE.PointLight(0xff5533, 1.1, 9, 2);
+    beaconLight.position.set(xFar, railY + 1.5, zR);
     site.add(beaconLight);
+    const workLight = new THREE.PointLight(0xffe2b0, 0.7, 10, 2);
+    workLight.position.set((xNear + xFar) / 2, deckY + 0.2, 0);
+    site.add(workLight);
 
-    const tx = -5.7;
-    const tz = 1.15;
-    const tower = new THREE.Group();
-    tower.position.set(tx, terrainHeight(tx, tz), tz);
-    site.add(tower);
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.15, 0.36, 20), room);
-    base.position.y = 0.12;
-    tower.add(base);
-    const shaftH = 3.8;
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.38, shaftH, 14), steel);
-    shaft.position.y = 0.3 + shaftH / 2;
-    tower.add(shaft);
-    const neckY = 0.3 + shaftH;
-    const dish = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 0.18, 0.55, 28), steel);
-    dish.position.y = neckY + 0.12;
-    tower.add(dish);
-    const podY = neckY + 0.42;
-    const podFloor = new THREE.Mesh(new THREE.CylinderGeometry(1.42, 1.42, 0.08, 28), room);
-    podFloor.position.y = podY;
-    tower.add(podFloor);
-    const podGlass = new THREE.Mesh(new THREE.CylinderGeometry(1.38, 1.38, 1.45, 28, 1, true), glassMat);
-    podGlass.position.y = podY + 0.78;
-    podGlass.renderOrder = 4;
-    tower.add(podGlass);
-    const podRoof = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.42, 0.12, 28), steel);
-    podRoof.position.y = podY + 1.52;
-    tower.add(podRoof);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.48, 0.045, 8, 28), steel);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = podY + 0.78;
-    tower.add(ring);
-    const spire = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.06, 1.7, 8), steel);
-    spire.position.y = podY + 1.52 + 0.85;
-    tower.add(spire);
-    const roomLight = new THREE.PointLight(0xffe0b0, 1.3, 5, 2);
-    roomLight.position.y = podY + 0.8;
-    tower.add(roomLight);
     const screens = [];
     const crew = [];
-    function makeWorker(clothHex, skinHex) {
+    function makeWorker(clothHex, skinHex, lead) {
       const person = new THREE.Group();
       const cloth = new THREE.MeshStandardMaterial({ color: clothHex, roughness: 0.78 });
       const skin = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.7 });
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), skin);
-      head.position.y = 0.62;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), skin);
+      head.position.y = 1.02;
       person.add(head);
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.26, 0.12), cloth);
-      body.position.y = 0.38;
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.42, 0.16), cloth);
+      body.position.y = 0.66;
       person.add(body);
-      const armGeo = new THREE.BoxGeometry(0.07, 0.22, 0.07);
-      armGeo.translate(0, -0.11, 0);
+      const armGeo = new THREE.BoxGeometry(0.08, 0.36, 0.08);
+      armGeo.translate(0, -0.18, 0);
       const leftArm = new THREE.Mesh(armGeo, cloth);
-      leftArm.position.set(-0.16, 0.48, 0.02);
-      leftArm.rotation.x = -1.15;
-      person.add(leftArm);
+      leftArm.position.set(-0.2, 0.82, 0);
       const rightArm = new THREE.Mesh(armGeo, cloth);
-      rightArm.position.set(0.16, 0.48, 0.02);
-      rightArm.rotation.x = -1.15;
+      rightArm.position.set(0.2, 0.82, 0);
+      if (lead) {
+        leftArm.rotation.x = -1.25;
+        rightArm.rotation.x = -1.25;
+        leftArm.rotation.z = 0.4;
+        rightArm.rotation.z = -0.4;
+        const binos = new THREE.Mesh(
+          new THREE.BoxGeometry(0.24, 0.08, 0.1),
+          new THREE.MeshStandardMaterial({ color: 0x1b2430, metalness: 0.45, roughness: 0.4 })
+        );
+        binos.position.set(0, 1.0, 0.18);
+        person.add(binos);
+      } else {
+        leftArm.rotation.z = 0.12;
+        rightArm.rotation.z = -0.12;
+      }
+      person.add(leftArm);
       person.add(rightArm);
-      const legGeo = new THREE.BoxGeometry(0.08, 0.16, 0.08);
+      const legGeo = new THREE.BoxGeometry(0.09, 0.44, 0.09);
       const leftLeg = new THREE.Mesh(legGeo, cloth);
-      leftLeg.position.set(-0.06, 0.16, 0.05);
-      leftLeg.rotation.x = -1.25;
+      leftLeg.position.set(-0.08, 0.22, 0);
       person.add(leftLeg);
       const rightLeg = leftLeg.clone();
-      rightLeg.position.x = 0.06;
+      rightLeg.position.x = 0.08;
       person.add(rightLeg);
-      const chair = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.05, 0.24), room);
-      chair.position.set(0, 0.1, -0.02);
-      person.add(chair);
       person.userData = {
-        head: head, leftArm: leftArm, rightArm: rightArm,
-        phase: Math.random() * 6, nextWave: 0.8 + Math.random() * 2.5, waving: 0
+        head: head, leftArm: leftArm, rightArm: rightArm, lead: lead,
+        phase: Math.random() * 6
       };
       return person;
     }
-    [[0.4, 0x2f6fed, 0xf0c7a0], [2.5, 0x3d9a6a, 0xe7c2a0], [4.6, 0xc45b4a, 0xd9a07a]].forEach((seat) => {
-      const ang = seat[0];
-      const person = makeWorker(seat[1], seat[2]);
-      person.position.set(Math.cos(ang) * 0.62, podY + 0.1, Math.sin(ang) * 0.62);
-      person.rotation.y = Math.PI / 2 - ang;
-      person.scale.setScalar(1.05);
-      tower.add(person);
+    [[1.15, 2.45, 0x2f6fed, 0xf0c7a0, true], [2.05, 1.85, 0x3d9a6a, 0xe7c2a0, false], [0.35, 2.15, 0xc45b4a, 0xd9a07a, false]].forEach((spot) => {
+      const person = makeWorker(spot[2], spot[3], spot[4]);
+      person.position.set(spot[0], 0.48, spot[1]);
+      person.rotation.y = Math.atan2(-spot[0], -spot[1]);
+      person.scale.setScalar(1.15);
+      site.add(person);
       crew.push(person);
-      const screen = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.22, 0.28),
-        new THREE.MeshStandardMaterial({ color: 0x102838, emissive: 0x3de4ff, emissiveIntensity: 0.55, roughness: 0.4 })
-      );
-      screen.position.set(Math.cos(ang) * 1.02, podY + 0.48, Math.sin(ang) * 1.02);
-      screen.rotation.y = Math.PI / 2 - ang;
-      tower.add(screen);
-      screens.push(screen);
     });
+    const consoleBox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.08, 0.36),
+      new THREE.MeshStandardMaterial({ color: 0x102838, emissive: 0x3de4ff, emissiveIntensity: 0.45, roughness: 0.4 })
+    );
+    consoleBox.position.set(0.15, 1.28, 1.45);
+    consoleBox.rotation.x = -0.65;
+    consoleBox.rotation.y = Math.atan2(-0.15, -1.45);
+    site.add(consoleBox);
+    screens.push(consoleBox);
+    const consoleLeg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.04, 0.05, 0.72, 8),
+      steel
+    );
+    consoleLeg.position.set(0.15, 0.84, 1.45);
+    site.add(consoleLeg);
 
     function makeSky(count, radius, size, color) {
       const geo = new THREE.BufferGeometry();
@@ -1207,23 +1251,59 @@
       });
     }
 
-    function cheer() {
+    const MAJOR = [261.63, 293.66, 329.63, 349.23, 392, 440, 493.88, 523.25];
+    function playNotes(notes, type, step, dur, peak) {
       const ctx = ensureAudio();
-      if (!ctx || ctx.state !== "running") return;
+      if (!ctx) return;
       const now = ctx.currentTime;
-      [523, 659, 784].forEach((freq, i) => {
+      notes.forEach((freq, i) => {
         const osc = ctx.createOscillator();
-        osc.type = "triangle";
-        osc.frequency.value = freq;
         const gain = ctx.createGain();
-        const start = now + i * 0.07;
+        const start = now + i * step;
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, start);
         gain.gain.setValueAtTime(0.0001, start);
-        gain.gain.exponentialRampToValueAtTime(0.07, start + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+        gain.gain.exponentialRampToValueAtTime(peak, start + 0.018);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
         osc.connect(gain).connect(ctx.destination);
         osc.start(start);
-        osc.stop(start + 0.4);
+        osc.stop(start + dur + 0.02);
       });
+    }
+    function launchCompleteSfx() {
+      playNotes(MAJOR, "sine", 0.09, 0.2, 0.07);
+      playNotes(MAJOR.map((freq) => freq * 2), "sawtooth", 0.09, 0.14, 0.018);
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime + MAJOR.length * 0.09;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(523.25, now);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.08, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.7);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.72);
+    }
+    function launchFailSfx() {
+      const down = [523.25, 493.88, 440, 392, 349.23, 329.63, 293.66, 261.63];
+      playNotes(down, "sawtooth", 0.1, 0.22, 0.045);
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime + down.length * 0.1;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(196, now);
+      osc.frequency.exponentialRampToValueAtTime(98, now + 0.45);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.05, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.52);
     }
 
     function openCard(tone, kicker, title, body, button, action, block, pic) {
@@ -1364,7 +1444,7 @@
         refreshHud();
         signed += 1;
         say(leftover > 0.05 ? "😄" : "🙂", leftover > 0.05 ? "Straight flight. You kept what was left." : "It flew, but the budget was all spent.");
-        cheer();
+        launchCompleteSfx();
         const kept = leftover > 0.05
           ? "You kept " + money(leftover) + " from the budget. That is your profit."
           : "The budget was all spent, so this contract made no profit.";
@@ -1377,12 +1457,12 @@
             happy ? "The company has no debt" : "The company still owes money",
             happy
               ? [
-                "You have finished all twelve jobs.",
+                "You have finished all twelve contracts.",
                 kept,
                 "Your savings are " + money(savings) + ". Your debt is " + money(debt) + "."
               ]
               : [
-                "You have finished all twelve jobs.",
+                "You have finished all twelve contracts.",
                 kept,
                 "The company still owes " + money(debt) + ". Your savings are " + money(savings) + "."
               ],
@@ -1409,7 +1489,8 @@
         );
         return;
       }
-      reputation = Math.max(MIN_REP, reputation - 10);
+      reputation = Math.max(MIN_REP, reputation - 6);
+      launchFailSfx();
       refreshHud();
       if (debt >= DEBT_LIMIT && budget <= 0 && savings <= 0) {
         mode = "end";
@@ -1422,7 +1503,7 @@
           "The company has run out of money",
           [
             "The debt is " + money(debt) + ". The company has to close.",
-            "You finished " + signed + " job" + (signed === 1 ? "" : "s") + "."
+            "You finished " + signed + " contract" + (signed === 1 ? "" : "s") + "."
           ],
           "Play again",
           () => location.reload(),
@@ -1645,20 +1726,15 @@
       }
       crew.forEach((person) => {
         const bits = person.userData;
-        bits.head.rotation.x = Math.sin(t * 1.7 + bits.phase) * 0.22;
-        bits.head.rotation.y = Math.sin(t * 0.33 + bits.phase) * 0.14;
-        bits.leftArm.rotation.x = -1.15 + Math.sin(t * 6.2 + bits.phase) * 0.07;
-        if (t > bits.nextWave && bits.waving <= 0) {
-          bits.waving = 0.9;
-          bits.nextWave = t + 2.2 + Math.random() * 4.8;
-        }
-        if (bits.waving > 0) {
-          bits.waving -= dt;
-          bits.rightArm.rotation.z = -0.55;
-          bits.rightArm.rotation.x = -0.2 + Math.sin(t * 16) * 0.9;
+        const lookUp = mode === "fly" || mode === "result" || mode === "end";
+        bits.head.rotation.x = (lookUp ? -0.7 : -0.28) + Math.sin(t * 1.3 + bits.phase) * 0.05;
+        bits.head.rotation.y = Math.sin(t * 0.35 + bits.phase) * 0.1;
+        if (bits.lead) {
+          bits.leftArm.rotation.x = -1.25 + Math.sin(t * 1.8 + bits.phase) * 0.03;
+          bits.rightArm.rotation.x = -1.25 + Math.sin(t * 1.6 + bits.phase) * 0.03;
         } else {
-          bits.rightArm.rotation.z = 0;
-          bits.rightArm.rotation.x = -1.15 + Math.sin(t * 5 + bits.phase) * 0.05;
+          bits.leftArm.rotation.x = Math.sin(t * 1.1 + bits.phase) * 0.06;
+          bits.rightArm.rotation.x = Math.sin(t * 1.0 + bits.phase) * 0.05;
         }
       });
       screens.forEach((screen, i) => {
@@ -1694,7 +1770,7 @@
       "You are the founder",
       [
         "You are the founder and CEO of Qinglan Launch. You fly rockets for China, and for other countries too.",
-        "Each job is already won. The money you do not spend is your profit. A crash spends money and can put you into debt."
+        "Each contract is already secured. The money you do not spend is your profit. A crash spends money and can put the company into debt."
       ],
       "Start the company",
       () => openMission(),
