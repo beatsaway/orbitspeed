@@ -58,6 +58,12 @@
       letter-spacing: 0.04em;
       white-space: nowrap;
     }
+    body.intro .kicker {
+      color: #fff;
+      font-size: clamp(1.8rem, 3.6vw, 2.7rem);
+      font-weight: 650;
+      letter-spacing: -0.02em;
+    }
     .settings-wrap { position: relative; margin-left: auto; }
     #clock {
       position: fixed;
@@ -121,6 +127,7 @@
     }
     .slide.on { display: flex; }
     .slide.intro {
+      padding-top: 124px;
       background:
         radial-gradient(ellipse at 50% 18%, rgba(231, 161, 90, 0.18), transparent 42%),
         radial-gradient(ellipse at 50% 120%, rgba(80, 130, 190, 0.2), transparent 46%);
@@ -178,7 +185,6 @@
     }
     .reveal .hid { display: none; }
     .reveal .dots { color: var(--dim); }
-    .reveal.open { cursor: default; }
     .reveal.open .dots { display: none; }
     .reveal.open .hid { display: inline; color: var(--dim); font-weight: 550; }
     .qs .reveal {
@@ -325,7 +331,7 @@
 <body class="intro">
   <canvas id="stars" aria-hidden="true"></canvas>
   <header class="top">
-    <p class="kicker">Rover and gravity</p>
+    <p class="kicker">Rover and Gravity</p>
     <div class="settings-wrap">
       <button id="settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settingsPop">⚙</button>
       <div id="settingsPop" hidden>
@@ -348,7 +354,7 @@
       <div class="copy">
         <h1>Please finish the quiz</h1>
         <p class="lead">It is the <a href="https://docs.google.com/forms/d/e/1FAIpQLSc-BPXPTB5p2uZEfA5qSzwUw_vVl5_dQryFMcfQmR5_cWlqbg/viewform?usp=dialog" target="_blank" rel="noopener">September retrieval quiz</a> on Google Classroom.</p>
-        <p class="lead">If you finish early, comment on these posts in your Google Classroom.</p>
+        <p class="lead">After finishing the quiz, please comment on these posts in your Google Classroom.</p>
         <ul class="qs">
           <li>What do you already know about gravity?</li>
           <li>What is the link between gravity and mass?</li>
@@ -390,7 +396,7 @@
           <li><button type="button" class="reveal">What does it have to do with how far you are from the planet?<span class="hid">The further you are, the weaker the pull.</span></button></li>
         </ul>
       </div>
-      <img src="art/sandbox.webp?v=pull" alt="A close craft pulled hard and a far craft pulled weakly, beside a tiny planet and a much larger planet">
+      <img src="art/sandbox.webp?v=holes" alt="A small planet, a normal planet, and a black hole, each pulling a rocket">
     </section>
 
     <section class="slide teacher" data-seconds="90">
@@ -479,7 +485,7 @@
     let last = performance.now();
 
     document.querySelectorAll(".reveal").forEach((btn) => {
-      btn.addEventListener("click", () => btn.classList.add("open"));
+      btn.addEventListener("click", () => btn.classList.toggle("open"));
     });
 
     slides.forEach((_, n) => {
@@ -650,8 +656,8 @@
     requestAnimationFrame(frame);
   </script>
   <script type="module">
-    import { ShipMusic } from "./music/ship-music.js?v=groups";
-    import { busOut, lessonAudible } from "./music/ctx.js?v=groups";
+    import { ShipMusic } from "./music/ship-music.js?v=ambient2";
+    import { busOut, lessonAudible } from "./music/ctx.js?v=ambient2";
     const music = new ShipMusic();
     const vol = document.getElementById("vol");
     let musicGain = Number(vol.value);

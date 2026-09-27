@@ -1,10 +1,10 @@
-﻿/**
+/**
  * Ship BGM — mysterious space-incident score.
  * Restored rooms: lonely modal pads, sometimes a slow hull-pulse.
  * SOS rooms: tighter rhythm, still dark — not lounge jazz, not chiptune.
  */
 
-import { getAudioCtx, resumeAudio, busOut, getMixerLevels } from "./ctx.js?v=groups";
+import { getAudioCtx, resumeAudio, busOut, getMixerLevels } from "./ctx.js?v=ambient2";
 import {
   playNote,
   playKick,
@@ -14,7 +14,7 @@ import {
   playClap,
   playRide,
   playCowbell,
-} from "./music-voices.js";
+} from "./music-voices.js?v=ambient2";
 
 const NOTE = { C: 0, Db: 1, D: 2, Eb: 3, E: 4, F: 5, Fs: 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
 const IV = {
@@ -331,35 +331,22 @@ function bed(partial) {
 
 const BEDS = {
   scene1: bed({
-    bpm: 88,
-    hold: [16, 16, 16, 16],
+    bpm: 64,
+    hold: [32, 32, 32, 32],
     padInst: "darkPad",
-    padG: 0.07,
+    padG: 0.055,
     padVoices: 3,
-    bassEvery: 8,
-    bassSkip: [6, 4],
-    bassG: 0.04,
-    bassMode: "fifth",
-    bassVol: "hill",
-    trebleInst: "glass",
-    trebleEvery: 4,
-    trebleEvery2: 8,
-    treblePhase: 32,
-    trebleSkip: [5, 3, 7],
-    trebleMode: "descend",
-    trebleMode2: "fifth",
-    trebleG: 0.042,
-    trebleVol: "downhill",
-    drumG: 0.24,
-    circle: {
-      morphEvery: 64,
-      kick: { n: 16, pulses: 3, rot: 0, pulseCycle: [3, 3, 4, 3] },
-      hat: { n: 16, pulses: 5, rot: 1, rotStep: 1, skip: 0.45, pulseVar: true },
-      tom: { n: 32, pulses: 2, rot: 20, skip: 0.3 },
-    },
+    bassEvery: 16,
+    bassG: 0.028,
+    trebleInst: "piano",
+    trebleEvery: 8,
+    trebleMode: "fifth",
+    trebleSkip: [5, 7, 6],
+    trebleG: 0.034,
+    drumG: 0,
     progs: [
-      [midi("D", 3, "min7"), midi("Bb", 2, "sus2"), midi("A", 2, "m7b5"), midi("G", 2, "madd9")],
-      [midi("D", 3, "madd9"), midi("F", 2, "min7"), midi("G", 2, "sus2"), midi("A", 2, "min7")],
+      [midi("F", 3, "maj7"), midi("C", 3, "add9"), midi("G", 2, "sus2"), midi("A", 2, "min7")],
+      [midi("F", 3, "add9"), midi("D", 3, "min7"), midi("Bb", 2, "maj7"), midi("C", 3, "sus2")],
     ],
   }),
   victory: bed({
@@ -390,102 +377,94 @@ const BEDS = {
     ],
   }),
   talk: bed({
-    bpm: 52,
-    hold: [32, 32, 32, 32],
+    bpm: 56,
+    hold: [32, 32, 48, 32],
     padInst: "piano",
-    padG: 0.08,
+    padG: 0.05,
     padVoices: 3,
-    bassEvery: 16,
-    bassG: 0.034,
+    bassEvery: 32,
+    bassG: 0.02,
     trebleInst: "bell",
-    trebleEvery: 8,
-    trebleMode: "fifth",
-    trebleG: 0.036,
+    trebleEvery: 16,
+    trebleMode: "descend",
+    trebleSkip: [3, 5],
+    trebleG: 0.022,
     drumG: 0,
     progs: [
-      [midi("F", 3, "maj7"), midi("C", 3, "add9"), midi("G", 2, "sus2"), midi("A", 2, "min7")],
+      [midi("C", 3, "maj7"), midi("A", 2, "min7"), midi("F", 3, "add9"), midi("G", 2, "sus2")],
     ],
   }),
   play: bed({
-    bpm: 112,
-    hold: [8, 8, 8, 8],
-    padInst: "organ",
-    padG: 0.05,
-    bassEvery: 4,
-    bassMode: "octave",
-    bassG: 0.062,
-    trebleInst: "pluck",
-    trebleEvery: 2,
+    bpm: 70,
+    hold: [32, 32, 32, 32],
+    padInst: "glass",
+    padG: 0.04,
+    padVoices: 2,
+    bassEvery: 16,
+    bassG: 0.024,
+    trebleInst: "bell",
+    trebleEvery: 8,
     trebleMode: "arp",
-    trebleG: 0.055,
-    drumG: 0.3,
-    kick: "x---x---x---x---",
-    hat: "x-x-x-x-x-x-x-x-",
-    snare: "----x-------x---",
+    trebleSkip: [4, 6, 5],
+    trebleG: 0.03,
+    drumG: 0,
     progs: [
-      [midi("C", 3, "maj7"), midi("A", 2, "min7"), midi("F", 3, "maj7"), midi("G", 3, "sus4")],
-      [midi("C", 3, "add9"), midi("E", 3, "min7"), midi("F", 3, "maj"), midi("G", 3, "add9")],
+      [midi("C", 3, "maj7"), midi("G", 3, "sus2"), midi("A", 2, "min7"), midi("F", 3, "add9")],
+      [midi("C", 3, "add9"), midi("E", 3, "min7"), midi("F", 3, "maj7"), midi("G", 3, "sus2")],
     ],
   }),
   lab: bed({
-    bpm: 94,
-    hold: [16, 16, 16, 16],
-    padInst: "glass",
-    padG: 0.055,
-    bassEvery: 8,
+    bpm: 66,
+    hold: [32, 48, 32, 32],
+    padInst: "darkPad",
+    padG: 0.05,
+    padVoices: 3,
+    bassEvery: 16,
     bassMode: "fifth",
-    bassG: 0.05,
-    trebleInst: "lead",
-    trebleEvery: 4,
-    trebleMode: "arp8",
-    trebleG: 0.046,
-    drumG: 0.2,
-    circle: {
-      morphEvery: 64,
-      kick: { n: 16, pulses: 4, rot: 0 },
-      hat: { n: 16, pulses: 8, rot: 1, skip: 0.15 },
-      tom: { n: 16, pulses: 2, rot: 6, skip: 0.28 },
-    },
+    bassG: 0.022,
+    trebleInst: "glass",
+    trebleEvery: 8,
+    trebleMode: "fifth",
+    trebleSkip: [5, 4, 7],
+    trebleG: 0.028,
+    drumG: 0,
     progs: [
-      [midi("E", 2, "min7"), midi("C", 3, "maj7"), midi("G", 2, "sus2"), midi("D", 3, "min7")],
-      [midi("E", 2, "madd9"), midi("A", 2, "min"), midi("C", 3, "maj"), midi("B", 2, "min7")],
+      [midi("D", 3, "min7"), midi("G", 2, "sus2"), midi("A", 2, "min7"), midi("C", 3, "add9")],
+      [midi("D", 3, "madd9"), midi("F", 2, "maj7"), midi("C", 3, "sus2"), midi("G", 2, "min7")],
     ],
   }),
   design: bed({
-    bpm: 84,
-    hold: [16, 16, 16, 8],
-    padInst: "organ",
-    padG: 0.06,
+    bpm: 62,
+    hold: [32, 32, 32, 48],
+    padInst: "piano",
+    padG: 0.048,
     padVoices: 3,
-    bassEvery: 8,
-    bassMode: "walk",
-    bassG: 0.05,
-    trebleInst: "piano",
-    trebleEvery: 4,
-    trebleMode: "block",
-    trebleG: 0.044,
-    drumG: 0.16,
-    kick: "x-------x-------",
-    hat: "--x---x---x---x-",
+    bassEvery: 16,
+    bassG: 0.024,
+    trebleInst: "bell",
+    trebleEvery: 16,
+    trebleMode: "fifth",
+    trebleG: 0.024,
+    drumG: 0,
     progs: [
-      [midi("G", 2, "maj7"), midi("D", 3, "sus2"), midi("E", 2, "min7"), midi("C", 3, "maj7")],
-      [midi("G", 2, "add9"), midi("B", 2, "min7"), midi("C", 3, "maj7"), midi("D", 3, "sus4")],
+      [midi("G", 2, "maj7"), midi("D", 3, "sus2"), midi("E", 2, "min7"), midi("C", 3, "add9")],
+      [midi("G", 2, "add9"), midi("B", 2, "min7"), midi("C", 3, "maj7"), midi("D", 3, "sus2")],
     ],
   }),
   close: bed({
-    bpm: 64,
-    hold: [32, 32, 32],
+    bpm: 58,
+    hold: [48, 48, 32],
     padInst: "darkPad",
-    padG: 0.07,
+    padG: 0.05,
     padVoices: 3,
-    bassEvery: 16,
-    bassG: 0.03,
+    bassEvery: 32,
+    bassG: 0.018,
     trebleInst: "bell",
-    trebleEvery: 8,
+    trebleEvery: 16,
     trebleMode: "descend",
-    trebleG: 0.032,
-    drumG: 0.06,
-    hat: "x---------------",
+    trebleSkip: [4, 6],
+    trebleG: 0.026,
+    drumG: 0,
     progs: [
       [midi("A", 2, "min7"), midi("F", 2, "maj7"), midi("C", 3, "add9"), midi("G", 2, "sus2")],
     ],
@@ -826,27 +805,30 @@ export class ShipMusic {
     return bedOf(this._mood);
   }
 
-  _openLayer(ctx) {
+  _openLayer(ctx, leaving) {
     const t = ctx.currentTime;
     const old = this._layer;
+    const bar = leaving ? (60 / Math.max(48, leaving.bpm || 64)) * 4 : 0.2;
+    const outTime = leaving ? bar * 1.15 : 0.2;
+    const inTime = leaving ? bar * 0.85 : 0.16;
     if (old) {
       try {
         old.gain.cancelScheduledValues(t);
         old.gain.setValueAtTime(Math.max(0.0001, old.gain.value), t);
-        old.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        old.gain.linearRampToValueAtTime(0.0001, t + outTime);
       } catch (_) {}
       window.setTimeout(() => {
         try {
           old.disconnect();
         } catch (_) {}
-      }, 320);
+      }, (outTime + 0.35) * 1000);
     }
     const layer = ctx.createGain();
     layer.gain.setValueAtTime(old ? 0.0001 : 1, t);
-    if (old) layer.gain.linearRampToValueAtTime(1, t + 0.16);
+    if (old) layer.gain.linearRampToValueAtTime(1, t + inTime);
     layer.connect(this._duck);
     const harm = ctx.createGain();
-    harm.gain.value = 0.72;
+    harm.gain.value = 1.45;
     harm.connect(layer);
     const drum = ctx.createGain();
     drum.gain.value = 0.5;
@@ -937,10 +919,11 @@ export class ShipMusic {
   }
 
   _sixteenth(ctx, t) {
-    if (this._pendingMood !== this._mood && performance.now() - this._pendingAt >= 280) {
+    if (this._pendingMood !== this._mood && this._step > 0 && this._step % 16 === 0) {
+      const leaving = this._liveBed();
       this._mood = this._pendingMood;
       this._wantMood = this._mood;
-      this._openLayer(ctx);
+      this._openLayer(ctx, leaving);
       this._armBed(this._liveBed());
       this._step = 0;
     }
