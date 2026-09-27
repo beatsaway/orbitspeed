@@ -109,11 +109,11 @@
     position: absolute;
     right: 18px;
     bottom: 62px;
-    z-index: 6;
+    z-index: 30;
     width: 240px;
     margin: 0;
     padding: 16px 16px 14px;
-    background: rgba(8, 9, 12, 0.78);
+    background: rgba(8, 9, 12, 0.96);
     border: 1px solid rgba(243, 236, 223, 0.16);
     pointer-events: auto;
     display: flex;
@@ -3113,13 +3113,24 @@ document.getElementById("show-intro").addEventListener("click", (e) => {
   e.stopPropagation();
   showIntro();
 });
-introGo.addEventListener("click", () => {
+function dismissIntro() {
   const first = !introDone;
   introDone = true;
   introEl.hidden = true;
   if (!first) return;
   said = "";
-  showGuide(altitude);
+  try { showGuide(altitude); } catch (_) {}
+  try { beginMusic(); } catch (_) {}
+}
+introGo.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dismissIntro();
+});
+introGo.addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  dismissIntro();
 });
 againBtn.addEventListener("click", standAgain);
 const askEl = document.getElementById("ask");

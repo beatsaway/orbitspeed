@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rover and gravity · slides</title>
+  <style>
+    :root {
+      --ink: #f4f7fb;
+      --dim: #c5d2e2;
+      --navy: #10243f;
+      --bg: #0b1526;
+      --card: rgba(255, 255, 255, 0.06);
+      --line: rgba(255, 255, 255, 0.16);
+      --accent: #e7a15a;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+    #stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+    }
+    body.intro #stars { opacity: 1; }
+    .deck { position: relative; z-index: 1; }
+    body {
+      font: 20px/1.4 "Segoe UI", system-ui, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    a { color: inherit; }
+    .top, .bottom {
+      position: fixed;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 22px;
+    }
+    .top { top: 0; flex-wrap: nowrap; z-index: 20; }
+    .bottom {
+      bottom: 0;
+      justify-content: space-between;
+      z-index: 6;
+      background: rgba(11, 21, 38, 0.94);
+    }
+    .kicker {
+      margin: 0;
+      color: #9ec4ee;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .settings-wrap { position: relative; margin-left: auto; }
+    #clock {
+      position: fixed;
+      top: 148px;
+      right: 18px;
+      z-index: 8;
+      width: 132px;
+      background: var(--navy);
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    }
+    #clock.dragging { cursor: grabbing; }
+    #clock.done { border-color: #e7a15a; }
+    .timer-controls { display: flex; background: #1a3358; }
+    .timer-controls button {
+      flex: 1;
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1;
+      padding: 7px 0 6px;
+      cursor: pointer;
+    }
+    .timer-controls button:hover { background: rgba(255, 255, 255, 0.08); }
+    .timer-controls button[hidden] { display: none; }
+    #time {
+      position: relative;
+      text-align: center;
+      font: 700 1.35rem/1 "Segoe UI", system-ui, sans-serif;
+      font-variant-numeric: tabular-nums;
+      padding: 8px 10px 10px;
+      color: #9aabbe;
+      cursor: grab;
+    }
+    #clock.running #time { color: #fff; }
+    #clock.running #time::before {
+      content: "";
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #7dcea0;
+    }
+    #clock.paused #time { color: var(--accent); }
+    #clock.done #time { color: #ffb4a2; }
+    .deck { height: 100%; }
+    .slide {
+      display: none;
+      height: 100%;
+      padding: 78px 7vw 86px;
+      align-items: center;
+      gap: 36px;
+    }
+    .slide.on { display: flex; }
+    .slide.intro {
+      background:
+        radial-gradient(ellipse at 50% 18%, rgba(231, 161, 90, 0.18), transparent 42%),
+        radial-gradient(ellipse at 50% 120%, rgba(80, 130, 190, 0.2), transparent 46%);
+    }
+    .slide.intro h1 {
+      font-size: clamp(1.45rem, 2.6vw, 2rem);
+      font-weight: 650;
+      text-shadow: none;
+    }
+    .slide.intro .who { letter-spacing: 0.16em; }
+    .copy { flex: 1 1 52%; min-width: 0; padding-right: 8px; }
+    .slide.ask h1 {
+      font-size: clamp(1.15rem, 2vw, 1.55rem);
+      color: var(--dim);
+      font-weight: 550;
+    }
+    .openline {
+      margin: 0 0 8px;
+      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      font-weight: 550;
+      line-height: 1.35;
+    }
+    .openline a {
+      color: #fff;
+      font-weight: 550;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .qs { margin: 8px 0 0; padding-left: 1.25rem; }
+    .qs li {
+      margin: 0 0 8px;
+      font-size: clamp(1.12rem, 1.9vw, 1.4rem);
+      font-weight: 600;
+      line-height: 1.35;
+      color: var(--ink);
+    }
+    .slide.intro .qs li {
+      font-size: clamp(1.02rem, 1.65vw, 1.22rem);
+      font-weight: 550;
+    }
+    .reveal {
+      display: block;
+      width: 100%;
+      margin: 0 0 14px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #fff;
+      font: inherit;
+      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      font-weight: 600;
+      line-height: 1.35;
+      text-align: left;
+      cursor: pointer;
+    }
+    .reveal .hid { display: none; }
+    .reveal .dots { color: var(--dim); }
+    .reveal.open { cursor: default; }
+    .reveal.open .dots { display: none; }
+    .reveal.open .hid { display: inline; color: var(--dim); font-weight: 550; }
+    .qs .reveal {
+      font-size: inherit;
+      font-weight: inherit;
+      margin: 0;
+    }
+    .qs .reveal.open .hid,
+    .frame.open .hid {
+      display: block;
+      margin-top: 4px;
+    }
+    .slide.ask h1 a {
+      color: #fff;
+      font-weight: 650;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .who {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 14px;
+      font-size: clamp(2rem, 4.6vw, 3.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .lead { margin: 0 0 16px; font-size: clamp(1.15rem, 2vw, 1.45rem); color: var(--dim); }
+    .lead a { font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+    ul, ol { margin: 0; padding-left: 1.2rem; }
+    li { margin: 8px 0; }
+    .early {
+      margin-top: 22px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card);
+    }
+    .early p { margin: 0 0 8px; font-weight: 700; }
+    .frame {
+      margin: 0 0 10px;
+      font-size: clamp(1.12rem, 1.9vw, 1.4rem);
+      font-weight: 600;
+      line-height: 1.3;
+      color: #fff;
+    }
+    .go {
+      display: inline-block;
+      margin-top: 18px;
+      margin-right: 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #f4f7fb;
+      color: #10243f;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .go:focus-visible, button:focus-visible { outline: 3px solid #f0b429; outline-offset: 3px; }
+    .slide img {
+      flex: 1 1 42%;
+      width: min(46vw, 720px);
+      height: min(62vh, 520px);
+      object-fit: cover;
+      border-radius: 18px;
+      background: #08101c;
+    }
+    .slide img.diagram { object-fit: contain; background: #0c1830; }
+    #settings, .navbtn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    #settings {
+      font: 1.45rem/1 "Segoe UI Symbol", "Segoe UI", sans-serif;
+      padding: 2px 4px;
+    }
+    #settings[aria-expanded="true"] { color: var(--accent); }
+    .navbtn {
+      font-size: 2.4rem;
+      line-height: 1;
+      padding: 0 6px;
+    }
+    #settingsPop {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 30;
+      width: 220px;
+      padding: 12px 14px;
+      background: #f4f7fb;
+      color: #10243f;
+      border-radius: 12px;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+    #settingsPop[hidden] { display: none; }
+    #settingsPop label {
+      display: block;
+      margin-bottom: 8px;
+      color: #10243f;
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    #vol {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .dots { display: flex; gap: 2px; align-items: center; }
+    .dots button {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border: 0;
+      border-radius: 99px;
+      background: transparent;
+      cursor: pointer;
+    }
+    .dots button::after {
+      content: "";
+      display: block;
+      width: 10px;
+      height: 10px;
+      margin: 9px auto;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.45);
+    }
+    .dots button.on::after { background: #fff; width: 12px; height: 12px; margin: 8px auto; }
+    @media (max-width: 860px) {
+      .slide { flex-direction: column; justify-content: center; padding-top: 86px; }
+      .slide img { width: 100%; height: 28vh; }
+      body { font-size: 17px; }
+    }
+  </style>
+</head>
+<body class="intro">
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <header class="top">
+    <p class="kicker">Rover and gravity</p>
+    <div class="settings-wrap">
+      <button id="settings" type="button" aria-label="Settings" aria-expanded="false" aria-controls="settingsPop">⚙</button>
+      <div id="settingsPop" hidden>
+        <label for="vol">Music</label>
+        <input id="vol" type="range" min="0" max="2" step="0.05" value="1.6">
+      </div>
+    </div>
+  </header>
+  <div id="clock">
+    <div class="timer-controls">
+      <button id="play" type="button" aria-label="Play">▶</button>
+      <button id="pause" type="button" aria-label="Pause" hidden>❚❚</button>
+      <button id="resetTime" type="button" aria-label="Reset">↻</button>
+    </div>
+    <div id="time">10:00</div>
+  </div>
+
+  <main class="deck">
+    <section class="slide intro on" data-seconds="600">
+      <div class="copy">
+        <h1>Please finish the quiz</h1>
+        <p class="lead">It is the <a href="https://docs.google.com/forms/d/e/1FAIpQLSc-BPXPTB5p2uZEfA5qSzwUw_vVl5_dQryFMcfQmR5_cWlqbg/viewform?usp=dialog" target="_blank" rel="noopener">September retrieval quiz</a> on Google Classroom.</p>
+        <p class="lead">If you finish early, comment on these posts in your Google Classroom.</p>
+        <ul class="qs">
+          <li>What do you already know about gravity?</li>
+          <li>What is the link between gravity and mass?</li>
+          <li>How does gravity affect our rover design?</li>
+        </ul>
+      </div>
+      <img src="art/quiz.webp?v=rover" alt="A small rover on the sand, with Earth in the sky">
+    </section>
+
+    <section class="slide" data-seconds="90">
+      <div class="copy">
+        <p class="who">Teacher Talk</p>
+        <button type="button" class="reveal">Gravity is<span class="dots"> …</span><span class="hid"> a force of attraction. It pulls masses towards each other.</span></button>
+        <button type="button" class="reveal">Mass is<span class="dots"> …</span><span class="hid"> the amount of matter in an object.</span></button>
+        <button type="button" class="reveal">We measure mass in<span class="dots"> …</span><span class="hid"> kilograms. It stays the same.</span></button>
+      </div>
+      <img src="art/gravity-mass.webp" alt="Two masses pulling towards each other, and a large block of matter next to a small one">
+    </section>
+
+    <section class="slide ask" data-seconds="480">
+      <div class="copy">
+        <h1>Open <a href="https://orbitspeed.netlify.app/skylift/" target="_blank" rel="noopener">SkyLift</a> in your Google classwork to investigate the following:</h1>
+        <ul class="qs">
+          <li><button type="button" class="reveal">What is weight?<span class="hid">Weight is how hard gravity pulls on a mass.</span></button></li>
+          <li><button type="button" class="reveal">How do we measure weight?<span class="hid">Use a balance, a scale, or a hook on a spring.</span></button></li>
+          <li><button type="button" class="reveal">What is the link between weight and mass?<span class="hid">More mass means more weight, in the same place.</span></button></li>
+          <li><button type="button" class="reveal">How are they different?<span class="hid">Mass stays the same. Weight can change.</span></button></li>
+        </ul>
+      </div>
+      <img src="art/weight-mass.webp?v=ways" alt="A balance with a big rock and a small rock, a dial scale, and a hook on a spring">
+    </section>
+
+    <section class="slide ask" data-seconds="600">
+      <div class="copy">
+        <p class="openline"><a href="../../gravity-sandbox.html?eq=field" target="_blank" rel="noopener">Open Gravity Sandbox</a></p>
+        <p class="openline"><a href="../../gravity-researcher.html" target="_blank" rel="noopener">Open Gravity Researcher</a></p>
+        <ul class="qs">
+          <li><button type="button" class="reveal">What does gravity have to do with the planet’s mass?<span class="hid">A heavier planet pulls harder.</span></button></li>
+          <li><button type="button" class="reveal">What does it have to do with how far you are from the planet?<span class="hid">The further you are, the weaker the pull.</span></button></li>
+        </ul>
+      </div>
+      <img src="art/sandbox.webp?v=pull" alt="A close craft pulled hard and a far craft pulled weakly, beside a tiny planet and a much larger planet">
+    </section>
+
+    <section class="slide teacher" data-seconds="90">
+      <div class="copy">
+        <p class="who">Teacher Talk</p>
+        <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">The rocket has to lift the rover’s mass. More mass is harder to launch.</span></button>
+        <h1>The rocket lifts the mass</h1>
+        <ul>
+          <li>Mass is how much stuff is in the rover.</li>
+          <li>The rocket has to lift that mass off Earth.</li>
+          <li>A heavier rover is harder to launch.</li>
+        </ul>
+      </div>
+      <img src="art/rocket-lift.webp" alt="A rocket launching straight up, and another rocket falling and exploding">
+    </section>
+
+    <section class="slide teacher" data-seconds="90">
+      <div class="copy">
+        <p class="who">Teacher Talk</p>
+        <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">The rover weighs less, so the wheels can slip. Cleats help them grip.</span></button>
+        <h1>Less weight, less grip</h1>
+        <ul>
+          <li>On Mars the rover weighs less.</li>
+          <li>The wheels press down less, so they can slip.</li>
+          <li>Cleats dig into the sand so the wheels can grip.</li>
+        </ul>
+      </div>
+      <img src="art/rover-cleats.webp" alt="A rover wheel with metal ridges sunk into the sand">
+    </section>
+
+    <section class="slide teacher" data-seconds="90">
+      <div class="copy">
+        <p class="who">Teacher Talk</p>
+        <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">Six wheels push together, so one stuck wheel does not stop the rover.</span></button>
+        <h1>Six wheels share the push</h1>
+        <ul>
+          <li>Sand can slip under one wheel.</li>
+          <li>All six wheels drive, so they push together.</li>
+          <li>If one wheel sticks, the others can still move the rover.</li>
+        </ul>
+      </div>
+      <img src="art/rover-drive.webp" alt="A six-wheeled rover with every wheel in the sand">
+    </section>
+
+    <section class="slide teacher" data-seconds="90">
+      <div class="copy">
+        <p class="who">Teacher Talk</p>
+        <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">A weaker pull makes a lifted wheel harder to put back down.</span></button>
+        <h1>Do not let it tip</h1>
+        <ul>
+          <li>On Mars the pull downwards is weaker.</li>
+          <li>A wheel that lifts off is harder to put back down.</li>
+          <li>One wheel climbs the rock. The others stay on the ground.</li>
+        </ul>
+      </div>
+      <img src="art/rover-rocker.webp" alt="A rover climbing a rock with the body level and the other wheels still on the sand">
+    </section>
+
+    <section class="slide" data-seconds="360">
+      <div class="copy">
+        <h1>Please finish the exit quiz</h1>
+        <p class="lead">It is called Gravity, Weight and Mass, on Google Classroom. Hand it in before you leave.</p>
+        <p class="lead">The screenshot is optional.</p>
+        <a class="go" href="https://docs.google.com/forms/d/e/1FAIpQLSffiecIgtdyI57lKJeNFjAbXunGBrwZHokZHpAMyaZ-Lx9T3w/viewform?usp=dialog" target="_blank" rel="noopener">Open the exit quiz</a>
+      </div>
+      <img src="art/exit.webp" alt="A closed book and a card on the sand beside a rover, with Earth in the sky">
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <button class="navbtn" id="prev" type="button" aria-label="Back">◀</button>
+    <div class="dots" id="dots"></div>
+    <button class="navbtn" id="next" type="button" aria-label="Next">▶</button>
+  </footer>
+
+  <script>
+    const slides = [...document.querySelectorAll(".slide")];
+    const clock = document.getElementById("clock");
+    const timeEl = document.getElementById("time");
+    const playBtn = document.getElementById("play");
+    const pauseBtn = document.getElementById("pause");
+    const dots = document.getElementById("dots");
+    let index = 0;
+    let left = 600;
+    let running = false;
+    let last = performance.now();
+
+    document.querySelectorAll(".reveal").forEach((btn) => {
+      btn.addEventListener("click", () => btn.classList.add("open"));
+    });
+
+    slides.forEach((_, n) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", "Slide " + (n + 1));
+      b.addEventListener("click", () => show(n, true));
+      dots.appendChild(b);
+    });
+
+    function paint() {
+      const sec = Math.max(0, Math.ceil(left));
+      const mm = String(Math.floor(sec / 60)).padStart(2, "0");
+      const ss = String(sec % 60).padStart(2, "0");
+      timeEl.textContent = mm + ":" + ss;
+      clock.classList.toggle("running", running);
+      clock.classList.toggle("paused", !running && left > 0);
+      clock.classList.toggle("done", left <= 0);
+      playBtn.hidden = running;
+      pauseBtn.hidden = !running;
+      [...dots.children].forEach((b, n) => b.classList.toggle("on", n === index));
+    }
+
+    function show(n, start) {
+      index = (n + slides.length) % slides.length;
+      slides.forEach((s, k) => s.classList.toggle("on", k === index));
+      document.body.classList.toggle("intro", index === 0);
+      left = Number(slides[index].dataset.seconds);
+      running = start;
+      paint();
+      if (start) document.dispatchEvent(new Event("slides-go"));
+    }
+
+    const sky = document.getElementById("stars");
+    const pen = sky.getContext("2d");
+    const specks = Array.from({ length: 140 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.35 + 0.25,
+      p: Math.random() * Math.PI * 2,
+      s: 0.5 + Math.random() * 1.8,
+      v: 0.006 + Math.random() * 0.02,
+      glow: Math.random() < 0.08
+    }));
+    function fitSky() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      sky.width = Math.floor(innerWidth * dpr);
+      sky.height = Math.floor(innerHeight * dpr);
+    }
+    fitSky();
+    window.addEventListener("resize", fitSky);
+    function drawSky(now) {
+      if (!document.body.classList.contains("intro")) return;
+      const w = sky.width;
+      const h = sky.height;
+      pen.clearRect(0, 0, w, h);
+      for (const star of specks) {
+        star.y -= star.v * 0.012;
+        if (star.y < 0) star.y += 1;
+        const tw = 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(now / 700 * star.s + star.p));
+        const x = star.x * w;
+        const y = star.y * h;
+        if (star.glow) {
+          const glow = star.r * 14 * (w / innerWidth);
+          const g = pen.createRadialGradient(x, y, 0, x, y, glow);
+          g.addColorStop(0, "rgba(244, 236, 214, " + (tw * 0.85) + ")");
+          g.addColorStop(1, "rgba(244, 236, 214, 0)");
+          pen.fillStyle = g;
+          pen.beginPath();
+          pen.arc(x, y, glow, 0, Math.PI * 2);
+          pen.fill();
+        }
+        pen.fillStyle = "rgba(244, 247, 251, " + tw + ")";
+        pen.beginPath();
+        pen.arc(x, y, star.r * (w / innerWidth), 0, Math.PI * 2);
+        pen.fill();
+      }
+    }
+
+    function frame(now) {
+      const dt = Math.min(0.25, (now - last) / 1000);
+      last = now;
+      if (running && left > 0) {
+        left -= dt;
+        if (left < 0) left = 0;
+        paint();
+      }
+      drawSky(now);
+      requestAnimationFrame(frame);
+    }
+
+    let drag = null;
+    clock.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      if (e.target.closest("button")) return;
+      const box = clock.getBoundingClientRect();
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, left: box.left, top: box.top, moved: false };
+      clock.classList.add("dragging");
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const dx = e.clientX - drag.x;
+      const dy = e.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 5) drag.moved = true;
+      const left = Math.min(window.innerWidth - clock.offsetWidth - 8, Math.max(8, drag.left + dx));
+      const top = Math.min(window.innerHeight - clock.offsetHeight - 8, Math.max(8, drag.top + dy));
+      clock.style.left = left + "px";
+      clock.style.top = top + "px";
+      clock.style.right = "auto";
+      clock.style.bottom = "auto";
+    });
+    window.addEventListener("pointerup", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      clock.classList.remove("dragging");
+      drag = null;
+    });
+    window.addEventListener("pointercancel", () => {
+      clock.classList.remove("dragging");
+      drag = null;
+    });
+    playBtn.addEventListener("click", () => {
+      if (left <= 0) left = Number(slides[index].dataset.seconds);
+      running = true;
+      paint();
+    });
+    pauseBtn.addEventListener("click", () => {
+      running = false;
+      paint();
+    });
+    document.getElementById("resetTime").addEventListener("click", () => {
+      left = Number(slides[index].dataset.seconds);
+      running = false;
+      paint();
+    });
+    const settingsBtn = document.getElementById("settings");
+    const settingsPop = document.getElementById("settingsPop");
+    function setSettings(open) {
+      settingsPop.hidden = !open;
+      settingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    settingsBtn.addEventListener("pointerdown", (e) => e.stopPropagation());
+    settingsBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setSettings(settingsPop.hidden);
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (settingsPop.hidden) return;
+      if (e.target.closest("#settings, #settingsPop")) return;
+      setSettings(false);
+    });
+    document.getElementById("next").addEventListener("click", () => show(index + 1, true));
+    document.getElementById("prev").addEventListener("click", () => show(index - 1, true));
+    document.addEventListener("keydown", (e) => {
+      if (e.target.closest("input, textarea")) return;
+      if (e.key === "ArrowRight" || e.key === "PageDown") show(index + 1, true);
+      else if (e.key === "ArrowLeft" || e.key === "PageUp") show(index - 1, true);
+      else if (e.key === " ") {
+        e.preventDefault();
+        running = !running;
+        if (running && left <= 0) left = Number(slides[index].dataset.seconds);
+        paint();
+      } else return;
+      if (e.key !== " ") e.preventDefault();
+    });
+
+    show(0, false);
+    requestAnimationFrame(frame);
+  </script>
+  <script type="module">
+    import { ShipMusic } from "./music/ship-music.js?v=groups";
+    import { busOut, lessonAudible } from "./music/ctx.js?v=groups";
+    const music = new ShipMusic();
+    const vol = document.getElementById("vol");
+    let musicGain = Number(vol.value);
+    function moodForSlide() {
+      const all = [...document.querySelectorAll(".slide")];
+      const i = all.indexOf(document.querySelector(".slide.on"));
+      if (i <= 0) return "scene1";
+      if (i === 1) return "talk";
+      if (i === 2) return "play";
+      if (i === 3) return "lab";
+      if (i >= all.length - 1) return "close";
+      return "design";
+    }
+    function applyGain() {
+      lessonAudible();
+      const bus = busOut("music");
+      if (bus) bus.gain.value = musicGain;
+    }
+    function spinMusic() {
+      music.start();
+      music.setMood(moodForSlide());
+      applyGain();
+    }
+    vol.addEventListener("input", () => {
+      musicGain = Number(vol.value);
+      applyGain();
+    });
+    document.addEventListener("slides-go", spinMusic);
+    document.addEventListener("pointerdown", (e) => {
+      if (e.target.closest("#settingsPop")) return;
+      spinMusic();
+    });
+  </script>
+</body>
+</html>
