@@ -23,9 +23,8 @@
       width: 100%;
       height: 100%;
       pointer-events: none;
-      opacity: 0;
+      opacity: 1;
     }
-    body.intro #stars { opacity: 1; }
     .deck { position: relative; z-index: 1; }
     body {
       font: 20px/1.4 "Segoe UI", system-ui, sans-serif;
@@ -364,7 +363,7 @@
       <img src="art/quiz.webp?v=rover" alt="A small rover on the sand, with Earth in the sky">
     </section>
 
-    <section class="slide" data-seconds="90">
+    <section class="slide" data-seconds="60">
       <div class="copy">
         <p class="who">Teacher Talk</p>
         <button type="button" class="reveal">Gravity is<span class="dots"> …</span><span class="hid"> a force of attraction. It pulls masses towards each other.</span></button>
@@ -387,7 +386,7 @@
       <img src="art/weight-mass.webp?v=ways" alt="A balance with a big rock and a small rock, a dial scale, and a hook on a spring">
     </section>
 
-    <section class="slide ask" data-seconds="600">
+    <section class="slide ask" data-seconds="720">
       <div class="copy">
         <p class="openline"><a href="../../gravity-sandbox.html?eq=field" target="_blank" rel="noopener">Open Gravity Sandbox</a></p>
         <p class="openline"><a href="../../gravity-researcher.html" target="_blank" rel="noopener">Open Gravity Researcher</a></p>
@@ -399,7 +398,7 @@
       <img src="art/sandbox.webp?v=holes" alt="A small planet, a normal planet, and a black hole, each pulling a rocket">
     </section>
 
-    <section class="slide teacher" data-seconds="90">
+    <section class="slide teacher" data-seconds="60">
       <div class="copy">
         <p class="who">Teacher Talk</p>
         <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">The rocket has to lift the rover’s mass. More mass is harder to launch.</span></button>
@@ -413,7 +412,7 @@
       <img src="art/rocket-lift.webp" alt="A rocket launching straight up, and another rocket falling and exploding">
     </section>
 
-    <section class="slide teacher" data-seconds="90">
+    <section class="slide teacher" data-seconds="60">
       <div class="copy">
         <p class="who">Teacher Talk</p>
         <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">The rover weighs less, so the wheels can slip. Cleats help them grip.</span></button>
@@ -427,7 +426,7 @@
       <img src="art/rover-cleats.webp" alt="A rover wheel with metal ridges sunk into the sand">
     </section>
 
-    <section class="slide teacher" data-seconds="90">
+    <section class="slide teacher" data-seconds="60">
       <div class="copy">
         <p class="who">Teacher Talk</p>
         <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">Six wheels push together, so one stuck wheel does not stop the rover.</span></button>
@@ -441,7 +440,7 @@
       <img src="art/rover-drive.webp" alt="A six-wheeled rover with every wheel in the sand">
     </section>
 
-    <section class="slide teacher" data-seconds="90">
+    <section class="slide teacher" data-seconds="60">
       <div class="copy">
         <p class="who">Teacher Talk</p>
         <button type="button" class="reveal frame">How does gravity affect our rover design?<span class="hid">A weaker pull makes a lifted wheel harder to put back down.</span></button>
@@ -538,7 +537,6 @@
     fitSky();
     window.addEventListener("resize", fitSky);
     function drawSky(now) {
-      if (!document.body.classList.contains("intro")) return;
       const w = sky.width;
       const h = sky.height;
       pen.clearRect(0, 0, w, h);
