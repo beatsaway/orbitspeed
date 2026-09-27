@@ -30,7 +30,14 @@
     color: var(--ink);
     font-family: Outfit, system-ui, sans-serif;
   }
-  canvas { display: block; touch-action: none; cursor: grab; }
+  canvas {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    touch-action: none;
+    cursor: grab;
+  }
   canvas.dragging { cursor: grabbing; }
   #veil {
     position: fixed;
@@ -73,11 +80,11 @@
   }
   #settings-btn {
     position: absolute;
-    right: 22px;
-    bottom: 22px;
+    right: 18px;
+    bottom: 18px;
     z-index: 6;
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
     border: 1px solid rgba(243, 236, 223, 0.28);
     background: rgba(8, 9, 12, 0.45);
@@ -97,8 +104,8 @@
   }
   #settings {
     position: absolute;
-    right: 22px;
-    bottom: 76px;
+    right: 18px;
+    bottom: 62px;
     z-index: 6;
     width: 240px;
     margin: 0;
@@ -127,7 +134,7 @@
     text-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   }
   #yuan {
-    font-family: "Cormorant Garamond", Georgia, serif;
+    font-family: "Cormorant Garamond", "Segoe UI", "Microsoft YaHei", "PingFang SC", Georgia, sans-serif;
     font-size: 28px;
     font-weight: 500;
     letter-spacing: 0.01em;
@@ -151,7 +158,7 @@
   #intro {
     position: fixed;
     inset: 0;
-    z-index: 8;
+    z-index: 24;
     display: grid;
     place-items: center;
     padding: 24px;
@@ -160,23 +167,61 @@
   }
   #intro[hidden] { display: none; }
   #intro .card {
-    width: min(480px, 100%);
-    padding: 28px 26px 22px;
+    width: min(520px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    padding: 18px 18px 22px;
     background: rgba(8, 9, 12, 0.94);
     border: 1px solid rgba(243, 236, 223, 0.18);
+    border-radius: 16px;
+  }
+  #intro img {
+    display: block;
+    width: 100%;
+    height: 148px;
+    object-fit: cover;
+    object-position: center 62%;
+    border-radius: 10px;
+    margin: 0 0 12px;
+    background: #041018;
   }
   #intro h2 {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
     font-family: "Cormorant Garamond", Georgia, serif;
     font-weight: 500;
-    font-size: 46px;
+    font-size: 40px;
     letter-spacing: 0.06em;
   }
   #intro p {
-    margin: 0 0 18px;
+    margin: 0 0 12px;
     color: var(--dim);
-    font-size: 18px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+  #ask {
+    position: fixed;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(7, 8, 12, 0.72);
+    pointer-events: auto;
+  }
+  #ask[hidden] { display: none; }
+  #ask .card {
+    width: min(560px, 100%);
+    padding: 28px 26px;
+    background: rgba(8, 9, 12, 0.94);
+    border: 1px solid rgba(243, 236, 223, 0.18);
+    border-radius: 16px;
+  }
+  #ask p {
+    margin: 0;
+    color: var(--ink);
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 34px;
+    line-height: 1.25;
   }
   #settings label {
     display: flex;
@@ -202,6 +247,8 @@
     position: absolute;
     top: 28px;
     left: 32px;
+    z-index: 6;
+    pointer-events: auto;
   }
   .brand h1 {
     margin: 0;
@@ -210,6 +257,17 @@
     font-size: 42px;
     letter-spacing: 0.08em;
     line-height: 1;
+  }
+  .brand button {
+    appearance: none;
+    border: 0;
+    padding: 6px 4px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    pointer-events: auto;
   }
   #guide {
     margin: 0;
@@ -226,7 +284,7 @@
   #altitude-panel {
     position: absolute;
     left: 28px;
-    top: 188px;
+    top: 88px;
     pointer-events: none;
   }
   #altitude-panel p {
@@ -288,6 +346,25 @@
     box-shadow: 0 0 8px rgba(243, 236, 223, 0.85);
     vertical-align: 1px;
   }
+  @keyframes altitude-go {
+    0%, 100% { opacity: 0.45; transform: scale(0.75); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  #marks button.built.go {
+    color: var(--ink);
+  }
+  #marks button.built.go::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: #fff1c4;
+    box-shadow: 0 0 10px rgba(255, 220, 140, 0.95);
+    vertical-align: 1px;
+    animation: altitude-go 1.35s ease-in-out infinite;
+  }
   #marks button.build {
     color: var(--dim);
     opacity: 0.55;
@@ -317,9 +394,10 @@
   #marks button.build span {
     display: block;
     margin-top: 2px;
+    font-family: "Cormorant Garamond", "Segoe UI", "Microsoft YaHei", "PingFang SC", Georgia, sans-serif;
   }
   #marks button.build:not(:disabled) span {
-    font-family: "Cormorant Garamond", Georgia, serif;
+    font-family: "Cormorant Garamond", "Segoe UI", "Microsoft YaHei", "PingFang SC", Georgia, sans-serif;
     font-size: 20px;
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -359,6 +437,7 @@
   }
   button.act:hover { border-color: rgba(243, 236, 223, 0.7); }
   button.act:disabled { opacity: 0.45; cursor: default; }
+  #add-bricks[hidden] { display: none !important; }
   button.act.on {
     background: rgba(243, 236, 223, 0.92);
     color: #16140f;
@@ -377,54 +456,179 @@
     letter-spacing: 0.04em;
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
   }
-  #maths-btn {
+  #rise-cue {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 10px;
+    pointer-events: none;
+  }
+  #rise-cue[hidden] { display: none; }
+  #rise-cue .shaft {
+    position: relative;
+    width: 16px;
+    height: 78px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 226, 168, 0.55);
+    background: rgba(8, 9, 12, 0.4);
+    box-shadow: none;
+  }
+  #rise-fill {
     position: absolute;
-    right: 76px;
-    bottom: 22px;
-    width: 44px;
-    height: 44px;
+    left: 2px;
+    right: 2px;
+    bottom: 2px;
+    height: 0%;
+    border-radius: 999px;
+    background: linear-gradient(to top, #c47a22, #fff3c4);
+    box-shadow: none;
+  }
+  #rise-cue p {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--ink);
+    text-shadow: none;
+  }
+  #alt-now.rising {
+    color: var(--ink);
+  }
+  #maths-btn, #results-btn {
+    position: absolute;
+    bottom: 18px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
     border: 1px solid rgba(243, 236, 223, 0.28);
     background: rgba(8, 9, 12, 0.45);
     color: var(--ink);
     font-family: "Cormorant Garamond", Georgia, serif;
-    font-size: 28px;
+    font-size: 22px;
     line-height: 1;
+    padding: 0;
     cursor: pointer;
     pointer-events: auto;
     backdrop-filter: blur(8px);
   }
-  #maths-btn.on {
+  #maths-btn { right: 106px; }
+  #results-btn {
+    right: 62px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  #maths-btn.on, #results-btn.on {
     background: rgba(243, 236, 223, 0.92);
     color: #16140f;
     border-color: transparent;
   }
-  #maths {
-    position: absolute;
-    right: 22px;
-    bottom: 78px;
-    width: min(420px, calc(100vw - 44px));
+  #maths, #results {
+    position: fixed;
+    inset: 0;
+    z-index: 7;
+    display: grid;
+    place-items: center;
+    padding: 24px;
     margin: 0;
-    padding: 18px 20px 20px;
-    background: rgba(8, 9, 12, 0.72);
-    border: 1px solid rgba(243, 236, 223, 0.16);
+    width: auto;
+    background: rgba(7, 8, 12, 0.72);
+    border: 0;
     color: var(--dim);
-    font-weight: 300;
-    font-size: 18px;
-    line-height: 1.55;
-    letter-spacing: 0.02em;
-    white-space: pre-line;
-    pointer-events: none;
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.45;
+    letter-spacing: 0;
+    white-space: normal;
+    pointer-events: auto;
+    user-select: text;
+    -webkit-user-select: text;
   }
-  #maths strong {
-    display: block;
-    margin-bottom: 8px;
+  #ui:has(#maths:not([hidden])) { pointer-events: auto; }
+  #maths[hidden], #results[hidden] { display: none; }
+  #maths .card, #results .card {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    padding: 22px 24px 18px;
+    background: rgba(8, 9, 12, 0.96);
+    border: 1px solid rgba(243, 236, 223, 0.18);
+    border-radius: 16px;
+  }
+  #results .card { width: min(860px, 100%); }
+  #maths .tabs, #results .key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  #maths .tabs { margin: 0 0 16px; user-select: none; }
+  #maths .tabs button {
+    appearance: none;
+    border: 1px solid rgba(243, 236, 223, 0.28);
+    background: transparent;
     color: var(--ink);
+    font: 500 13px/1 Outfit, system-ui, sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+  }
+  #maths .tabs button.eq {
     font-family: "Cormorant Garamond", Georgia, serif;
-    font-style: italic;
+    font-size: 20px;
     font-weight: 500;
-    font-size: 40px;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }
+  #maths .tabs button.on {
+    background: rgba(243, 236, 223, 0.92);
+    color: #16140f;
+    border-color: transparent;
+  }
+  #maths h3, #results h2 {
+    margin: 0 0 12px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 500;
+    font-size: 34px;
     letter-spacing: 0.03em;
+    color: var(--ink);
+  }
+  #maths ol { margin: 0 0 12px; padding-left: 1.25em; }
+  #maths li { margin: 0 0 8px; }
+  #maths p, #results .lead { margin: 0 0 12px; color: var(--ink); }
+  #maths .card h3,
+  #maths .card p,
+  #maths .card li,
+  #maths .card ol {
+    user-select: text;
+    -webkit-user-select: text;
+    cursor: text;
+  }
+  #maths .card ::selection {
+    background: #f3ecdf;
+    color: #16140f;
+  }
+  #maths p.formula {
+    margin: 0 0 14px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 42px;
+    line-height: 1.1;
+    color: var(--ink);
+  }
+  #maths .hint, #results .hint {
+    margin: 12px 0 0;
+    color: var(--faint);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  #results .key:empty { display: none; }
+  #results svg.plot {
+    display: block;
+    width: 100%;
+    height: auto;
   }
   #err {
     position: fixed;
@@ -454,19 +658,21 @@
   #tale.show { opacity: 1; }
   #tale h2 {
     margin: 0;
+    max-width: min(920px, 100%);
     font-family: "Cormorant Garamond", Georgia, serif;
     font-weight: 500;
-    font-size: 72px;
-    letter-spacing: 0.04em;
+    font-size: 40px;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
     text-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
   }
   #tale p {
     margin: 0;
-    max-width: 640px;
+    max-width: min(760px, 100%);
     padding: 8px 14px;
     border-radius: 12px;
     background: rgba(8, 9, 12, 0.72);
-    font-family: "Cormorant Garamond", Georgia, serif;
+    font-family: "Cormorant Garamond", "Segoe UI", "Microsoft YaHei", "PingFang SC", Georgia, sans-serif;
     font-style: normal;
     font-weight: 500;
     font-size: 28px;
@@ -477,17 +683,19 @@
   #tale .act { pointer-events: auto; margin-top: 8px; }
   @media (max-width: 800px) {
     #settings-btn { right: 12px; bottom: 12px; }
-    #settings { right: 12px; bottom: 64px; width: min(240px, calc(100vw - 24px)); }
-    #maths-btn { right: 64px; bottom: 12px; }
+    #settings { right: 12px; bottom: 56px; width: min(240px, calc(100vw - 24px)); }
+    #maths-btn { right: 100px; bottom: 12px; }
+    #results-btn { right: 56px; bottom: 12px; }
     .brand { top: 16px; left: 16px; }
+    #rise-cue p { font-size: 20px; }
     .brand h1 { font-size: 28px; }
     #guide { font-size: 20px; }
-    #altitude-panel { top: 168px; }
+    #altitude-panel { top: 60px; left: 16px; }
     #marks { gap: 6px; font-size: 11px; }
-    #maths { right: 12px; bottom: 72px; font-size: 16px; padding: 14px; }
-    #maths strong { font-size: 32px; }
-    #tale h2 { font-size: 48px; }
-    #tale p { font-size: 18px; }
+    #maths .card, #results .card { padding: 16px; }
+    #maths h3, #results h2 { font-size: 28px; }
+    #tale h2 { font-size: 28px; }
+    #tale p { font-size: 20px; }
   }
 </style>
 </head>
@@ -497,49 +705,83 @@
 <div id="grain"></div>
 <div id="ui">
   <div class="brand">
-    <h1>SkyLift</h1>
+    <h1><button id="show-intro" type="button" aria-haspopup="dialog" aria-controls="intro">SkyLift</button></h1>
   </div>
   <div id="bank">
     <span id="yuan">0</span>
     <button id="build" type="button" hidden>Build</button>
   </div>
   <button id="settings-btn" type="button" aria-expanded="false" aria-controls="settings" aria-label="Settings">
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
       <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.6"/>
       <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M12 3.2v2.2M12 18.6v2.2M3.2 12h2.2M18.6 12h2.2M5.8 5.8l1.6 1.6M16.6 16.6l1.6 1.6M18.2 5.8l-1.6 1.6M7.4 16.6l-1.6 1.6"/>
     </svg>
   </button>
+  <button id="results-btn" type="button" aria-pressed="false" aria-controls="results" aria-label="Test results">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" d="M4 19h16M4 19V5"/>
+      <path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M7 15l3.5-4 3 2.5L17 8"/>
+    </svg>
+  </button>
+  <div id="results" hidden>
+    <div class="card">
+      <h2>Your tests</h2>
+      <div id="results-list"></div>
+    </div>
+  </div>
   <div id="settings" hidden>
     <label>Music <input id="vol-music" type="range" min="0" max="100" value="100" aria-label="Music volume" /></label>
     <label>SFX <input id="vol-sfx" type="range" min="0" max="100" value="100" aria-label="SFX volume" /></label>
-    <button class="act" id="reset-progress" type="button">Reset progress</button>
+    <button class="act" id="reset-progress" type="button">Reset the experiment</button>
   </div>
   <div id="altitude-panel">
-    <p>altitude <span id="alt-now">0.1 km</span></p>
+    <div id="rise-cue" hidden>
+      <div class="shaft" aria-hidden="true">
+        <b id="rise-fill"></b>
+      </div>
+      <p>Tower going up</p>
+    </div>
+    <p>altitude from the ground <span id="alt-now">0.0 km</span></p>
     <div id="marks"></div>
   </div>
   <div class="dock">
-    <p id="guide">Stack bricks until you fall.</p>
+    <p id="guide">Add bricks until you fall.</p>
     <div class="drop">
       <button class="act" id="add-bricks" type="button">Add bricks</button>
     </div>
-    <p id="brick-note">Each brick is 2 kg.</p>
+    <p id="brick-note">Each brick has a mass of 2 kg.</p>
   </div>
   <div id="tale">
     <h2 id="tale-count"></h2>
     <p id="tale-list"></p>
-    <button class="act" id="again" type="button" hidden>Get up</button>
+    <button class="act" id="again" type="button" hidden>Stand up</button>
   </div>
   <button id="maths-btn" type="button" aria-pressed="false" aria-label="Show the maths">?</button>
-  <pre id="maths" hidden></pre>
+  <div id="maths" hidden>
+    <div class="card">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" data-tab="test" class="on" aria-selected="true">Your test</button>
+        <button type="button" role="tab" data-tab="words" aria-selected="false">Questions</button>
+        <button type="button" role="tab" data-tab="radius" class="eq" aria-selected="false">r = R + h</button>
+        <button type="button" role="tab" data-tab="gravity" class="eq" aria-selected="false">g = GM/r²</button>
+      </div>
+      <div id="maths-body"></div>
+    </div>
+  </div>
 </div>
 <pre id="err"></pre>
-<div id="intro">
+<div id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
   <div class="card">
-    <h2>SkyLift</h2>
-    <p>The year is 2048. People have found a very strong metal. It can hold a lift from the ground into space. You are the scientist running the test.</p>
-    <p>You want to find out if gravity gets weaker the higher you go. There is no lift yet. Each brick is 2 kg. Add bricks until you fall. Then choose how high to build.</p>
-    <button class="act" id="intro-go" type="button">Begin</button>
+    <img src="intro.webp" alt="A student stacking bricks beside a cable that goes up from the ground into space" />
+    <h2 id="intro-title">SkyLift</h2>
+    <p>Your science club has some school budget for a gravity experiment. A strong cable can hold a lift from the ground into space.</p>
+    <p>Find out if gravity gets weaker at a higher altitude. There is no lift yet. Each brick has a mass of 2 kg. Add bricks until you fall. Then use the school budget to build the lift higher and test again.</p>
+    <button class="act" id="intro-go" type="button">Start</button>
+  </div>
+</div>
+<div id="ask" hidden>
+  <div class="card">
+    <p>Is it easier or harder to hold more bricks the higher you go? Why?</p>
   </div>
 </div>
 <script type="module">
@@ -570,7 +812,8 @@ const STOPS = [
   { km: 4800, cost: 700 },
   { km: 9600, cost: 1500 },
   { km: 19200, cost: 3200 },
-  { km: 38400, cost: 6800 }
+  { km: 28800, cost: 3400 },
+  { km: 38400, cost: 3400 }
 ];
 const EARTH_R_KM = 6371;
 const SURFACE_CARRY = 9.6;
@@ -580,8 +823,13 @@ const veilEl = document.getElementById("veil");
 const guideEl = document.getElementById("guide");
 const marksEl = document.getElementById("marks");
 const altNowEl = document.getElementById("alt-now");
+const riseCue = document.getElementById("rise-cue");
+const riseFill = document.getElementById("rise-fill");
 const addBtn = document.getElementById("add-bricks");
 const mathsBtn = document.getElementById("maths-btn");
+const resultsBtn = document.getElementById("results-btn");
+const resultsEl = document.getElementById("results");
+const resultsList = document.getElementById("results-list");
 const againBtn = document.getElementById("again");
 const taleEl = document.getElementById("tale");
 const taleCountEl = document.getElementById("tale-count");
@@ -608,7 +856,7 @@ const grain = document.getElementById("grain");
     img.data[i + 3] = 255;
   }
   g.putImageData(img, 0, 0);
-  grain.style.backgroundImage = `url(${c.toDataURL("image/png")})`;
+  grain.style.backgroundImage = `url(${c.toDataURL("image/webp")})`;
   grain.style.backgroundSize = "180px 180px";
 }
 
@@ -737,21 +985,6 @@ function sailTexture() {
     g.lineTo(104, y - 6);
     g.stroke();
   }
-  return canvasTex(c);
-}
-
-function labelTexture(text) {
-  const c = document.createElement("canvas");
-  c.width = 512;
-  c.height = 128;
-  const g = c.getContext("2d");
-  g.fillStyle = "#f4efe4";
-  g.fillRect(0, 0, 512, 128);
-  g.font = "600 72px Georgia, serif";
-  g.fillStyle = "#1a1208";
-  g.textAlign = "center";
-  g.textBaseline = "middle";
-  g.fillText(text, 256, 68);
   return canvasTex(c);
 }
 
@@ -926,8 +1159,6 @@ const brick = std(0x8d4d3a, 0.82, 0.04);
 const steel = std(0xc5ccd2, 0.32, 0.72);
 const darkSteel = std(0x4e565e, 0.4, 0.6);
 const gold = std(0xd7b25e, 0.38, 0.55, 0x5a3e12, 0.25);
-const green = std(0x3e6b3a, 0.92, 0.02);
-const greenDark = std(0x2a4a2c, 0.94, 0.02);
 const waterMat = new THREE.MeshStandardMaterial({
   color: 0x248fbe,
   roughness: 0.18,
@@ -938,13 +1169,6 @@ const waterMat = new THREE.MeshStandardMaterial({
   emissiveIntensity: 0.3
 });
 const quayMat = std(0xc8c2b6, 0.84, 0.06);
-const goldRungMat = new THREE.MeshStandardMaterial({
-  color: 0xffe2a0,
-  roughness: 0.32,
-  metalness: 0.4,
-  emissive: 0xffc14a,
-  emissiveIntensity: 0.55
-});
 
 const city = new THREE.Group();
 scene.add(city);
@@ -1138,83 +1362,299 @@ lip.position.y = 0.08;
 car.add(lip);
 scene.add(car);
 
-const goldRing = new THREE.Mesh(
-  new THREE.TorusGeometry(TUBE_R + 0.08, 0.07, 8, 32),
-  goldRungMat
-);
-goldRing.rotation.x = Math.PI / 2;
-goldRing.position.set(TUBE_X, STEP_KM, TUBE_Z);
-scene.add(goldRing);
+const ledCanvas = document.createElement("canvas");
+ledCanvas.width = 800;
+ledCanvas.height = 400;
+const ledCtx = ledCanvas.getContext("2d");
+const ledTex = canvasTex(ledCanvas);
+const ledMat = new THREE.MeshBasicMaterial({
+  map: ledTex,
+  toneMapped: false,
+  fog: false
+});
+const ledMetal = new THREE.MeshStandardMaterial({ color: 0x14181c, roughness: 0.42, metalness: 0.55 });
+function makeAltitudeSign(angle) {
+  const rim = 1.9;
+  const x = Math.cos(angle) * rim;
+  const z = Math.sin(angle) * rim;
+  const sign = new THREE.Group();
+  sign.position.set(x, 0.08, z);
+  sign.rotation.order = "YXZ";
+  sign.rotation.y = Math.atan2(x, z);
+  sign.rotation.x = -0.3;
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.36, 0.06), ledMetal);
+  post.position.y = 0.18;
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.78, 0.06), ledMetal);
+  housing.position.y = 0.62;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 0.68), ledMat);
+  screen.position.set(0, 0.62, 0.034);
+  sign.add(post, housing, screen);
+  car.add(sign);
+}
+makeAltitudeSign(-0.72);
+function ledParts(km) {
+  const value = Math.max(0, km);
+  if (value < 10) {
+    return [
+      { kind: "digit", place: 1 },
+      { kind: "dot" },
+      { kind: "digit", place: 0.1 },
+      { kind: "suffix" }
+    ];
+  }
+  const count = Math.max(1, Math.floor(Math.log10(Math.max(value, 1))) + 1);
+  const parts = [];
+  for (let i = 0; i < count; i++) {
+    const fromRight = count - 1 - i;
+    if (i > 0 && fromRight % 3 === 2) parts.push({ kind: "comma" });
+    parts.push({ kind: "digit", place: Math.pow(10, fromRight) });
+  }
+  parts.push({ kind: "suffix" });
+  return parts;
+}
+function trackLed(g, text, x, y, gap) {
+  const widths = [...text].map((ch) => g.measureText(ch).width);
+  const total = widths.reduce((sum, w) => sum + w, 0) + gap * (text.length - 1);
+  let cursor = x - total / 2;
+  for (let i = 0; i < text.length; i++) {
+    g.fillText(text[i], cursor + widths[i] / 2, y);
+    cursor += widths[i] + gap;
+  }
+}
+function paintLed(km) {
+  const g = ledCtx;
+  const W = 800;
+  const H = 400;
+  g.shadowBlur = 0;
+  g.globalAlpha = 1;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = "#101614";
+  g.fillRect(0, 0, W, H);
+  g.strokeStyle = "#c9853a";
+  g.lineWidth = 6;
+  g.strokeRect(12, 12, W - 24, H - 24);
+  g.font = "600 48px Consolas, 'Courier New', monospace";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillStyle = "#e0a15a";
+  trackLed(g, "ALTITUDE", W / 2, 68, 8);
+  const parts = ledParts(km);
+  const digitW = 92;
+  const markW = 28;
+  const suffixW = 108;
+  const ch = 200;
+  let total = 0;
+  for (const part of parts) total += part.kind === "digit" ? digitW : part.kind === "suffix" ? suffixW : markW;
+  let x = (W - total) / 2;
+  const y = 108 + (270 - ch) / 2;
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  for (const part of parts) {
+    if (part.kind === "digit") {
+      const scaled = Math.max(0, km) / part.place;
+      const base = Math.floor(scaled);
+      const least = km < 10 ? 0.1 : 1;
+      let frac = scaled - base;
+      if (part.place > least + 1e-6) frac = frac < 0.86 ? 0 : (frac - 0.86) / 0.14;
+      const digit = ((base % 10) + 10) % 10;
+      const next = (digit + 1) % 10;
+      g.fillStyle = "#0c1611";
+      g.fillRect(x + 4, y, digitW - 8, ch);
+      g.save();
+      g.beginPath();
+      g.rect(x + 4, y + 8, digitW - 8, ch - 16);
+      g.clip();
+      g.font = "700 156px Consolas, 'Courier New', monospace";
+      g.shadowColor = "#ff9a2a";
+      g.shadowBlur = 18;
+      g.fillStyle = "#fff1d4";
+      const slide = frac * 148;
+      g.fillText(String(digit), x + digitW / 2, y + ch / 2 - slide);
+      if (frac > 0.02) {
+        g.globalAlpha = 0.45;
+        g.fillText(String(next), x + digitW / 2, y + ch / 2 - slide + 148);
+      }
+      g.restore();
+      x += digitW;
+    } else if (part.kind === "suffix") {
+      g.globalAlpha = 1;
+      g.font = "700 58px Consolas, 'Courier New', monospace";
+      g.shadowColor = "#ff9a2a";
+      g.shadowBlur = 10;
+      g.fillStyle = "#ffc56a";
+      g.fillText("km", x + suffixW / 2, y + ch / 2 + 28);
+      x += suffixW;
+    } else {
+      g.globalAlpha = 1;
+      g.font = "700 156px Consolas, 'Courier New', monospace";
+      g.shadowColor = "#ff9a2a";
+      g.shadowBlur = 8;
+      g.fillStyle = "#ffc56a";
+      g.fillText(part.kind === "dot" ? "." : ",", x + markW / 2, y + (part.kind === "comma" ? ch / 2 + 36 : ch / 2));
+      x += markW;
+    }
+  }
+  g.shadowBlur = 0;
+  g.globalAlpha = 1;
+  ledTex.needsUpdate = true;
+}
+paintLed(0);
+let ledKm = 0;
+function stepLed(dt) {
+  const raw = Math.max(0, altitude);
+  const target = raw < 0.45 ? 0 : raw;
+  const delta = target - ledKm;
+  const settled = heading === 0 && phase !== "build";
+  if (settled || Math.abs(delta) < 0.03) {
+    ledKm = target < 10 ? Number(target.toFixed(1)) : Math.round(target);
+  } else {
+    const rate = Math.max(1.4, Math.abs(delta) * 5);
+    ledKm += Math.sign(delta) * Math.min(Math.abs(delta), rate * dt);
+  }
+  paintLed(ledKm);
+}
+
 const buildRing = new THREE.Mesh(
-  new THREE.TorusGeometry(TUBE_R + 0.18, 0.12, 10, 40),
+  new THREE.TorusGeometry(TUBE_R + 0.04, 0.035, 8, 48),
   new THREE.MeshStandardMaterial({
     color: 0xffe2a8,
     emissive: 0xffc46a,
-    emissiveIntensity: 0.85,
-    metalness: 0.35,
-    roughness: 0.32
+    emissiveIntensity: 0.28,
+    metalness: 0.2,
+    roughness: 0.45
   })
 );
 buildRing.rotation.x = Math.PI / 2;
 buildRing.visible = false;
 scene.add(buildRing);
 
-const plaques = [];
-const placedMarks = new Set();
-function spawnPlaque(h) {
-  if (placedMarks.has(h)) return;
-  placedMarks.add(h);
-  const faceW = 6.8;
-  const faceH = faceW / 4;
-  const thick = 0.16;
-  const tex = labelTexture(formatAltitude(h));
-  const edgeMat = std(0xf4efe4, 0.78, 0.04);
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(TUBE_R + 0.08, 0.05, 8, 32),
-    goldRungMat
+const buildFx = new THREE.Group();
+buildFx.visible = false;
+buildFx.frustumCulled = false;
+scene.add(buildFx);
+const buildBands = [];
+for (let i = 0; i < 6; i++) {
+  const band = new THREE.Mesh(
+    new THREE.TorusGeometry(TUBE_R + 0.05, 0.03, 6, 40),
+    new THREE.MeshBasicMaterial({
+      color: 0xffe3a4,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
   );
-  ring.rotation.x = Math.PI / 2;
-  ring.position.set(TUBE_X, h, TUBE_Z);
-  ring.frustumCulled = false;
-  scene.add(ring);
-  plaques.push(ring);
-  for (const side of [1, -1]) {
-    const faceMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      map: tex,
-      roughness: 0.72,
-      metalness: 0.02
-    });
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(thick, faceH, faceW),
-      [faceMat, faceMat, edgeMat, edgeMat, edgeMat, edgeMat]
-    );
-    board.position.set(TUBE_X + side * (TUBE_R + 0.7), h, TUBE_Z);
-    board.frustumCulled = false;
-    scene.add(board);
-    plaques.push(board);
+  band.rotation.x = Math.PI / 2;
+  band.frustumCulled = false;
+  buildFx.add(band);
+  buildBands.push(band);
+}
+const buildChevrons = [];
+const chevronGeo = new THREE.ConeGeometry(0.2, 0.46, 4);
+for (let i = 0; i < 3; i++) {
+  const chevron = new THREE.Mesh(
+    chevronGeo,
+    new THREE.MeshBasicMaterial({ color: 0xfff8e4, transparent: true, opacity: 0.9, depthWrite: false })
+  );
+  chevron.position.set(0.15, 2.4 + i * 1.6, 0.15);
+  chevron.visible = false;
+  chevron.frustumCulled = false;
+  buildFx.add(chevron);
+  buildChevrons.push(chevron);
+}
+const buildColumn = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.04, 0.16, 7.2, 10, 1, true),
+  new THREE.MeshBasicMaterial({
+    color: 0xffe4a6,
+    transparent: true,
+    opacity: 0.18,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    blending: THREE.AdditiveBlending
+  })
+);
+buildColumn.geometry.translate(0, 4.1, 0);
+buildColumn.visible = false;
+buildColumn.frustumCulled = false;
+buildFx.add(buildColumn);
+const buildCap = new THREE.Mesh(
+  new THREE.TorusGeometry(TUBE_R + 0.28, 0.18, 8, 36),
+  new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.95, depthWrite: false })
+);
+buildCap.visible = false;
+buildCap.rotation.x = Math.PI / 2;
+buildCap.position.y = 0.4;
+buildCap.frustumCulled = false;
+buildFx.add(buildCap);
+const BUILD_SPARKS = 32;
+const sparkGeo = new THREE.SphereGeometry(0.11, 6, 6);
+const buildSparks = [];
+for (let i = 0; i < BUILD_SPARKS; i++) {
+  const mesh = new THREE.Mesh(
+    sparkGeo,
+    new THREE.MeshBasicMaterial({ color: 0xfff6d4, transparent: true, opacity: 1, depthWrite: false })
+  );
+  mesh.visible = false;
+  mesh.frustumCulled = false;
+  buildFx.add(mesh);
+  buildSparks.push({ mesh, life: 0, max: 1, vx: 0, vy: 0, vz: 0 });
+}
+function spawnBuildSpark() {
+  const spark = buildSparks.find((p) => p.life <= 0);
+  if (!spark) return;
+  const a = Math.random() * Math.PI * 2;
+  const r = TUBE_R * (0.45 + Math.random() * 0.62);
+  spark.mesh.position.set(Math.cos(a) * r, 0.2 + Math.random() * 0.35, Math.sin(a) * r);
+  spark.mesh.visible = true;
+  spark.max = 0.5 + Math.random() * 0.55;
+  spark.life = spark.max;
+  spark.vy = 5 + Math.random() * 8;
+  spark.vx = Math.cos(a) * (0.4 + Math.random() * 1.1);
+  spark.vz = Math.sin(a) * (0.4 + Math.random() * 1.1);
+}
+function hideBuildFx() {
+  buildFx.visible = false;
+  buildRing.visible = false;
+  buildRing.material.emissiveIntensity = 0.28;
+  buildColumn.visible = false;
+  tubeGlass.emissiveIntensity = 0;
+  for (const spark of buildSparks) {
+    spark.life = 0;
+    spark.mesh.visible = false;
   }
+  riseCue.hidden = true;
+  altNowEl.classList.remove("rising");
+}
+function stepBuildFx(dt, u) {
+  buildFx.visible = true;
+  buildFx.position.set(TUBE_X, Math.max(0.08, altitude), TUBE_Z);
+  const span = 8;
+  for (let i = 0; i < buildBands.length; i++) {
+    const band = buildBands[i];
+    const y = (time * 2.6 + i * (span / buildBands.length)) % span;
+    band.position.y = 0.15 + y;
+    band.material.opacity = 0.62 * (1 - y / span);
+  }
+  buildColumn.visible = true;
+  buildColumn.material.opacity = 0.14 + Math.sin(time * 2.4) * 0.04;
+  buildRing.material.emissiveIntensity = 0.55 + Math.sin(time * 3.2) * 0.18;
+  tubeGlass.emissiveIntensity = 0.16 + Math.sin(time * 2.4) * 0.05;
+  riseCue.hidden = false;
+  riseFill.style.height = `${Math.round(u * 100)}%`;
+  altNowEl.classList.add("rising");
 }
 
 function formatAltitude(km) {
   const k = Math.max(0, km);
+  if (k < 0.45) return "0.0 km";
   if (k < 10) return k.toFixed(1) + " km";
   return Math.round(k).toLocaleString("en-US") + " km";
 }
 
-let nextMark = STEP_KM;
 let tubeTop = 0;
 
 function railTopFor() {
   return Math.min(MAX_KM + 2, Math.max(0, tubeTop));
-}
-
-function ensurePlaques(alt) {
-  const top = railTopFor(alt);
-  while (nextMark <= MAX_KM && nextMark <= top) {
-    spawnPlaque(nextMark);
-    nextMark += STEP_KM;
-  }
 }
 
 function updateTube(alt) {
@@ -1224,11 +1664,7 @@ function updateTube(alt) {
   for (const mullion of mullions) mullion.visible = show;
   tube.scale.y = Math.max(top, 0.001);
   for (const mullion of mullions) mullion.scale.y = tube.scale.y;
-  const mark = Math.min(MAX_KM, Math.max(STEP_KM, Math.ceil((alt + 1) / STEP_KM) * STEP_KM));
-  goldRing.position.y = mark;
-  goldRing.visible = show && mark <= top - 1;
   car.position.y = Math.max(0.08, alt);
-  if (show) ensurePlaques(alt);
 }
 
 const cloth = (color) => new THREE.MeshStandardMaterial({
@@ -1533,8 +1969,9 @@ function applySky(h, time) {
   hemi.intensity = 0.7 + day * 0.55;
 }
 
+const YUAN = "\uFFE5";
 function formatBudget(n) {
-  return "¥" + (Math.max(0, Math.round(n)) * 1000000).toLocaleString("en-US");
+  return YUAN + (Math.max(0, Math.round(n)) * 1000000).toLocaleString("en-US");
 }
 function costTo(km) {
   let sum = 0;
@@ -1561,7 +1998,8 @@ function renderStops(h) {
       break;
     }
   }
-  const key = `${builtMax}|${savings}|${here}|${phase}|${fundedStops.join(",")}`;
+  const rising = heading > 0;
+  const key = `${builtMax}|${savings}|${here}|${phase}|${adding ? 1 : 0}|${rising ? 1 : 0}|${fundedStops.join(",")}`;
   if (key === marksKey) return;
   marksKey = key;
   marksEl.innerHTML = "";
@@ -1572,23 +2010,51 @@ function renderStops(h) {
     if (stop.km > builtMax) {
       const price = costTo(stop.km);
       btn.className = "build";
-      btn.textContent = "Build " + formatAltitude(stop.km);
+      btn.textContent = "Build to " + formatAltitude(stop.km);
       const priceEl = document.createElement("span");
       priceEl.textContent = formatBudget(price);
       btn.appendChild(priceEl);
-      btn.disabled = savings < price || (phase !== "climb" && phase !== "rest");
+      btn.disabled = rising || savings < price || adding || (phase !== "climb" && phase !== "rest");
       if (!btn.disabled) btn.addEventListener("click", () => buildTo(stop.km));
     } else {
+      const goesUp = stop.km > h + 0.45;
       btn.textContent = formatAltitude(stop.km);
       btn.className = stop.km === here ? "built here" : "built";
-      btn.addEventListener("click", () => goTo(stop.km));
+      btn.disabled = rising || (adding && goesUp);
+      if (!rising && stop.km === builtMax && stop.km !== here) btn.classList.add("go");
+      if (!btn.disabled) btn.addEventListener("click", () => goTo(stop.km));
     }
     marksEl.appendChild(btn);
   }
 }
+let shownYen = 0;
+let moneyFrom = 0;
+let moneyTo = null;
+let moneyT0 = 0;
+let moneyReady = false;
+function paintYuan() {
+  yuanEl.textContent = YUAN + Math.max(0, Math.round(shownYen)).toLocaleString("en-US");
+}
 function renderBank() {
-  yuanEl.textContent = formatBudget(savings);
+  const target = Math.max(0, Math.round(savings)) * 1000000;
+  if (!moneyReady) {
+    shownYen = target;
+    moneyTo = null;
+    moneyReady = true;
+    paintYuan();
+  } else if ((moneyTo == null ? Math.round(shownYen) : moneyTo) !== target) {
+    moneyFrom = shownYen;
+    moneyTo = target;
+    moneyT0 = performance.now();
+  }
   buildBtn.hidden = true;
+}
+function stepMoney() {
+  if (moneyTo == null) return;
+  const progress = Math.min((performance.now() - moneyT0) / 900, 1);
+  shownYen = Math.round(moneyFrom + (moneyTo - moneyFrom) * progress);
+  paintYuan();
+  if (progress >= 1) moneyTo = null;
 }
 function brickPay(bricks, km) {
   const steps = Math.log2(1 + Math.max(0, km) / 400);
@@ -1596,17 +2062,25 @@ function brickPay(bricks, km) {
   const next = STOPS.find((s) => s.km > Math.max(builtMax, km));
   return next ? Math.max(raw, next.cost) : raw;
 }
+function atUnlockedTop(h) {
+  const here = Number.isFinite(h) ? h : altitude;
+  if (builtMax < 1) return here < 1.2;
+  return here >= builtMax - 0.45;
+}
 function guideLine(h) {
   const next = STOPS.find((s) => s.km > builtMax) || null;
   const funded = fundedStops.includes(resultKey(h));
-  if (phase === "build") return `Watch it grow to ${formatAltitude(builtMax)}.`;
-  if (heading > 0) return `Up you go, to ${formatAltitude(stopAt == null ? builtMax : stopAt)}.`;
-  if (!testedGround) return "Stack bricks until you fall.";
-  if (!next && builtMax >= MAX_KM) return "38,400 km. You did it!";
-  if (builtMax < 1) return "Nice. Tap a new height to build.";
-  if (funded && next) return "That test is already done. Build higher.";
-  if (next) return "Stack bricks again. A new test result earns more research budget.";
-  return "Stack bricks until you fall.";
+  const goal = stopAt == null ? (heading > 0 ? builtMax : 0) : stopAt;
+  if (phase === "build") return `Building the lift to an altitude of ${formatAltitude(builtMax)} from the ground.`;
+  if (heading > 0) return `Going up to an altitude of ${formatAltitude(goal)} from the ground.`;
+  if (heading < 0) return `Going down to an altitude of ${formatAltitude(goal)} from the ground.`;
+  if (!testedGround) return "Add bricks until you fall.";
+  if (!atUnlockedTop(h)) return `Go to the top of the lift, ${formatAltitude(builtMax)} from the ground, to add bricks.`;
+  if (!next && builtMax >= MAX_KM) return `Altitude ${formatAltitude(MAX_KM)} from the ground. You have reached the top.`;
+  if (builtMax < 1) return "Choose a new altitude to build.";
+  if (funded && next) return "You have already tested at this altitude. Build the lift higher.";
+  if (next) return "Add bricks again. A new test adds money to the school budget.";
+  return "Add bricks until you fall.";
 }
 let said = "";
 function say(text) {
@@ -1624,6 +2098,8 @@ let savings = 0;
 let builtMax = 0;
 let testedGround = false;
 let fundedStops = [];
+let tests = [];
+let topAsked = false;
 let introDone = false;
 let stopAt = null;
 let pendingFall = false;
@@ -1633,7 +2109,7 @@ const buildBtn = document.getElementById("build");
 const introEl = document.getElementById("intro");
 function persist() {
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ savings, builtMax, testedGround, funded: fundedStops }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ savings, builtMax, testedGround, funded: fundedStops, tests, topAsked }));
   } catch (_) {}
 }
 function restore() {
@@ -1644,10 +2120,18 @@ function restore() {
     builtMax = STOPS.reduce((best, s) => (s.km <= savedMax ? s.km : best), 0);
     testedGround = !!raw.testedGround || builtMax > 0;
     fundedStops = Array.isArray(raw.funded) ? raw.funded.filter((n) => Number.isFinite(n)) : [];
+    tests = Array.isArray(raw.tests)
+      ? raw.tests
+        .filter((t) => t && Number.isFinite(t.km) && Number.isFinite(t.bricks))
+        .map((t) => ({ km: t.km, bricks: Math.max(0, Math.round(t.bricks)) }))
+      : [];
+    topAsked = !!raw.topAsked;
   } catch (_) {}
 }
 function goTo(km) {
+  if (heading > 0) return;
   if (phase !== "climb" || km > builtMax) return;
+  if (adding && km > altitude + 0.45) return;
   if (Math.abs(altitude - km) < 0.4) {
     heading = 0;
     stopAt = null;
@@ -1663,6 +2147,7 @@ function goTo(km) {
   renderStops(altitude);
 }
 function buildTo(km) {
+  if (heading > 0 || adding) return;
   if (km <= builtMax) return;
   const price = costTo(km);
   if (savings < price) return;
@@ -1687,9 +2172,11 @@ function carryLimit(km) {
 
 const CLIMB_SPEED = 120;
 let heading = 0;
+let adding = false;
+let addAcc = 0;
 let rungAt = 0;
 let phase = "climb";
-let altitude = 0.15;
+let altitude = 0;
 let carried = 0;
 let fallT = 0;
 let shake = 0;
@@ -1724,13 +2211,33 @@ function poseRide(moving) {
   head.rotation.set(-0.04 + Math.sin(time * 5.1) * strain * 0.16, Math.sin(time * 0.55) * (0.04 + strain * 0.12), -roll * 0.35);
   if (tray.parent === torso) {
     tray.rotation.set(0, 0, 0);
+    seatStack();
     holdTray(roll * 0.7);
   }
+}
+function stackTop() {
+  let top = 0;
+  for (const mesh of hold.children) {
+    const y = mesh.userData && mesh.userData.restY ? mesh.userData.restY : 0;
+    if (y > top) top = y;
+  }
+  return top;
+}
+function seatStack() {
+  const top = stackTop();
+  const push = Math.min(1.05, Math.max(0, (top - 1.65) * 0.24));
+  tray.position.z = torsoD * 0.5 + 0.92 + push;
+  return top;
 }
 
 const _focus = new THREE.Vector3();
 const _shift = new THREE.Vector3();
+const _shake = new THREE.Vector3();
 function updateCamera(alt, guided) {
+  if (_shake.lengthSq() > 0) {
+    camera.position.sub(_shake);
+    _shake.set(0, 0, 0);
+  }
   if (!guided) {
     _focus.set(TUBE_X, climber.position.y + (thighH + shinH + torsoH * 0.95) * BODY, TUBE_Z);
     _shift.copy(_focus).sub(controls.target);
@@ -1740,10 +2247,15 @@ function updateCamera(alt, guided) {
     if (camera.position.y < 1.8) camera.position.y = 1.8;
   }
   if (!guided && shake > 0) {
-    const s = shake * shake;
-    camera.position.x += Math.sin(time * 58) * 0.7 * s;
-    camera.position.y += Math.cos(time * 43) * 0.45 * s;
-    camera.position.z += Math.sin(time * 31) * 0.28 * s;
+    const pile = Math.max(0, burden.length - 4);
+    const calm = 1 / (1 + pile * 0.055);
+    const s = shake * shake * calm * calm;
+    _shake.set(
+      Math.sin(time * 58) * 0.7 * s,
+      Math.cos(time * 43) * 0.45 * s,
+      Math.sin(time * 31) * 0.28 * s
+    );
+    camera.position.add(_shake);
   }
   skyRig.position.copy(camera.position);
   const far = Math.max(2200, Math.max(alt, tubeTop) * 3 + 800);
@@ -1759,76 +2271,76 @@ function updateCamera(alt, guided) {
 
 let buildToKm = 0;
 let buildFromKm = 0;
+let buildAltFrom = 0;
 let buildT = 0;
+let buildBitAt = 0;
 let buildPhase = "";
-let resumePhase = "climb";
-let backFromY = 0;
+let buildDur = 1;
 const _buildLook = new THREE.Vector3();
-const _backToLook = new THREE.Vector3();
-function riderFocus(out) {
-  return out.set(TUBE_X, climber.position.y + (thighH + shinH + torsoH * 0.95) * BODY, TUBE_Z);
-}
-function startBuild(km) {
-  buildFromKm = tubeTop;
-  buildToKm = Math.max(km, tubeTop);
+function beginRise() {
   buildT = 0;
   buildPhase = "rise";
-  resumePhase = phase === "rest" ? "rest" : "climb";
+  buildRing.visible = true;
+  buildRing.position.set(TUBE_X, tubeTop, TUBE_Z);
+  buildFx.visible = true;
+  tubeGlass.emissiveIntensity = 0.22;
+  sfx.climb(1);
+}
+function startBuild(km) {
+  if (phase === "rest") {
+    rideUpAfter = false;
+    standAgain({ quiet: true });
+  }
+  adding = false;
+  addAcc = 0;
+  buildFromKm = tubeTop;
+  buildToKm = Math.max(km, tubeTop);
+  buildAltFrom = altitude;
+  buildT = 0;
+  const travel = Math.max(buildToKm - buildAltFrom, buildToKm - buildFromKm, 1);
+  buildDur = THREE.MathUtils.clamp(travel / 240, 2.4, 6.4);
   phase = "build";
   heading = 0;
   stopAt = null;
   syncDirs();
-  buildRing.visible = true;
-  tubeGlass.emissiveIntensity = 0.22;
-  sfx.climb(1);
-}
-function beginRideUp() {
-  phase = "climb";
-  controls.update();
-  if (resumePhase === "rest") {
-    rideUpAfter = true;
-    standAgain();
-    return;
-  }
-  heading = 1;
-  stopAt = builtMax;
-  syncDirs();
-  sfx.climb(1);
-  marksKey = "";
-  renderBank();
-  showGuide(altitude);
+  againBtn.hidden = true;
+  beginRise();
 }
 function finishBuild() {
   tubeTop = buildToKm;
+  altitude = buildToKm;
   buildPhase = "";
-  buildRing.visible = false;
-  tubeGlass.emissiveIntensity = 0;
-  beginRideUp();
+  hideBuildFx();
+  phase = "climb";
+  heading = 0;
+  stopAt = null;
+  syncDirs();
+  marksKey = "";
+  sfx.arrive();
+  if (builtMax >= MAX_KM - 0.05) openTopQuestion();
+  renderStops(altitude);
+  renderBank();
+  showGuide(altitude);
 }
 function stepBuild(dt) {
-  if (buildPhase === "rise") {
-    buildT += dt;
-    const u = Math.min(1, buildT / 7);
-    const ease = u * u * (3 - 2 * u);
-    const prev = tubeTop;
-    tubeTop = buildFromKm + (buildToKm - buildFromKm) * ease;
-    buildRing.position.set(TUBE_X, tubeTop, TUBE_Z);
-    buildRing.scale.setScalar(1.15 + Math.sin(time * 8) * 0.05);
-    followBuild(tubeTop);
-    if (Math.floor(tubeTop / 40) !== Math.floor(prev / 40)) sfx.bit();
-    if (u >= 1) {
-      tubeTop = buildToKm;
-      buildT = 0;
-      buildPhase = "back";
-      backFromY = tubeTop;
-    }
-  } else if (buildPhase === "back") {
-    buildT += dt;
-    const u = Math.min(1, buildT / 1.5);
-    const ease = u * u * (3 - 2 * u);
-    const y = backFromY + (riderFocus(_backToLook).y - backFromY) * ease;
-    followBuild(y);
-    if (u >= 1) finishBuild();
+  if (buildPhase !== "rise") return;
+  buildT += dt;
+  const u = Math.min(1, buildT / buildDur);
+  const ease = u * u * (3 - 2 * u);
+  const prev = tubeTop;
+  tubeTop = buildFromKm + (buildToKm - buildFromKm) * ease;
+  altitude = buildAltFrom + (buildToKm - buildAltFrom) * ease;
+  buildRing.position.set(TUBE_X, tubeTop + 0.15, TUBE_Z);
+  buildRing.scale.setScalar(1);
+  stepBuildFx(dt, u);
+  if (time - buildBitAt > 0.28 && tubeTop > prev + 0.5) {
+    buildBitAt = time;
+    sfx.bit();
+  }
+  if (u >= 1) {
+    tubeTop = buildToKm;
+    altitude = buildToKm;
+    finishBuild();
   }
 }
 function followBuild(y) {
@@ -1842,19 +2354,9 @@ function followBuild(y) {
 
 let shownBucket = -1;
 const mathsEl = document.getElementById("maths");
+const mathsBody = document.getElementById("maths-body");
 let mathsOn = false;
-function moreBricks(km) {
-  const limit = carryLimit(km);
-  let mass = carried;
-  let n = 0;
-  while (n < 4000) {
-    const next = BRICKS[(burden.length + n) % BRICKS.length].mass;
-    if (mass + next > limit) break;
-    mass += next;
-    n++;
-  }
-  return n;
-}
+let mathsTab = "test";
 function fmtKm(n) {
   if (n >= 1000) return Math.round(n).toLocaleString("en-US");
   if (n >= 10) return n.toFixed(1);
@@ -1863,21 +2365,51 @@ function fmtKm(n) {
 function renderMaths() {
   if (!mathsOn) return;
   const h = Math.max(0, altitude);
-  const g = gravityScale(h);
-  const limit = carryLimit(h);
-  const left = moreBricks(h);
-  const room = phase !== "climb"
-    ? "The bricks are falling off."
-    : left === 0
-      ? "No more. You are at the limit."
-      : left === 1
-        ? "You can take 1 more brick."
-        : `You can take ${left} more bricks.`;
-  mathsEl.innerHTML = `<strong>g = GM / r²</strong>r = R + h = ${fmtKm(EARTH_R_KM)} + ${fmtKm(h)} km
-g / g₀ = (R / r)² = ${g.toFixed(3)}
-You hold ${carried.toFixed(0)} kg
-You can hold ${limit.toFixed(1)} kg here
-${room}`;
+  const here = `Your altitude is ${formatAltitude(h)} from the ground.`;
+  if (mathsTab === "words") {
+    mathsBody.innerHTML = `<h3>Questions</h3>
+<ol>
+<li>What pulls the bricks down?</li>
+<li>Are you closer to the centre of the Earth on the ground, or higher up?</li>
+<li>Where is that pull stronger?</li>
+<li>If the pull gets weaker, can you hold more bricks or fewer before you fall?</li>
+<li>Look at your tests. What happened to the number of bricks as the altitude went up?</li>
+</ol>
+<p>${here} Answer from what you tested.</p>`;
+    return;
+  }
+  if (mathsTab === "radius") {
+    const ground = fmtKm(EARTH_R_KM);
+    mathsBody.innerHTML = `<h3>Distance from the centre</h3>
+<p class="formula">r = R + h</p>
+<ol>
+<li>R is the distance from the centre of the Earth to the ground. R = ${ground} km.</li>
+<li>h is your altitude from the ground. Right now h = ${formatAltitude(h)}.</li>
+<li>r is your distance from the centre of the Earth.</li>
+<li>Add R and h. That sum is r.</li>
+</ol>
+<p>A larger h makes a larger r. You are further from the centre.</p>`;
+    return;
+  }
+  if (mathsTab === "gravity") {
+    mathsBody.innerHTML = `<h3>The pull</h3>
+<p class="formula">g = GM / r²</p>
+<ol>
+<li>g is how strong the pull is at distance r.</li>
+<li>G does not change. M is the mass of the Earth. It does not change either.</li>
+<li>r comes from the other formula, r = R + h.</li>
+<li>r² means r × r. It sits under GM, so a larger r makes a smaller g.</li>
+</ol>
+<p>Higher up, r is larger, so g is weaker. A weaker pull means you can hold more bricks before you fall.</p>`;
+    return;
+  }
+  mathsBody.innerHTML = `<h3>Your test</h3>
+<ol>
+<li>Each brick has a mass of 2 kg.</li>
+<li>Add bricks until you fall. That is one test.</li>
+<li>Build the lift higher, then test again.</li>
+</ol>
+<p>${here} The bricks on the tray have a mass of <b>${carried.toFixed(0)} kg</b>.</p>`;
 }
 function showMaths(on) {
   mathsOn = on;
@@ -1885,6 +2417,11 @@ function showMaths(on) {
   mathsBtn.classList.toggle("on", on);
   mathsBtn.setAttribute("aria-pressed", on ? "true" : "false");
   mathsBtn.setAttribute("aria-label", on ? "Hide the maths" : "Show the maths");
+  if (on && resultsOn) showResults(false);
+  if (on) {
+    settingsEl.hidden = true;
+    settingsBtn.setAttribute("aria-expanded", "false");
+  }
   renderMaths();
 }
 window.addEventListener("keydown", (e) => {
@@ -1892,6 +2429,176 @@ window.addEventListener("keydown", (e) => {
   showMaths(!mathsOn);
 });
 mathsBtn.addEventListener("click", () => showMaths(!mathsOn));
+mathsEl.addEventListener("click", (e) => {
+  if (e.target === mathsEl) showMaths(false);
+});
+for (const tab of mathsEl.querySelectorAll("[data-tab]")) {
+  tab.addEventListener("click", () => {
+    mathsTab = tab.dataset.tab;
+    for (const other of mathsEl.querySelectorAll("[data-tab]")) {
+      const on = other === tab;
+      other.classList.toggle("on", on);
+      other.setAttribute("aria-selected", on ? "true" : "false");
+    }
+    renderMaths();
+  });
+}
+let resultsOn = false;
+function bricksThatFit(km) {
+  const limit = carryLimit(km);
+  let mass = 0;
+  let n = 0;
+  for (const spec of burden) {
+    if (mass + spec.mass > limit) break;
+    mass += spec.mass;
+    n++;
+  }
+  return n;
+}
+function tickKm(km) {
+  if (km >= 1000) return Math.round(km).toLocaleString("en-US");
+  if (km >= 10) return String(Math.round(km));
+  return Number(km.toFixed(1)).toString();
+}
+function svgEl(name, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+  return el;
+}
+function brickStep(max) {
+  if (max <= 8) return 1;
+  if (max <= 16) return 2;
+  if (max <= 40) return 5;
+  if (max <= 100) return 10;
+  return Math.ceil(max / 6 / 10) * 10;
+}
+function renderResults() {
+  resultsList.replaceChildren();
+  if (!tests.length) {
+    const p = document.createElement("p");
+    p.textContent = "No tests yet. Add bricks until you fall. Then a dot will show how many bricks you could hold.";
+    resultsList.append(p);
+    return;
+  }
+  const sorted = [...tests].sort((a, b) => a.km - b.km);
+  const W = 760;
+  const H = 360;
+  const padL = 72;
+  const padR = 28;
+  const padT = 32;
+  const padB = 64;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const step = brickStep(Math.max(...sorted.map((t) => t.bricks)));
+  const yTop = Math.max(step, Math.ceil(Math.max(...sorted.map((t) => t.bricks)) / step) * step);
+  const xOf = (i) => padL + (sorted.length === 1 ? plotW / 2 : (i / (sorted.length - 1)) * plotW);
+  const yOf = (n) => padT + (1 - n / yTop) * plotH;
+  const svg = svgEl("svg", {
+    class: "plot",
+    viewBox: `0 0 ${W} ${H}`,
+    role: "img",
+    "aria-label": sorted.map((t) => `${formatAltitude(t.km)}, ${t.bricks === 1 ? "1 brick" : t.bricks + " bricks"}`).join(". ")
+  });
+  const axis = "rgba(243, 236, 223, 0.7)";
+  const grid = "rgba(243, 236, 223, 0.16)";
+  const ink = "#f3ecdf";
+  for (let tick = 0; tick <= yTop; tick += step) {
+    const y = yOf(tick);
+    svg.append(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: grid, "stroke-width": "1.5" }));
+    const label = svgEl("text", {
+      x: padL - 12,
+      y: y + 6,
+      fill: ink,
+      "font-size": "18",
+      "text-anchor": "end",
+      "font-family": "Outfit, system-ui, sans-serif"
+    });
+    label.textContent = String(tick);
+    svg.append(label);
+  }
+  svg.append(svgEl("line", { x1: padL, y1: padT, x2: padL, y2: padT + plotH, stroke: axis, "stroke-width": "2" }));
+  svg.append(svgEl("line", { x1: padL, y1: padT + plotH, x2: W - padR, y2: padT + plotH, stroke: axis, "stroke-width": "2" }));
+  if (sorted.length > 1) {
+    svg.append(svgEl("polyline", {
+      points: sorted.map((t, i) => `${xOf(i)},${yOf(t.bricks)}`).join(" "),
+      fill: "none",
+      stroke: ink,
+      "stroke-width": "4",
+      "stroke-linejoin": "round",
+      "stroke-linecap": "round"
+    }));
+  }
+  sorted.forEach((t, i) => {
+    const x = xOf(i);
+    const y = yOf(t.bricks);
+    svg.append(svgEl("circle", { cx: x, cy: y, r: "9", fill: "#16140f", stroke: ink, "stroke-width": "3" }));
+    const count = svgEl("text", {
+      x,
+      y: y - 16,
+      fill: ink,
+      "font-size": "18",
+      "font-weight": "600",
+      "text-anchor": "middle",
+      "font-family": "Outfit, system-ui, sans-serif"
+    });
+    count.textContent = String(t.bricks);
+    svg.append(count);
+    const km = svgEl("text", {
+      x,
+      y: padT + plotH + 22,
+      fill: ink,
+      "font-size": "16",
+      "text-anchor": "end",
+      "font-family": "Outfit, system-ui, sans-serif",
+      transform: `rotate(-32 ${x} ${padT + plotH + 22})`
+    });
+    km.textContent = tickKm(t.km);
+    svg.append(km);
+  });
+  const xTitle = svgEl("text", {
+    x: padL + plotW / 2,
+    y: H - 8,
+    fill: ink,
+    "font-size": "18",
+    "text-anchor": "middle",
+    "font-family": "Outfit, system-ui, sans-serif"
+  });
+  xTitle.textContent = "Altitude from the ground (km)";
+  svg.append(xTitle);
+  const yTitle = svgEl("text", {
+    x: 22,
+    y: padT + plotH / 2,
+    fill: ink,
+    "font-size": "18",
+    "text-anchor": "middle",
+    "font-family": "Outfit, system-ui, sans-serif",
+    transform: `rotate(-90 22 ${padT + plotH / 2})`
+  });
+  yTitle.textContent = "Bricks you could hold";
+  svg.append(yTitle);
+  resultsList.append(svg);
+}
+function showResults(on) {
+  resultsOn = on;
+  resultsEl.hidden = !on;
+  resultsBtn.classList.toggle("on", on);
+  resultsBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  resultsBtn.setAttribute("aria-label", on ? "Hide test results" : "Test results");
+  if (!on) return;
+  if (mathsOn) showMaths(false);
+  settingsEl.hidden = true;
+  settingsBtn.setAttribute("aria-expanded", "false");
+  renderResults();
+}
+resultsBtn.addEventListener("click", () => showResults(!resultsOn));
+resultsEl.addEventListener("click", (e) => {
+  if (e.target === resultsEl) showResults(false);
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (mathsOn) showMaths(false);
+  if (resultsOn) showResults(false);
+});
 function updateReadout(h) {
   document.title = `SkyLift — ${formatAltitude(h)}`;
   altNowEl.textContent = formatAltitude(h);
@@ -1954,6 +2661,10 @@ settingsBtn.addEventListener("click", () => {
   const open = settingsEl.hidden;
   settingsEl.hidden = !open;
   settingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    showMaths(false);
+    showResults(false);
+  }
 });
 document.getElementById("reset-progress").addEventListener("click", () => {
   try {
@@ -1980,7 +2691,27 @@ const cargoMats = BRICKS.map((c) => new THREE.MeshStandardMaterial({
   emissive: c.color,
   emissiveIntensity: 0.05
 }));
-const brickGeo = new THREE.BoxGeometry(0.78, 0.38, 0.46);
+const BRICK_W = 0.78;
+const BRICK_H = 0.38;
+const BRICK_D = 0.46;
+const brickGeo = new THREE.BoxGeometry(BRICK_W, BRICK_H, BRICK_D);
+const BRICK_COLS = 3;
+const BRICK_ROWS = 2;
+const BRICK_PER = BRICK_COLS * BRICK_ROWS;
+const BRICK_X = BRICK_W + 0.08;
+const BRICK_Z = BRICK_D + 0.08;
+const BRICK_Y = BRICK_H + 0.03;
+function brickHome(i) {
+  const layer = Math.floor(i / BRICK_PER);
+  const slot = i % BRICK_PER;
+  const col = slot % BRICK_COLS;
+  const row = Math.floor(slot / BRICK_COLS);
+  return new THREE.Vector3(
+    (col - (BRICK_COLS - 1) / 2) * BRICK_X,
+    board + 0.02 + BRICK_H * 0.5 + layer * BRICK_Y,
+    (row - (BRICK_ROWS - 1) / 2) * BRICK_Z
+  );
+}
 const burden = [];
 const loose = [];
 const dropping = [];
@@ -1999,11 +2730,46 @@ function glowCargo(v) {
   for (const m of cargoMats) m.emissiveIntensity = v;
 }
 
+function brickRate(n) {
+  const t = Math.max(0, n - 4) / 12;
+  return Math.min(55, 1.2 * Math.pow(1 + t, 1.7));
+}
+function fallWeight(km) {
+  const g = gravityScale(Math.max(0, km));
+  return 0.5 + 1.85 * Math.pow(Math.max(0.02, g), 0.42);
+}
+function dropStyle(n) {
+  const rush = Math.max(1, brickRate(n) / 1.2);
+  const weight = fallWeight(altitude);
+  const drop = 0.42 + 0.55 / Math.min(weight, 2.4);
+  return {
+    height: Math.max(0.55, (8.2 / Math.pow(rush, 0.62)) * drop),
+    grav: 26 * Math.min(14, Math.pow(rush, 0.72)) * weight,
+    stagger: Math.max(0.04, 0.35 / rush),
+    weight
+  };
+}
+let dropSfxAt = -1;
+let landSfxAt = -1;
+function playDrop(weight) {
+  const gap = burden.length > 16 ? 0.09 : 0;
+  if (gap && time - dropSfxAt < gap) return;
+  dropSfxAt = time;
+  sfx.drop(weight);
+}
+function playLand(weight) {
+  const gap = burden.length > 16 ? 0.07 : 0;
+  if (gap && time - landSfxAt < gap) return;
+  landSfxAt = time;
+  sfx.land(weight);
+}
 function addLoad(count) {
-  if (phase !== "climb") return;
-  const n = Math.max(1, Math.min(10, count));
+  if (phase !== "climb") return 0;
+  const style = dropStyle(burden.length);
+  const n = Math.max(1, count);
+  let added = 0;
   for (let batch = 0; batch < n; batch++) {
-    if (phase !== "climb") return;
+    if (phase !== "climb") return added;
     const spec = BRICKS[burden.length % BRICKS.length];
     const mat = cargoMats[burden.length % cargoMats.length];
     carried += spec.mass;
@@ -2011,28 +2777,27 @@ function addLoad(count) {
     const mesh = new THREE.Mesh(brickGeo, mat);
     mesh.castShadow = true;
     const i = hold.children.length;
-    const per = 6;
-    const layer = Math.floor(i / per);
-    const n = i % per;
-    const col = n % 3;
-    const row = Math.floor(n / 3);
-    const restY = board + 0.2 + layer * 0.36;
-    const home = new THREE.Vector3((col - 1) * 0.7, restY, (row - 0.5) * 0.42);
+    const home = brickHome(i);
+    const restY = home.y;
     mesh.position.copy(home);
-    mesh.position.y += 8.5 + batch * 1.05;
-    mesh.rotation.set(0.35, (i % 2) * 0.08, 0.2);
+    mesh.position.y += style.height + batch * style.stagger;
+    mesh.rotation.set(0.08, (i % 2) * 0.03, 0.04);
     mesh.userData.home = home;
     mesh.userData.restY = restY;
     mesh.userData.vy = 0;
+    mesh.userData.grav = style.grav;
+    mesh.userData.weight = style.weight;
     hold.add(mesh);
     dropping.push(mesh);
+    added++;
     if (carried > carryLimit(altitude)) {
       pendingFall = true;
-      sfx.drop();
-      return;
+      playDrop(style.weight);
+      return added;
     }
   }
-  sfx.drop();
+  playDrop(style.weight);
+  return added;
 }
 
 function stepDrops(dt) {
@@ -2042,19 +2807,19 @@ function stepDrops(dt) {
       dropping.splice(i, 1);
       continue;
     }
-    mesh.userData.vy += 26 * dt;
+    mesh.userData.vy += (mesh.userData.grav || 26) * dt;
     mesh.position.y -= mesh.userData.vy * dt;
     mesh.rotation.x *= 0.92;
     mesh.rotation.z *= 0.92;
     if (mesh.position.y <= mesh.userData.restY) {
-      mesh.position.y = mesh.userData.restY;
-      mesh.rotation.x = 0;
-      mesh.rotation.z = 0;
+      mesh.position.copy(mesh.userData.home);
+      mesh.rotation.set(0, 0, 0);
       dropping.splice(i, 1);
       const landed = Math.max(1, burden.length);
-      const strength = Math.min(1.15, 0.26 + 0.08 * (landed - 1));
+      const pile = Math.max(0, landed - 1);
+      const strength = Math.min(0.85, 0.24 + pile * 0.035) / (1 + Math.max(0, pile - 3) / 14);
       shake = Math.max(shake, strength);
-      sfx.land();
+      playLand(mesh.userData.weight || 1);
     }
   }
   if (pendingFall && dropping.length === 0 && phase === "climb") beginFall();
@@ -2113,6 +2878,9 @@ function spill() {
   ring.visible = true;
   const n = burden.length;
   const key = resultKey(altitude);
+  const held = bricksThatFit(altitude);
+  if (!tests.some((t) => t.km === key)) tests.push({ km: key, bricks: held });
+  if (resultsOn) renderResults();
   const repeat = fundedStops.includes(key);
   const gain = paidThisFall || repeat ? 0 : brickPay(n, altitude);
   if (!paidThisFall) {
@@ -2126,10 +2894,14 @@ function spill() {
     persist();
     renderBank();
   }
-  taleCountEl.textContent = n === 1 ? "You held 1 brick" : `You held ${n} bricks`;
-  taleListEl.textContent = gain
-    ? `New test result. Research budget +${formatBudget(gain)}`
-    : "No new test results.";
+  const where = formatAltitude(altitude);
+  const heldLine = n === 1
+    ? `You held 1 brick at ${where} altitude.`
+    : `You held ${n} bricks at ${where} altitude.`;
+  taleCountEl.textContent = heldLine;
+  taleListEl.textContent = gain > 0
+    ? `New test result. Research budget +${formatBudget(gain)}.`
+    : "Already tested at this altitude.";
   taleEl.classList.add("show");
   againBtn.hidden = true;
   sfx.fall();
@@ -2163,8 +2935,18 @@ function poseBrace(k) {
   torso.rotation.x = 0.16 + Math.sin(k * 10) * 0.08;
   head.rotation.x = 0.22 + Math.sin(k * 13) * 0.08;
   if (tray.parent === torso) {
-    tray.rotation.x = Math.sin(k * 9) * Math.min(0.7, k * 0.22);
-    tray.rotation.z = Math.sin(k * 7) * Math.min(0.35, k * 0.08);
+    const reach = seatStack();
+    const sway = Math.min(0.7, k * 0.22);
+    const roll = Math.min(0.35, k * 0.08);
+    let tilt = Math.sin(k * 9) * sway;
+    let side = Math.sin(k * 7) * roll;
+    if (reach > 1.65) {
+      const sideCap = Math.min(roll, 0.32 / reach);
+      tilt = Math.max(0.06, tilt);
+      side = Math.max(-sideCap, Math.min(sideCap, side));
+    }
+    tray.rotation.x = tilt;
+    tray.rotation.z = side;
   }
 }
 
@@ -2260,7 +3042,8 @@ function stepLoose(dt) {
   ringMat.opacity = (1 - u) * 0.9;
 }
 
-function standAgain() {
+function standAgain(opts) {
+  const quiet = !!(opts && opts.quiet);
   for (const p of loose) scene.remove(p.mesh);
   loose.length = 0;
   dropping.length = 0;
@@ -2274,6 +3057,7 @@ function standAgain() {
   againBtn.hidden = true;
   pendingFall = false;
   adding = false;
+  addAcc = 0;
   phase = "climb";
   heading = rideUpAfter ? 1 : 0;
   if (rideUpAfter) {
@@ -2286,25 +3070,79 @@ function standAgain() {
   controls.enabled = true;
   poseRide(false);
   renderBank();
+  if (quiet) return;
   showGuide(altitude);
   if (heading > 0) sfx.climb(1);
   else sfx.again();
 }
 
-let adding = false;
+function canAddBricks() {
+  return phase === "climb" && heading === 0 && !adding && !pendingFall && atUnlockedTop(altitude);
+}
+function stepAdding(dt) {
+  if (phase !== "climb" || pendingFall || heading > 0) {
+    adding = false;
+    addAcc = 0;
+    return;
+  }
+  if (!adding) return;
+  const held = burden.length;
+  const rate = brickRate(held);
+  addAcc += rate * dt;
+  const cap = held < 8 ? 1 : Math.max(4, Math.min(40, Math.ceil(rate * 0.22)));
+  let room = cap - dropping.length;
+  while (addAcc >= 1 && room > 0 && !pendingFall && phase === "climb") {
+    const batch = Math.min(room, Math.floor(addAcc));
+    const got = addLoad(batch);
+    if (got <= 0) break;
+    addAcc -= got;
+    room = cap - dropping.length;
+  }
+  if (pendingFall) {
+    adding = false;
+    addAcc = 0;
+  }
+}
 addBtn.addEventListener("click", () => {
-  if (phase !== "climb" || adding) return;
+  if (!canAddBricks()) return;
   adding = true;
+  addAcc = 0;
   addBtn.disabled = true;
 });
 buildBtn.hidden = true;
-introEl.querySelector("#intro-go").addEventListener("click", () => {
+const introGo = introEl.querySelector("#intro-go");
+function showIntro() {
+  if (mathsOn) showMaths(false);
+  if (resultsOn) showResults(false);
+  settingsEl.hidden = true;
+  settingsBtn.setAttribute("aria-expanded", "false");
+  introGo.textContent = introDone ? "Close" : "Start";
+  introEl.hidden = false;
+}
+document.getElementById("show-intro").addEventListener("click", (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  showIntro();
+});
+introGo.addEventListener("click", () => {
+  const first = !introDone;
   introDone = true;
   introEl.hidden = true;
+  if (!first) return;
   said = "";
   showGuide(altitude);
 });
 againBtn.addEventListener("click", standAgain);
+const askEl = document.getElementById("ask");
+function openTopQuestion() {
+  if (topAsked || !askEl.hidden) return;
+  askEl.hidden = false;
+}
+askEl.addEventListener("click", () => {
+  topAsked = true;
+  persist();
+  askEl.hidden = true;
+});
 
 const clock = new THREE.Clock();
 function frame() {
@@ -2313,15 +3151,14 @@ function frame() {
   time += dt;
   shownKg = carried;
   paintScreen(time);
+  stepLed(dt);
   talkViz = Math.max(0, talkViz - dt * 3.4);
   shake = Math.max(0, shake - dt * 3.1);
   stepDrops(dt);
-  if (phase !== "climb") adding = false;
-  if (adding && phase === "climb" && dropping.length === 0 && !pendingFall) {
-    addLoad(1);
-    if (pendingFall) adding = false;
-  }
-  addBtn.disabled = phase !== "climb" || adding;
+  stepAdding(dt);
+  const bricksReady = phase === "climb" && heading === 0 && !pendingFall && atUnlockedTop(altitude);
+  addBtn.hidden = !bricksReady;
+  addBtn.disabled = !canAddBricks();
   if (phase === "brace") {
     fallT += dt;
     poseBrace(fallT);
@@ -2343,8 +3180,8 @@ function frame() {
     stepTray(dt);
   } else if (phase === "build") {
     stepBuild(dt);
-    if (resumePhase === "rest") poseFall(8);
-    else poseRide(false);
+    poseRide(true);
+    followBuild(climber.position.y + (thighH + shinH + torsoH * 0.95) * BODY);
   } else if (phase === "climb") {
     if (heading !== 0) {
       const intro = 0.22 + 0.78 * THREE.MathUtils.smoothstep(altitude, 40, STEP_KM);
@@ -2361,7 +3198,10 @@ function frame() {
         stopAt = null;
         syncDirs();
         marksKey = "";
-        if (reachedTop) sfx.arrive();
+        if (reachedTop) {
+          sfx.arrive();
+          if (builtMax >= MAX_KM - 0.05) openTopQuestion();
+        }
       }
       altitude = next;
       if (carried > carryLimit(altitude) + 0.04) beginFall();
@@ -2381,6 +3221,8 @@ function frame() {
     const falling = phase === "brace" || phase === "fall" || phase === "rest" || heading < 0;
     music.setMood(falling ? "sos" : altitude >= STEP_KM ? "ok" : "scene1");
   }
+  if (phase === "build") againBtn.hidden = true;
+  stepMoney();
   updateTube(altitude);
   updateCamera(altitude, phase === "build");
   applySky(altitude, time);

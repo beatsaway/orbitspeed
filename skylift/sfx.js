@@ -85,26 +85,28 @@ function echo(ctx, dest, t, delaySec, feedback, dur) {
 
 export function createSfx() {
   return {
-    drop() {
+    drop(weight = 1) {
       const a = ready();
       if (!a) return;
-      burst(a.ctx, a.dest, a.t, 0.62, 0.16, 2400, 220, 0.85);
-      tone(a.ctx, a.dest, a.t, "sine", 520, 150, 0.5, 0.05);
-      tone(a.ctx, a.dest, a.t + 0.02, "triangle", 880, 240, 0.28, 0.03);
+      const k = Math.max(0.4, Math.min(1.7, weight));
+      burst(a.ctx, a.dest, a.t, 0.5 / k, 0.1 + 0.05 * k, 900 + 1400 * k, 180, 0.9);
+      tone(a.ctx, a.dest, a.t, "sine", 280 * k, 90 + 40 * k, 0.42 / Math.sqrt(k), 0.045 * k);
+      tone(a.ctx, a.dest, a.t + 0.02, "triangle", 460 * k, 140 + 50 * k, 0.24 / k, 0.03);
     },
-    land() {
+    land(weight = 1) {
       const a = ready();
       if (!a) return;
+      const k = Math.max(0.4, Math.min(1.7, weight));
       const { ctx, dest, t } = a;
       const body = ctx.createGain();
       body.gain.value = 1;
-      const slap = echo(ctx, dest, t, 0.021, 0.22, 0.35);
+      const slap = echo(ctx, dest, t, 0.018 + 0.012 / k, 0.16, 0.28 + 0.12 / k);
       body.connect(slap);
       body.connect(dest);
-      tone(ctx, body, t, "sine", 168, 62, 0.22, 0.32);
-      tone(ctx, body, t, "triangle", 246, 90, 0.16, 0.12);
-      burst(ctx, body, t, 0.14, 0.22, 900, 180, 0.7);
-      tone(ctx, dest, t, "sine", 1400, 420, 0.07, 0.06);
+      tone(ctx, body, t, "sine", 90 + 70 * k, 40 + 18 * k, 0.16 + 0.08 / k, 0.22 + 0.08 * k);
+      tone(ctx, body, t, "triangle", 140 + 90 * k, 60 + 24 * k, 0.12, 0.08 * k);
+      burst(ctx, body, t, 0.1 + 0.05 / k, 0.14 + 0.06 * k, 420 + 500 * k, 140, 0.7);
+      tone(ctx, dest, t, "sine", 700 + 600 * k, 260, 0.05 + 0.02 / k, 0.04 * k);
     },
     climb(dir) {
       const a = ready();

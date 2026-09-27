@@ -17,11 +17,9 @@
             margin: 0 auto;
             padding: 48px 20px 64px;
         }
-        h1 { font-size: 1.7rem; color: #6df; font-weight: 700; }
-        .lead { margin: 8px 0 28px; opacity: 0.75; line-height: 1.45; }
+        h1 { font-size: 1.7rem; color: #6df; font-weight: 700; margin-bottom: 22px; }
         .cards { display: grid; gap: 14px; }
         @media (min-width: 640px) { .cards { grid-template-columns: 1fr 1fr; } }
-        h1 + .lead { margin-bottom: 18px; }
         h2.group { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8cf; margin: 22px 0 8px; opacity: 0.85; }
         a.card {
             display: block;
@@ -48,7 +46,6 @@
 <body>
     <main>
         <h1>Orbit Lab</h1>
-        <p class="lead">Try the numbers, then fly the missions.</p>
         <h2 class="group">Circular orbits · V = √(GM / r)</h2>
         <div class="cards">
             <a class="card" href="orbit-sandbox.html">
@@ -80,6 +77,13 @@
             <a class="card" href="customise%20rocket/index.html">
                 <span class="tag">Twelve contracts</span>
                 <h2>Qinglan Launch</h2>
+            </a>
+        </div>
+        <h2 class="group">Sky lift</h2>
+        <div class="cards">
+            <a class="card" href="skylift/index.html">
+                <span class="tag">Stack bricks</span>
+                <h2>SkyLift</h2>
             </a>
         </div>
     </main>

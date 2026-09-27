@@ -2,6 +2,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orbit Commander</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
@@ -68,12 +71,14 @@
         .stat.adjust .value.swap { display: none; }
         .tune-controls { display: none; }
         .stat.adjust {
-            border: 1px solid #4af;
-            box-shadow: inset 0 0 0 1px rgba(68,170,255,0.25);
+            border: 0;
+            box-shadow: none;
+            background: transparent;
         }
         .stat.adjust.drop-target {
-            border-color: #0f8;
-            box-shadow: inset 0 0 0 1px rgba(15,255,136,0.45), 0 0 14px rgba(0,255,136,0.25);
+            border: 0;
+            box-shadow: none;
+            background: transparent;
         }
         .stat.adjust .tune-controls { display: block; }
         .adjust-label {
@@ -295,11 +300,123 @@
         @media (max-width: 800px) {
             #ui {
                 position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
-                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid #1d3c56;
+                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid var(--line);
+                background: rgba(8, 9, 12, 0.88);
             }
             #detailBtn, #endBtn { left: 50%; }
             #control { max-width: min(300px, calc(100% - 28px)); }
         }
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+            --card: rgba(8, 9, 12, 0.78);
+        }
+        body { background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+        input, textarea { user-select: text; -webkit-user-select: text; }
+        h1 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 28px; letter-spacing: 0.02em;
+            text-transform: none; line-height: 1; color: var(--ink); margin: 0 0 8px;
+        }
+        #ui {
+            top: 14px; left: 14px; right: auto; bottom: auto;
+            width: 268px; height: auto; max-height: min(520px, calc(100vh - 28px));
+            border-radius: 16px; border: 1px solid var(--line);
+            background: rgba(8, 9, 12, 0.86); color: var(--ink); overflow: auto;
+        }
+        #detailBtn, #endBtn { left: 50%; }
+        .popup-box { max-width: 340px; padding: 16px; font-size: 0.95rem; line-height: 1.4; }
+        .brief-art { max-height: 84px; margin-bottom: 8px; }
+        .intro-art {
+            display: block; width: 100%; height: 112px; object-fit: cover;
+            object-position: center 62%; border-radius: 10px; margin: 0 0 10px; background: #041018;
+        }
+        .brief-face { font-size: 1.5rem; }
+        #popupOk { margin-top: 12px; padding: 10px 14px; font-size: 1rem; min-height: 0; }
+        #quiz p { font-size: 0.98rem; }
+        #quiz button { min-height: 0; padding: 10px 12px; font-size: 0.95rem; }
+        #hud, #eqPanel, #control, #calcPad, .popup-box, .end-card {
+            background: var(--card); border: 1px solid var(--line); color: var(--ink);
+            box-shadow: none; backdrop-filter: blur(10px);
+        }
+        #hud { border-radius: 16px; }
+        #hud .hud-row span, .stat-hint, .extra, #control .hint { color: var(--dim); opacity: 1; }
+        #hud .hud-row b { color: var(--ink); }
+        #hud .hud-row b.ok { color: #d7eccf; }
+        #hud .hud-row b.bad { color: #f0c2b2; }
+        #hud .hud-row b.warn { color: #f3e6c0; }
+        .stat { background: transparent; border: 0; border-radius: 12px; padding: 8px 4px; cursor: grab; user-select: none; }
+        .stat input { cursor: auto; }
+        .stat:hover { background: rgba(243, 236, 223, 0.06); }
+        .value, .sym, .inline-num, #calcScreen { color: var(--ink); }
+        .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; font-size: 22px; }
+        .stat:not(.adjust) .value { border-bottom-color: rgba(243, 236, 223, 0.35); }
+        input[type=range] { accent-color: #f3ecdf; }
+        input.inline-num { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; }
+        .stat.adjust, .stat.adjust:hover {
+            border: 0; box-shadow: none; background: transparent; color: #ffe9a8;
+        }
+        .stat.adjust .sym, .stat.adjust .value, .stat.adjust .inline-num,
+        .stat.adjust .adjust-label, .stat.adjust .stat-hint, .stat.adjust .extra { color: #ffe9a8; }
+        .stat.adjust input.inline-num {
+            color: #ffe9a8; background: transparent; border-color: transparent;
+        }
+        .stat.adjust.drop-target, .stat.adjust.drop-target .sym, .stat.adjust.drop-target .value,
+        .stat.adjust.drop-target .inline-num, .stat.adjust.drop-target .adjust-label,
+        .stat.adjust.drop-target .stat-hint, .stat.adjust.drop-target .extra,
+        .stat.adjust.drop-target input.inline-num {
+            color: #0f8; border: 0; box-shadow: none; background: transparent;
+        }
+        .adjust-label { color: var(--dim); text-transform: none; letter-spacing: 0; font-size: 15px; }
+        #eqPanel .root {
+            position: relative; display: inline-flex; align-items: stretch;
+            vertical-align: middle; padding-left: 12px; margin: 0 2px;
+        }
+        #eqPanel .root-tick {
+            position: absolute; left: 0; top: 0; width: 14px; height: 100%; display: block;
+        }
+        #eqPanel .root-in {
+            border-top: 2px solid currentColor; padding: 2px 3px 0 6px; margin-left: -2px;
+        }
+        #launchBtn, #popupOk, #nextBtn, #saveEndBtn {
+            background: #f3ecdf; color: #16140f; border: 0; border-radius: 999px;
+            font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+        }
+        #resetBtn, #detailBtn, #endBtn, #calcToggle, #calcClose {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28); border-radius: 999px; box-shadow: none;
+        }
+        #ui > button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); border-color: transparent; }
+        #eqPanel .eq, .eq { background: transparent; color: var(--ink); border-radius: 8px; }
+        #eqPanel .eq:hover { background: rgba(243, 236, 223, 0.08); }
+        .calc-keys button { background: rgba(243, 236, 223, 0.08); color: var(--ink); border-radius: 8px; }
+        .calc-keys button.op { background: rgba(243, 236, 223, 0.16); }
+        .calc-keys button.go { background: #f3ecdf; color: #16140f; grid-column: 1 / -1; padding: 8px 0; }
+        .calc-keys button.mem { letter-spacing: 0.04em; }
+        .calc-keys button.warn { background: rgba(240, 194, 178, 0.2); color: #f0c2b2; }
+        #calcScreen { background: rgba(7, 8, 12, 0.55); border: 1px solid var(--line); }
+        #calcPad { background: rgba(8, 9, 12, 0.92); }
+        .calc-body { background: transparent; }
+        #quiz button {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28); border-radius: 999px;
+            font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+        }
+        #quizNote { color: var(--dim); }
+        #quiz.quiz-wrong #quizNote { color: #f0c2b2; }
+        #quiz button.wrong { background: rgba(240, 194, 178, 0.18); color: #f0c2b2; }
+        #quiz button.right { background: rgba(215, 236, 207, 0.18); color: #d7eccf; }
+        .brief-date, .end-card h3, #control .caret, .brief-body .caret { color: var(--ink); }
+        .brief-crew { color: var(--dim); }
+        .brief-name { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 24px; color: var(--ink); }
+        #introPopup { background: rgba(7, 8, 12, 0.72); }
+        .popup-box { box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); }
+        #ui > #launchBtn { background: #f3ecdf; color: #16140f; }
+        #ui > #launchBtn:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); }
+        #ui > #resetBtn { background: transparent; color: var(--ink); border: 1px solid rgba(243, 236, 223, 0.28); }
+        #ui > #resetBtn.ready { background: #f3ecdf; color: #16140f; }
+        #dragGhost { background: rgba(8, 9, 12, 0.94); border: 1px solid var(--line); color: var(--ink); }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -320,13 +437,13 @@
         <h1>Orbit Commander</h1>
 
         <div class="stat" id="velStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">V</span> = <span id="velDisp" class="value swap">7.67</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="velInput" value="7.67"> km/s
             <div class="tune-controls" id="velTune">
                 <input type="range" id="velSlider" min="0.5" max="15" step="0.01" value="7.67">
             </div>
             <div class="stat-hint">satellite speed</div>
-            <div class="extra">Insertion speed. Match V = √(GM / r) for a circular orbit.</div>
+            <div class="extra">Speed for a circle. Set V = √(GM / r).</div>
         </div>
         <div class="stat" id="gmStat">
             <span class="sym">GM</span> = <span id="gmDisp" class="value">398 600</span> km³/s²
@@ -344,7 +461,7 @@
             <div class="extra">Radius of the current planet or moon.</div>
         </div>
         <div class="stat is-hidden" id="altStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">h</span> = <span id="altDisp" class="value swap">440</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="altInput" value="440"> km
             <div class="tune-controls" id="altTune">
                 <input type="range" id="altSlider" min="100" max="40000" step="1" value="440">
@@ -365,7 +482,7 @@
 
     <div id="eqBar">
         <div id="eqPanel">
-            <div class="eq" data-eq="circ">V = √(GM / r)</div>
+            <div class="eq" data-eq="circ">V = <span class="root"><svg class="root-tick" viewBox="0 0 22 48" preserveAspectRatio="none" aria-hidden="true"><path d="M2 28 H9 L13 46 L21 1" fill="none" stroke="currentColor" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="root-in">GM / r</span></span></div>
             <div class="eq is-hidden" data-eq="rad">r = R + h</div>
             <div class="eq is-hidden" data-eq="inv">r = GM / V²</div>
         </div>
@@ -379,25 +496,26 @@
             <button type="button" id="calcClose" title="Close">×</button>
         </div>
         <div class="calc-keys">
+            <button type="button" data-calc="ans" class="mem">Ans</button>
             <button type="button" data-calc="C" class="warn">C</button>
             <button type="button" data-calc="sqrt">√</button>
             <button type="button" data-calc="sq">x²</button>
-            <button type="button" data-calc="/" class="op">÷</button>
             <button type="button" data-calc="7">7</button>
             <button type="button" data-calc="8">8</button>
             <button type="button" data-calc="9">9</button>
-            <button type="button" data-calc="*" class="op">×</button>
+            <button type="button" data-calc="/" class="op">÷</button>
             <button type="button" data-calc="4">4</button>
             <button type="button" data-calc="5">5</button>
             <button type="button" data-calc="6">6</button>
-            <button type="button" data-calc="-" class="op">−</button>
+            <button type="button" data-calc="*" class="op">×</button>
             <button type="button" data-calc="1">1</button>
             <button type="button" data-calc="2">2</button>
             <button type="button" data-calc="3">3</button>
-            <button type="button" data-calc="+" class="op">+</button>
+            <button type="button" data-calc="-" class="op">−</button>
             <button type="button" data-calc="0">0</button>
             <button type="button" data-calc=".">.</button>
             <button type="button" data-calc="bs">⌫</button>
+            <button type="button" data-calc="+" class="op">+</button>
             <button type="button" data-calc="=" class="go">=</button>
         </div>
         </div>
@@ -427,40 +545,40 @@
         const VIS_R = 3;
         const G = 6.67430e-11;
         const bodies = {
-            Earth: { R: 6371, M: 5.97219e24, color: 0x2266aa },
-            Moon:  { R: 1737.4, M: 7.34767309e22, color: 0x888888 },
-            Mars:  { R: 3389.5, M: 6.4171e23, color: 0xcc4422 }
+            Earth: { R: 6371, M: 5.97219e24, color: 0x6d8f86 },
+            Moon:  { R: 1737.4, M: 7.34767309e22, color: 0xb7b2a4 },
+            Mars:  { R: 3389.5, M: 6.4171e23, color: 0xa86a48 }
         };
 
         const missions = [
-            { date: "April 1970", name: "Dongfanghong-1", body: "Earth", alt: 440, realV: 7.65005, cost: 10, forgetAlt: false, find: "V", crew: 0, craft: "ball", face: "🙂", art: "missions/01-dongfanghong-1.png", brief: "This is Dongfanghong-1, our first satellite. You need the speed. GM and r are on the board. Use V = √(GM / r), set that speed, then launch." },
-            { date: "October 2003", name: "Shenzhou-5", body: "Earth", alt: 343, realV: 7.70511, cost: 12, forgetAlt: false, find: "V", crew: 1, craft: "capsule", face: "🚀", art: "missions/02-shenzhou-5.png", brief: "Crewed flight — Yang Liwei is on board. r is hidden this time. Add R and h to get r, then find V from V = √(GM / r). Set the speed, then launch." },
-            { date: "September 2011", name: "Tiangong-1", body: "Earth", alt: 350, realV: 7.70110, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "station", face: "😐", art: "missions/03-tiangong-1.png", brief: "This is Tiangong-1, our first space laboratory. The speed is already set. You need the height. Find r from r = GM / V², then h = r − R. Set that altitude, then launch." },
-            { date: "December 2015", name: "Gaofen-4", body: "Earth", alt: 35786, realV: 3.07493, cost: 14, forgetAlt: true, find: "h", crew: 0, craft: "geo", face: "🧐", art: "missions/04-gaofen-4.png", brief: "Gaofen-4 is going into geostationary orbit. Speed is given; you need the height. Find r from r = GM / V², then h = r − R. It will be a long way up." },
-            { date: "July 2018", name: "BeiDou-3 MEO", body: "Earth", alt: 21528, realV: 3.77986, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "nav", face: "🙂", art: "missions/05-beidou-3.png", brief: "BeiDou-3 sits in medium Earth orbit. Speed is given again. Find r from r = GM / V², then set h = r − R." },
-            { date: "October 2007", name: "Chang'e-1", body: "Moon", alt: 200, realV: 1.59099, cost: 15, forgetAlt: true, find: "h", crew: 0, craft: "lunar", face: "🌙", art: "missions/06-change-1.png", brief: "Chang'e-1 will orbit the Moon. GM is already on the board, so you don't need to work it out. Speed is given. Find h from r = GM / V² and h = r − R." }
+            { date: "April 1970", name: "Dongfanghong-1", body: "Earth", alt: 440, realV: 7.65005, cost: 10, forgetAlt: false, find: "V", crew: 0, craft: "ball", face: "🙂", art: "missions/01-dongfanghong-1.webp", brief: "Dongfanghong-1 has to keep circling Earth. Work out the speed for that circle. Too fast and it flies off. Too slow and it falls back." },
+            { date: "October 2003", name: "Shenzhou-5", body: "Earth", alt: 343, realV: 7.70511, cost: 12, forgetAlt: false, find: "V", crew: 1, craft: "capsule", face: "🚀", art: "missions/02-shenzhou-5.webp", brief: "Yang Liwei needs a circle so the capsule stays up for the whole flight. Add R and h to get r, then work out the speed and set it." },
+            { date: "September 2011", name: "Tiangong-1", body: "Earth", alt: 350, realV: 7.70110, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "station", face: "😐", art: "missions/03-tiangong-1.webp", brief: "A ship is coming to meet Tiangong-1, and the speed is already set. Work out the height so the lab sits on the matching circle." },
+            { date: "December 2015", name: "Gaofen-4", body: "Earth", alt: 35786, realV: 3.07493, cost: 14, forgetAlt: true, find: "h", crew: 0, craft: "geo", face: "🧐", art: "missions/04-gaofen-4.webp", brief: "Gaofen-4 has to stay above one place so its camera keeps watching the same ground. The speed is given. Work out the height for that high, slow circle." },
+            { date: "July 2018", name: "BeiDou-3 MEO", body: "Earth", alt: 21528, realV: 3.77986, cost: 12, forgetAlt: true, find: "h", crew: 0, craft: "nav", face: "🙂", art: "missions/05-beidou-3.webp", brief: "BeiDou-3 has to cover a wide part of Earth with its navigation signal. The speed is given. Work out the height for that middle orbit." },
+            { date: "October 2007", name: "Chang'e-1", body: "Moon", alt: 200, realV: 1.59099, cost: 15, forgetAlt: true, find: "h", crew: 0, craft: "lunar", face: "🌙", art: "missions/06-change-1.webp", brief: "Chang'e-1 has to circle the Moon to map the ground below. The speed is given. Work out the height so it stays just above the Moon." }
         ];
 
         const escapeLines = [
-            "😐 It's left Earth's gravity. That path won't come back.",
-            "😐 Too fast — it's escaped. Work out V again, please.",
-            "😐 Too fast. We've lost it."
+            "😐 Too fast. It will not come back. Work out V again.",
+            "😐 Too fast. The path leaves the planet.",
+            "😐 Too fast. Check V = √(GM / r)."
         ];
         const crashLines = [
-            "😐 Impact. We've lost the spacecraft. Check r and V, then try again.",
-            "😐 It hit the surface. Insertion was too slow, I'm afraid.",
-            "😐 Direct hit. Have another go — use the formulae this time."
+            "😐 It hit the ground. The speed was too low.",
+            "😐 It hit the surface. Check r and V, then try again.",
+            "😐 Too slow. Use the equations, then launch again."
         ];
         const successLines = [
-            "🙂 Circular orbit confirmed. Well done.",
-            "🙂 Insertion looks good. Hold this orbit.",
-            "🙂 The numbers check out. That's a circular path."
+            "🙂 That is a circle. Well done.",
+            "🙂 The speed matches the height. It stays in orbit.",
+            "🙂 The numbers give a circular path."
         ];
 
         const ellipseLines = [
-            "😐 That's an ellipse, not a circle. Height is swinging too much — try the numbers again.",
-            "😐 It's bound, but not circular. V and r don't match V = √(GM / r).",
-            "😐 That's an oval path. Try the formulae again."
+            "😐 That path is an oval, not a circle. Try the numbers again.",
+            "😐 It stays near the planet, but it is not a circle. Check V and r.",
+            "😐 The height keeps changing. V and r should match V = √(GM / r)."
         ];
 
         let current = 0, missionBudget = 20, savings = 0, debt = 0, failedLaunches = 0;
@@ -471,14 +589,16 @@
         let body = bodies.Earth, alt = 440, rVis, visGM = 50, requiredSpeed = 7.65;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000011);
+        scene.background = new THREE.Color(0x07080c);
         function stageBox() {
-            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
-            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
+            return { x: 0, y: 0, w: innerWidth, h: innerHeight };
         }
         const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
         camera.position.set(0, 4, 10);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.05;
         function fitStage() {
             const b = stageBox();
             camera.aspect = b.w / b.h;
@@ -500,26 +620,30 @@
         const starPos = [];
         for(let i=0;i<2000;i++) starPos.push((Math.random()-0.5)*500,(Math.random()-0.5)*500,(Math.random()-0.5)*500);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos,3));
-        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff,size:0.4})));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.28, transparent: true, opacity: 0.5 })));
 
-        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R,64,64), new THREE.MeshPhongMaterial({color:0x2266aa,emissive:0x112244}));
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R,64,64), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.78, metalness: 0.04, emissive: 0x1a1814, emissiveIntensity: 0.12 }));
         scene.add(planet);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R*1.06,32,32), new THREE.MeshBasicMaterial({color:0x4488ff,transparent:true,opacity:0.12,side:THREE.BackSide}));
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R*1.06,32,32), new THREE.MeshBasicMaterial({color:0xf3ecdf,transparent:true,opacity:0.06,side:THREE.BackSide}));
         scene.add(glow);
 
-        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color:0x44ffaa,dashSize:0.4,gapSize:0.2,transparent:true,opacity:0.6}));
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color:0xf3ecdf,dashSize:0.4,gapSize:0.2,transparent:true,opacity:0.45}));
         scene.add(orbitLine);
 
         const sat = new THREE.Group();
         scene.add(sat);
 
         function phMat(color, emissive, shine, side) {
-            return new THREE.MeshPhongMaterial({
-                color, emissive: emissive || 0x111111, shininess: shine || 35, side: side || THREE.FrontSide
+            const s = shine || 35;
+            return new THREE.MeshStandardMaterial({
+                color, emissive: emissive || 0x000000, emissiveIntensity: emissive ? 0.22 : 0,
+                roughness: Math.min(0.92, Math.max(0.28, 1 - s / 120)),
+                metalness: s > 40 ? 0.42 : 0.14,
+                side: side || THREE.FrontSide
             });
         }
         function addPanels(g, span, thick, depth, y, color) {
-            const mat = new THREE.MeshPhongMaterial({ color: color || 0x1a4cff, emissive: 0x061133, shininess: 20 });
+            const mat = new THREE.MeshStandardMaterial({ color: color || 0x9aa89a, emissive: 0x243028, emissiveIntensity: 0.12, roughness: 0.55, metalness: 0.22 });
             const geo = new THREE.BoxGeometry(span, thick, depth);
             const left = new THREE.Mesh(geo, mat);
             left.position.set(-(span * 0.5 + 0.012), y || 0, 0);
@@ -549,25 +673,25 @@
                 aft.rotation.x = Math.PI / 2;
                 aft.position.z = -0.065;
                 g.add(core, node, aft);
-                addPanels(g, 0.11, 0.0035, 0.038, 0, 0x2244dd);
+                addPanels(g, 0.11, 0.0035, 0.038, 0, 0x9aa89a);
             } else if (kind === 'lunar') {
                 const bus = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.024, 0.04), phMat(0xcccfdd, 0x222));
                 const dish = new THREE.Mesh(new THREE.CircleGeometry(0.018, 16), phMat(0xddddf0, 0x333, 35, THREE.DoubleSide));
                 dish.rotation.y = 0.7;
                 dish.position.set(0.014, 0.018, -0.012);
                 g.add(bus, dish);
-                addPanels(g, 0.085, 0.0035, 0.03, 0, 0x2266ee);
+                addPanels(g, 0.085, 0.0035, 0.03, 0, 0x9aa89a);
             } else if (kind === 'geo') {
                 const bus = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.026, 0.034), phMat(0xbbc4d0, 0x222));
                 const dish = new THREE.Mesh(new THREE.CircleGeometry(0.022, 18), phMat(0xeeeef8, 0x444, 35, THREE.DoubleSide));
                 dish.rotation.x = -0.5;
                 dish.position.set(0, 0.024, 0.014);
                 g.add(bus, dish);
-                addPanels(g, 0.1, 0.0035, 0.034, 0, 0x1c5ae0);
+                addPanels(g, 0.1, 0.0035, 0.034, 0, 0x9aa89a);
             } else if (kind === 'nav') {
                 const bus = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.022, 0.03), phMat(0xd0d4dc, 0x222));
                 g.add(bus);
-                addPanels(g, 0.09, 0.0035, 0.026, 0, 0x1a66ff);
+                addPanels(g, 0.09, 0.0035, 0.026, 0, 0x9aa89a);
                 g.children[1].rotation.z = 0.35;
                 g.children[2].rotation.z = -0.35;
             } else if (kind === 'mars') {
@@ -576,7 +700,7 @@
                 dish.rotation.y = 0.85;
                 dish.position.set(0.018, 0.014, -0.01);
                 g.add(bus, dish);
-                addPanels(g, 0.095, 0.0035, 0.032, 0, 0x3355cc);
+                addPanels(g, 0.095, 0.0035, 0.032, 0, 0x9aa89a);
             } else {
                 const ball = new THREE.Mesh(new THREE.SphereGeometry(0.026, 14, 12), phMat(0xd4b24a, 0x443300, 70));
                 g.add(ball);
@@ -594,7 +718,9 @@
         }
         function setCraft(kind) {
             while (sat.children.length) sat.remove(sat.children[0]);
-            sat.add(makeCraft(kind));
+            const model = makeCraft(kind);
+            model.scale.setScalar(5.2);
+            sat.add(model);
             sat.rotation.set(0, 0, 0);
         }
         setCraft('ball');
@@ -603,7 +729,7 @@
         const trailGeo = new THREE.BufferGeometry();
         trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
         trailGeo.setDrawRange(0, 0);
-        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.78 }));
+        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xf3ecdf, transparent: true, opacity: 0.55 }));
         scene.add(trail);
         let trailCount = 0;
         function clearTrail() {
@@ -628,8 +754,9 @@
 
         let particles, debris=[], shake=0;
 
-        scene.add(new THREE.AmbientLight(0x334466,0.5));
-        const sun=new THREE.DirectionalLight(0xffffee,1.3); sun.position.set(25,15,20); scene.add(sun);
+        scene.add(new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85));
+        const sun=new THREE.DirectionalLight(0xfff3e2, 2.1); sun.position.set(25,15,20); scene.add(sun);
+        const fill=new THREE.DirectionalLight(0xc5d6ee, 0.55); fill.position.set(-16, 4, -12); scene.add(fill);
 
         let velocity = new THREE.Vector3();
         const clock = new THREE.Clock();
@@ -788,24 +915,11 @@
         });
 
         document.querySelectorAll('#eqPanel .eq').forEach(el => {
+            el.title = 'Open this equation';
             el.addEventListener('click', () => {
                 if (quizOpen || el.classList.contains('is-hidden')) return;
-                let expl = '';
-                const type = el.dataset.eq;
-                if (type === 'circ') {
-                    expl = 'Circular orbit speed\n\nV = √(GM / r)\n\nThis is the speed you need for a circular orbit at radius r. Read GM and r from the board, work out V, then set it.';
-                } else if (type === 'rad') {
-                    expl = 'Orbital radius\n\nr = R + h\n\nR is the size of the planet or moon. h is how high you are above the surface. Add them to get r.';
-                } else if (type === 'inv') {
-                    expl = 'Finding the radius from speed\n\nr = GM / V²\n\nThis is V = √(GM / r) turned round. When speed is given, find r first, then h = r − R.';
-                }
-                afterBrief = null;
-                popupBox.classList.remove('wide', 'ending');
-                popupOk.textContent = 'Understood';
-                setPopupReady(false);
-                popupText.innerHTML = '<p id="briefTalk" class="brief-body"></p>';
-                introPopup.classList.add('show');
-                showCopyOnce('eq-' + type, document.getElementById('briefTalk'), expl);
+                const which = { circ: 'speed', rad: 'radius', inv: 'speed' }[el.dataset.eq] || 'speed';
+                window.open('orbit-sandbox.html?eq=' + which, '_blank', 'noopener');
             });
         });
 
@@ -825,7 +939,7 @@
         const calcPad = document.getElementById('calcPad');
         const calcScreen = document.getElementById('calcScreen');
         const calcToggle = document.getElementById('calcToggle');
-        const calcState = { acc: null, op: null, buf: '0', fresh: true };
+        const calcState = { acc: null, op: null, buf: '0', fresh: true, ans: null };
 
         function calcFormat(n) {
             if (!Number.isFinite(n)) return 'Error';
@@ -880,14 +994,29 @@
             calcState.fresh = true;
             calcRender();
         }
+        function calcRemember(n) {
+            if (Number.isFinite(n)) calcState.ans = n;
+        }
         function calcEquals() {
             if (calcState.op && calcState.acc != null) {
-                calcState.acc = calcApply(calcState.acc, calcNum(), calcState.op);
-                calcState.buf = calcFormat(calcState.acc);
+                const result = calcApply(calcState.acc, calcNum(), calcState.op);
+                calcState.acc = result;
+                calcState.buf = calcFormat(result);
+                calcRemember(result);
                 calcState.op = null;
                 calcState.fresh = true;
                 calcRender();
             }
+        }
+        function calcAns() {
+            if (calcState.ans == null) return;
+            if (calcState.buf === 'Error') {
+                calcState.acc = null;
+                calcState.op = null;
+            }
+            calcState.buf = calcFormat(calcState.ans);
+            calcState.fresh = true;
+            calcRender();
         }
         function calcBack() {
             if (calcState.fresh || calcState.buf === 'Error') { calcClear(); return; }
@@ -903,18 +1032,23 @@
             else if (code === '+' || code === '-' || code === '*' || code === '/') calcOperator(code);
             else if (code === '=' || code === 'Enter') calcEquals();
             else if (code === 'C' || code === 'c') calcClear();
+            else if (code === 'ans') calcAns();
             else if (code === 'sqrt') {
-                calcState.buf = calcFormat(Math.sqrt(calcNum()));
+                const n = Math.sqrt(calcNum());
+                calcState.buf = calcFormat(n);
                 calcState.fresh = true;
                 calcState.acc = null;
                 calcState.op = null;
+                calcRemember(n);
                 calcRender();
             } else if (code === 'sq') {
                 const n = calcNum();
-                calcState.buf = calcFormat(n * n);
+                const sq = n * n;
+                calcState.buf = calcFormat(sq);
                 calcState.fresh = true;
                 calcState.acc = null;
                 calcState.op = null;
+                calcRemember(sq);
                 calcRender();
             } else if (code === 'bs' || code === 'Backspace') calcBack();
         }
@@ -985,12 +1119,20 @@
         let valueDrag = null;
         let calcTap = { t: 0, x: 0, y: 0 };
         let copiedFlash = 0;
-        function lockedValueEl(target) {
-            const v = target && target.closest ? target.closest('.value') : null;
+        function boardDragFrom(target) {
+            if (!target || !target.closest) return null;
+            if (target.closest('input, button')) return null;
+            const stat = target.closest('.stat');
+            if (!stat || stat.classList.contains('is-hidden')) return null;
+            const v = stat.querySelector('.value');
             if (!v) return null;
-            const stat = v.closest('.stat');
-            if (!stat || stat.classList.contains('adjust') || stat.classList.contains('is-hidden')) return null;
-            return v;
+            const input = stat.querySelector('.inline-num');
+            let n = parseFloat(v.dataset.num);
+            if (!Number.isFinite(n) && input) n = parseFloat(input.value);
+            if (!Number.isFinite(n)) n = parseFloat(String(v.textContent).replace(/[^\d.eE+-]/g, ''));
+            if (!Number.isFinite(n)) return null;
+            const label = stat.classList.contains('adjust') && input ? input.value.trim() : v.textContent.trim();
+            return { n, label: label || String(n) };
         }
         function calcEnsureOpen() {
             if (!calcPad.classList.contains('open')) {
@@ -1107,11 +1249,10 @@
         }
         document.getElementById('ui').addEventListener('pointerdown', e => {
             if (e.button != null && e.button !== 0) return;
-            const v = lockedValueEl(e.target);
-            if (!v) return;
-            const n = parseFloat(v.dataset.num);
-            if (!Number.isFinite(n)) return;
-            valueDrag = { n, x0: e.clientX, y0: e.clientY, started: false, label: v.textContent.trim(), from: 'board' };
+            const picked = boardDragFrom(e.target);
+            if (!picked) return;
+            e.preventDefault();
+            valueDrag = { n: picked.n, x0: e.clientX, y0: e.clientY, started: false, label: picked.label, from: 'board' };
         });
         calcScreen.addEventListener('pointerdown', e => {
             if (e.button != null && e.button !== 0) return;
@@ -1154,7 +1295,8 @@
             const map = { Enter: 'Enter', Backspace: 'Backspace', Delete: 'C', ',': '.' };
             let code = map[e.key] || e.key;
             if (e.key === 'x' || e.key === 'X') code = '*';
-            if ('0123456789.+-*/'.includes(code) || code === 'Enter' || code === 'Backspace' || code === 'C') {
+            if (e.key === 'a' || e.key === 'A') code = 'ans';
+            if ('0123456789.+-*/'.includes(code) || code === 'Enter' || code === 'Backspace' || code === 'C' || code === 'ans') {
                 e.preventDefault();
                 calcKey(code);
             }
@@ -1321,7 +1463,7 @@
             document.querySelector('[data-eq="inv"]').classList.toggle('is-hidden', !t.inv);
             velStat.querySelector('.extra').textContent = missions[current] && missions[current].forgetAlt
                 ? 'Speed is given. Find r from r = GM / V², then h = r − R.'
-                : 'Insertion speed. Set V = √(GM / r) for a circular orbit.';
+                : 'Speed for a circle. Set V = √(GM / r).';
             rStat.querySelector('.extra').textContent = t.rad
                 ? "Distance from the centre. r = R + h."
                 : "Distance from the centre. Used in V = √(GM / r).";
@@ -1401,7 +1543,7 @@
             popupOk.textContent = 'Understood';
             setPopupReady(false);
             const crewLine = m.crew > 0
-                ? `<p class="brief-crew">Crewed — ${m.crew} ${m.crew === 1 ? 'person' : 'people'} on board. A failed insertion costs lives.</p>`
+                ? `<p class="brief-crew">${m.crew} ${m.crew === 1 ? 'person is' : 'people are'} on board. If this fails, people can be hurt.</p>`
                 : '';
             popupText.innerHTML =
                 `<div class="brief-date">Date: ${m.date}</div>` +
@@ -1418,15 +1560,16 @@
             popupOk.textContent = 'I am ready';
             setPopupReady(false);
             popupText.innerHTML =
+                `<img class="intro-art" src="missions/intro.webp" alt="A satellite above the coast at night">` +
                 `<div class="brief-date">January 1970 — Beijing</div>` +
-                `<div class="brief-head"><span class="brief-face">🚀</span><div class="brief-name">Orbit Insertion Officer</div></div>` +
+                `<div class="brief-head"><span class="brief-face">🚀</span><div class="brief-name">Orbit</div></div>` +
                 `<p id="briefTalk" class="brief-body"></p>`;
             introPopup.classList.add('show');
             afterBrief = () => loadMission();
             typeInto(document.getElementById('briefTalk'),
-                'You are the orbit insertion officer.\n\n' +
-                'China is building its own space programme: satellites, crew, then the Moon. Later, Mars. We work the numbers ourselves.\n\n' +
-                'Use the formulae, then launch.',
+                'You work out the speed for a circular orbit.\n\n' +
+                'First a satellite around Earth, then a person, then a space lab, then the Moon.\n\n' +
+                'Use the equations, then launch.',
                 () => setPopupReady(true)
             );
         }
@@ -1439,8 +1582,8 @@
             refreshHud();
             const n = m.crew;
             return n === 1
-                ? ' One casualty. I am so sorry.'
-                : ` ${n} casualties. I am so sorry.`;
+                ? ' One person was hurt.'
+                : ` ${n} people were hurt.`;
         }
 
         detailBtn.addEventListener('click', () => {
@@ -1454,19 +1597,19 @@
             let emoji, txt;
             if (debt > 0 && missionBudget <= 0 && savings <= 0) {
                 emoji = '😟';
-                txt = "Mission purse empty, savings empty — further launches go on the debt. Savings from a clean first try can pay some of that down.";
+                txt = "No mission money left, and no savings. The next launch goes on the debt.";
             } else if (missionBudget <= 0 && savings > 0) {
                 emoji = '😐';
-                txt = "This mission's two launches are spent. Savings will cover the next try before anything hits the debt.";
+                txt = "The two launches for this mission are used. Savings pay for the next try before debt.";
             } else if (launchesLeft >= 1.9) {
                 emoji = '🙂';
-                txt = "Budget covers two launches only. A third goes on the debt. Finish in one and the leftover goes to savings.";
+                txt = "You have money for two launches. A third goes on the debt. Finish on the first try and the spare money is saved.";
             } else if (launchesLeft >= 0.9) {
                 emoji = '😐';
-                txt = "One launch left in this mission's purse. Another miss will start using savings, then debt.";
+                txt = "One launch left. If you miss again, you use savings, then debt.";
             } else {
                 emoji = '😟';
-                txt = "We're short, but you may still launch. Overspend hits savings first, then the debt.";
+                txt = "You are short of money, but you can still launch. Extra cost comes from savings first, then debt.";
             }
             const head = withMission ? `Mission ${current + 1}/6 — ${m.name}. ` : '';
             comment(emoji + ' ' + head + txt);
@@ -1521,8 +1664,9 @@
             velocity.set(0, 0, 0);
             clearTrail();
             launchBtn.disabled = false;
-            launchBtn.style.background = 'linear-gradient(45deg, #09f, #06d)';
-            resetBtn.style.background = '#444';
+            launchBtn.style.background = '';
+            resetBtn.style.background = '';
+            resetBtn.classList.remove('ready');
             updateDisplays();
         }
 
@@ -1680,7 +1824,7 @@
             particles.userData.vel = [];
             for(let i=0;i<300;i++) particles.userData.vel.push(new THREE.Vector3((Math.random()-0.5)*8,(Math.random()-0.5)*8,(Math.random()-0.5)*8));
             for(let i=0;i<12;i++){
-                const d = new THREE.Mesh(new THREE.BoxGeometry(0.035,0.035,0.035), new THREE.MeshPhongMaterial({color:0xffaa00}));
+                const d = new THREE.Mesh(new THREE.BoxGeometry(0.035,0.035,0.035), new THREE.MeshStandardMaterial({ color: 0xe7c48a, roughness: 0.55, metalness: 0.12 }));
                 d.position.copy(sat.position);
                 d.userData.vel = new THREE.Vector3((Math.random()-0.5)*6,(Math.random()-0.5)*6,(Math.random()-0.5)*6);
                 d.userData.rot = new THREE.Vector3(Math.random(),Math.random(),Math.random());
@@ -1695,23 +1839,24 @@
             if(simulating) return;
             spend(m.cost, true);
             simulating = true; launchBtn.disabled = true;
-            launchBtn.style.background = '#555';
-            resetBtn.style.background = 'linear-gradient(45deg, #09f, #06d)';
+            launchBtn.style.background = '';
+            resetBtn.style.background = '';
+            resetBtn.classList.add('ready');
             launchR = rVis;
             flightT = 0; rMin = Infinity; rMax = 0; judged = false;
             sfx('launch');
             comment(debt > 0 && missionBudget <= 0 && savings <= 0
-                ? "😟 Launching on the debt. Watch the orbit, please."
+                ? "😟 This launch goes on the debt. Watch the path."
                 : missionBudget <= 0
-                    ? "😐 Mission purse empty — savings will cover this before debt. Watch the orbit, please."
-                    : "😐 Launch sequence. Watch the orbit, please.");
+                    ? "😐 No mission money left. Savings pay for this launch. Watch the path."
+                    : "😐 Launching. Watch the path.");
             clearTrail();
         };
 
         resetBtn.onclick = ()=>{
             sfx('click');
             resetSim();
-            comment("😐 Reset. Recalculate, then launch when you're ready.");
+            comment("😐 Reset. Work out the numbers, then launch.");
         };
 
         nextBtn.onclick = ()=>{
@@ -1876,7 +2021,7 @@
                 setTimeout(() => URL.revokeObjectURL(a.href), 1500);
             };
             try {
-                canvas.toBlob(finish, 'image/png');
+                canvas.toBlob(finish, 'image/webp');
             } catch (err) {
                 comment('😐 The picture could not be saved from this page.');
             }
@@ -1904,7 +2049,7 @@
             const accTalk = `Average insertion accuracy: ${avg.toFixed(0)}%. ${getEndRank(avg)}`;
             endingSnap = {
                 title: 'Campaign debrief',
-                file: 'orbit-ending.png',
+                file: 'orbit-ending.webp',
                 cards: [
                     { head: 'Debt', text: debtTalk },
                     { head: 'Casualties', text: crewTalk },
@@ -1914,9 +2059,9 @@
             popupText.innerHTML =
                 `<div class="brief-date">Campaign debrief</div>` +
                 `<div class="end-grid">` +
-                `<div class="end-card"><img src="endings/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.png" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
-                `<div class="end-card"><img src="endings/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.png" alt="Casualties"><h3>Casualties</h3><p class="end-talk" id="endTalk1"></p></div>` +
-                `<div class="end-card"><img src="endings/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.png" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
+                `<div class="end-card"><img src="endings/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.webp" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
+                `<div class="end-card"><img src="endings/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.webp" alt="Casualties"><h3>Casualties</h3><p class="end-talk" id="endTalk1"></p></div>` +
+                `<div class="end-card"><img src="endings/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.webp" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
                 `</div>`;
             introPopup.classList.add('show');
             const parts = [
@@ -2047,6 +2192,7 @@
                 shake *= 0.92;
             }
 
+            if (!simulating && !exploding) sat.rotateY(dt * 0.45);
             controls.target.copy(sat.position);
             controls.update();
             renderer.render(scene,camera);

@@ -4,90 +4,105 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Contract Rockets</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      --ink: #e8f4ff;
-      --muted: #9eb4c9;
-      --line: #1d3c56;
-      --cyan: #6df;
-      --gold: #ffd56a;
-      --panel: #071018ee;
-      --bad: #ff8d7a;
-      --ok: #7dffa8;
-      --warn: #ffd56a;
+      --ink: #f3ecdf;
+      --dim: rgba(243, 236, 223, 0.62);
+      --line: rgba(243, 236, 223, 0.16);
+      --card: rgba(8, 9, 12, 0.86);
+      --gold: #f3e6c0;
+      --bad: #f0c2b2;
+      --ok: #d7eccf;
+      --warn: #f3e6c0;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font-family: "Segoe UI", sans-serif; }
-    body { overflow: hidden; }
-    #app { display: flex; height: 100%; }
-    #stage { position: relative; flex: 1; min-width: 0; }
+    html, body { margin: 0; height: 100%; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+    body { overflow: hidden; user-select: none; -webkit-user-select: none; }
+    input, select { user-select: text; -webkit-user-select: text; }
+    #app { position: relative; height: 100%; }
+    #stage { position: absolute; inset: 0; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
     aside {
-      width: 340px; flex: none; padding: 16px 16px 18px;
-      background: var(--panel); border-right: 1px solid var(--line);
-      overflow: hidden; display: flex; flex-direction: column; gap: 10px;
+      position: absolute; top: 14px; left: 14px; z-index: 6;
+      width: 268px; max-height: min(520px, calc(100vh - 28px));
+      padding: 14px 14px 12px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      backdrop-filter: blur(10px);
+      overflow: hidden; display: flex; flex-direction: column; gap: 8px;
     }
-    #controls { flex: 1 1 auto; min-height: 0; overflow: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 12px; }
+    #controls { flex: 1 1 auto; min-height: 0; overflow: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 10px; }
     .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-    .kicker { color: var(--cyan); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; margin: 0; }
-    .dots { display: flex; gap: 10px; flex-wrap: wrap; }
+    .kicker {
+      margin: 0; color: var(--ink);
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500; font-size: 28px; letter-spacing: 0.02em; line-height: 1;
+    }
+    .dots { display: flex; gap: 12px; flex-wrap: wrap; }
     .dotbtn {
-      background: transparent; color: var(--muted); border: 0; padding: 0;
-      font-weight: 550; cursor: pointer; font-size: 0.82rem;
+      background: transparent; color: var(--dim); border: 0; border-radius: 0; padding: 0;
+      font-weight: 400; cursor: pointer; font-size: 13px;
     }
     .dotbtn:hover { color: var(--ink); }
     #hud {
-      position: fixed; top: 12px; right: 12px; z-index: 20;
-      min-width: 196px; padding: 8px 12px;
-      background: rgba(0, 12, 30, 0.93); border: 1px solid #4af;
-      border-radius: 10px; font-size: 0.82rem; line-height: 1.35;
+      position: fixed; top: 14px; right: 14px; z-index: 20;
+      min-width: 210px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; font-size: 0.82rem; line-height: 1.35;
+      backdrop-filter: blur(10px);
     }
     #hud .hud-row { display: flex; justify-content: space-between; gap: 16px; }
     #hud .hud-row + .hud-row { margin-top: 3px; }
-    #hud .hud-row span { opacity: 0.75; }
-    #hud .hud-row b { font-variant-numeric: tabular-nums; color: #ffd700; }
-    #hud .hud-row b.ok { color: #86efac; }
-    #hud .hud-row b.bad { color: #ff6b6b; }
+    #hud .hud-row span { color: var(--dim); }
+    #hud .hud-row b { font-variant-numeric: tabular-nums; color: var(--ink); }
+    #hud .hud-row b.ok { color: var(--ok); }
+    #hud .hud-row b.bad { color: var(--bad); }
     #about-rep {
       display: flex; justify-content: space-between; align-items: center; gap: 10px;
       width: 100%; margin-top: 3px; background: transparent; color: inherit;
       border: 0; border-radius: 0; padding: 0; font-weight: 400; font-size: inherit;
       cursor: pointer; text-align: left;
     }
-    #about-rep > span:first-of-type { opacity: 0.75; }
-    #about-rep b { color: #e8f4ff; font-weight: 700; min-width: 4.6rem; text-align: right; }
+    #about-rep > span:first-of-type { color: var(--dim); }
+    #about-rep b { color: var(--ink); font-weight: 500; min-width: 4.6rem; text-align: right; }
     .rep-track {
-      position: relative; flex: 1; height: 10px; border-radius: 99px;
-      background: #102033; overflow: hidden;
+      position: relative; flex: 1; height: 8px; border-radius: 99px;
+      background: rgba(243, 236, 223, 0.12); overflow: hidden;
     }
     .rep-track::before {
       content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
-      background: #9eb4c9; transform: translateX(-1px);
+      background: rgba(243, 236, 223, 0.45); transform: translateX(-1px);
     }
     #repFill { position: absolute; top: 0; bottom: 0; width: 0; }
-    #repFill.good { background: #86efac; }
-    #repFill.bad { background: #ff6b6b; }
+    #repFill.good { background: var(--ok); }
+    #repFill.bad { background: var(--bad); }
     #costLine { margin: 0; font-size: 0.92rem; }
-    #costHint { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
-    #cargoLine { margin: 0; color: var(--muted); font-size: 0.85rem; }
+    #costHint { margin: 0; color: var(--dim); font-size: 0.78rem; line-height: 1.35; }
+    #cargoLine { margin: 0; color: var(--dim); font-size: 0.85rem; }
     .swatch { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
     .swatch.magenta { background: #ff2bd6; }
     .swatch.cyan { background: #3de4ff; }
     label.ctrl { display: block; }
     label.ctrl span { display: block; font-size: 0.92rem; margin-bottom: 4px; }
-    input[type="range"] { width: 100%; accent-color: #4af; }
+    input[type="range"] { width: 100%; accent-color: #f3ecdf; }
     select {
-      width: 100%; font: inherit; color: var(--ink); background: #102033;
+      width: 100%; font: inherit; color: var(--ink); background: rgba(7, 8, 12, 0.55);
       border: 1px solid var(--line); border-radius: 8px; padding: 8px;
     }
-    .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.75rem; }
+    .ends { display: flex; justify-content: space-between; color: var(--dim); font-size: 0.75rem; }
     .actions { display: flex; gap: 8px; }
     button {
-      font: inherit; color: #041018; background: var(--cyan); border: 0; border-radius: 10px;
-      padding: 10px 12px; font-weight: 700; cursor: pointer;
+      font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+      color: #16140f; background: #f3ecdf; border: 0; border-radius: 999px;
+      padding: 10px 12px; cursor: pointer;
     }
-    button.ghost { background: #071018cc; color: var(--ink); border: 1px solid #2a6a88; }
-    button:disabled { opacity: 0.45; cursor: default; }
+    button.ghost {
+      background: transparent; color: var(--ink);
+      border: 1px solid rgba(243, 236, 223, 0.28);
+    }
+    button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); cursor: default; }
     #launch { flex: 1; }
     #mission-btn {
       position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
@@ -98,40 +113,42 @@
       max-width: min(300px, calc(100% - 28px));
       display: flex; align-items: center; gap: 10px;
       padding: 10px 12px; pointer-events: none;
-      background: rgba(0, 12, 30, 0.92); border: 1px solid #4af; border-radius: 12px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      backdrop-filter: blur(10px);
     }
-    #face { font-size: 2.2rem; line-height: 1; }
+    #face { font-size: 1.6rem; line-height: 1; }
     #quip { margin: 0; font-size: 0.92rem; line-height: 1.35; }
     #flash {
       position: absolute; inset: 0; background: #fff8e8; opacity: 0; pointer-events: none; z-index: 3;
     }
     #pop {
       position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      background: #07111c88; padding: 18px; z-index: 4;
+      background: rgba(7, 8, 12, 0.72); padding: 18px; z-index: 8;
     }
     #pop[hidden] { display: none; }
     .card {
-      width: min(420px, 100%); max-height: calc(100% - 8px); overflow: auto;
-      background: #071018; border: 1px solid #2a6a88;
-      border-radius: 16px; padding: 18px 18px 16px; box-shadow: 0 16px 50px #000a;
+      width: min(340px, 100%); max-height: calc(100% - 8px); overflow: auto;
+      background: rgba(8, 9, 12, 0.94); border: 1px solid var(--line);
+      border-radius: 16px; padding: 16px; box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
     }
-    .card h2 { margin: 4px 0 8px; font-size: 1.35rem; }
-    .card img { display: block; width: 100%; height: 148px; object-fit: cover; border-radius: 10px; margin: 0 0 10px; background: #041018; }
+    .card h2 {
+      margin: 4px 0 8px; color: var(--ink);
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500; font-size: 28px; line-height: 1;
+    }
+    .card img { display: block; width: 100%; height: 112px; object-fit: cover; object-position: center 62%; border-radius: 10px; margin: 0 0 10px; background: #041018; }
     .card img[hidden] { display: none; }
-    .card p { margin: 0 0 14px; line-height: 1.45; }
-    #popBody p { margin: 0 0 8px; }
-    #popBody p:last-child { margin-bottom: 14px; }
-    #popBody img { height: 112px; margin: 2px 0 6px; }
+    .card p { margin: 0 0 12px; line-height: 1.45; color: var(--dim); }
+    #popKicker { font-size: 15px; margin-bottom: 6px; }
+    #popBody p { margin: 0 0 8px; color: var(--dim); }
+    #popBody p:last-child { margin-bottom: 12px; }
+    #popBody img { height: 112px; margin: 2px 0 8px; }
     .card button { width: 100%; }
-    .card.happy { border-color: #e6b84d; }
-    .card.sad { border-color: #c45b4a; }
     .card.happy h2 { color: var(--gold); }
     .card.sad h2 { color: var(--bad); }
     @media (max-width: 800px) {
-      #app { flex-direction: column; }
-      #stage { height: 42vh; flex: none; order: -1; }
-      aside { width: auto; flex: 1; min-height: 0; border-right: 0; border-top: 1px solid var(--line); }
-      #mission-btn { top: 92px; }
+      aside { width: min(268px, calc(100% - 28px)); max-height: min(420px, calc(100vh - 28px)); }
+      #quipbox { max-width: min(260px, calc(100% - 28px)); }
     }
   </style>
 </head>
@@ -199,62 +216,62 @@
     function start(over) { return Object.assign({}, BASE, over); }
     const MISSIONS = [
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Coast weather camera", cargo: "Weather camera", kg: 32, payload: "steel", pic: "art/01-coast.png",
+        title: "Coast weather camera", cargo: "Weather camera", kg: 32, payload: "steel", pic: "art/01-coast.webp",
         budget: 40, reward: 36, free: ["payloadPos", "finSize"],
         pitch: "China's space agency needs a 32 kg weather camera over the coast. It sits too low, and the fins are small.",
         start: start({ payload: "steel", payloadPos: 85, finSize: 0.5 }) },
       { client: "Jalsetu Shipping",         kind: "Business launch · India",
-        title: "Harbour ship tracker", cargo: "Ship tracker", kg: 32, payload: "steel", pic: "art/02-harbour.png",
+        title: "Harbour ship tracker", cargo: "Ship tracker", kg: 32, payload: "steel", pic: "art/02-harbour.webp",
         budget: 40, reward: 36, free: ["finSize", "fuel"],
         pitch: "Jalsetu Shipping in India wants a 32 kg tracker over a harbour. The fins are small and the tank is nearly empty.",
         start: start({ payload: "steel", finSize: 0.5, fuel: 10 }) },
       { client: "Chengdu Youth Lab",         kind: "Business launch · China",
-        title: "School experiment", cargo: "Classroom capsule", kg: 32, payload: "steel", pic: "art/03-school.png",
+        title: "School experiment", cargo: "Classroom capsule", kg: 32, payload: "steel", pic: "art/03-school.webp",
         budget: 44, reward: 40, free: ["payloadPos", "finSize", "nozzle"],
         pitch: "A school in Chengdu is sending a 32 kg classroom capsule. It sits low, with small fins and a heavy nozzle.",
         start: start({ payload: "steel", payloadPos: 90, finSize: 0.5, nozzle: 55 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Ocean watch", cargo: "Ocean buoy pack", kg: 50, payload: "lead", pic: "art/04-ocean.png",
+        title: "Ocean watch", cargo: "Ocean buoy pack", kg: 50, payload: "lead", pic: "art/04-ocean.webp",
         budget: 44, reward: 40, free: ["fuel", "payloadPos", "finSize"],
         pitch: "China's space agency wants a long look at the ocean. The 50 kg buoy pack sits low on a full tank.",
         start: start({ payload: "lead", payloadPos: 70, fuel: 88, finSize: 0.8 }) },
       { client: "Tianhe Supply",         kind: "Business launch · China",
-        title: "Station lab boxes", cargo: "Supply box", kg: 32, payload: "steel", pic: "art/05-station.png",
+        title: "Station lab boxes", cargo: "Supply box", kg: 32, payload: "steel", pic: "art/05-station.webp",
         budget: 48, reward: 44, free: ["finPos", "nozzle", "fuel"],
         pitch: "Tianhe Supply is sending a 32 kg lab box to a space station. The fins are high, the nozzle is heavy, and the tank is nearly empty.",
         start: start({ payload: "steel", finPos: 75, nozzle: 60, fuel: 12 }) },
       { client: "Cerrado Link", kind: "Business launch · Brazil",
-        title: "Navigation satellite", cargo: "Navigation satellite", kg: 32, payload: "steel", pic: "art/06-nav.png",
+        title: "Navigation satellite", cargo: "Navigation satellite", kg: 32, payload: "steel", pic: "art/06-nav.webp",
         budget: 48, reward: 44, free: ["bodyLen", "finSize", "payloadPos", "fuel"],
         pitch: "Cerrado Link in Brazil needs a 32 kg satellite to help ships find their way. Short rocket, small fins, nearly empty tank.",
         start: start({ payload: "steel", bodyLen: 3.0, finSize: 0.55, payloadPos: 80, fuel: 12 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Moon radio", cargo: "Moon radio", kg: 32, payload: "steel", pic: "art/07-moon.png",
+        title: "Moon radio", cargo: "Moon radio", kg: 32, payload: "steel", pic: "art/07-moon.webp",
         budget: 52, reward: 48, free: ["finPos", "payloadPos", "nozzle"],
         pitch: "China's space agency wants a 32 kg radio towards the Moon. The fins are high, the radio sits low, and the nozzle is heavy.",
         start: start({ payload: "steel", finPos: 80, payloadPos: 85, nozzle: 50 }) },
       { client: "Al Noor Imaging", kind: "Business launch · UAE",
-        title: "Asteroid camera", cargo: "Asteroid camera", kg: 32, payload: "steel", pic: "art/08-asteroid.png",
+        title: "Asteroid camera", cargo: "Asteroid camera", kg: 32, payload: "steel", pic: "art/08-asteroid.webp",
         budget: 56, reward: 52, free: ["noseLen", "finSize", "fuel"],
         pitch: "Al Noor Imaging in the UAE wants asteroid photos. The 32 kg camera has a short nose, small fins, and a very full tank.",
         start: start({ payload: "steel", noseLen: 0.55, finSize: 0.55, fuel: 80 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Sun telescope", cargo: "Sun telescope", kg: 32, payload: "steel", pic: "art/09-sun.png",
+        title: "Sun telescope", cargo: "Sun telescope", kg: 32, payload: "steel", pic: "art/09-sun.webp",
         budget: 60, reward: 56, free: ["nozzle", "finSize", "fuel", "finPos"],
         pitch: "China's space agency wants a 32 kg telescope for the Sun. Heavy nozzle, small fins, nearly empty tank.",
         start: start({ payload: "steel", nozzle: 58, finSize: 0.5, fuel: 12, finPos: 55 }) },
       { client: "Nordhavn Research", kind: "Business launch · Norway",
-        title: "Polar ice map", cargo: "Ice camera", kg: 32, payload: "steel", pic: "art/10-ice.png",
+        title: "Polar ice map", cargo: "Ice camera", kg: 32, payload: "steel", pic: "art/10-ice.webp",
         budget: 64, reward: 60, free: ["finPos", "finSize", "fuel", "payloadPos"],
         pitch: "Nordhavn Research in Norway is mapping polar ice. The 32 kg camera sits low, with small fins and a full tank.",
         start: start({ payload: "steel", finPos: 72, finSize: 0.55, fuel: 85, payloadPos: 90 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Station cargo", cargo: "Cargo rack", kg: 32, payload: "steel", pic: "art/11-cargo.png",
+        title: "Station cargo", cargo: "Cargo rack", kg: 32, payload: "steel", pic: "art/11-cargo.webp",
         budget: 68, reward: 64, free: ["bodyLen", "noseLen", "finSize", "fuel", "payloadPos", "nozzle"],
         pitch: "China's space agency is sending a 32 kg rack to a space station. Short rocket, small fins, empty tank, heavy nozzle.",
         start: start({ payload: "steel", bodyLen: 3.1, noseLen: 0.65, finSize: 0.55, fuel: 12, payloadPos: 85, nozzle: 46 }) },
       { client: "China National Space Administration", kind: "Government contract · China",
-        title: "Practice crew flight", cargo: "Practice weight", kg: 32, payload: "steel", pic: "art/12-ferry.png",
+        title: "Practice crew flight", cargo: "Practice weight", kg: 32, payload: "steel", pic: "art/12-ferry.webp",
         budget: 80, reward: 72, free: ["noseLen", "payloadPos", "bodyLen", "finSize", "finPos", "nozzle", "fuel"],
         pitch: "A practice flight for a future crew rocket. The 32 kg test weight is not set up to fly straight.",
         start: start({ payload: "steel", noseLen: 0.65, payloadPos: 90, bodyLen: 3.2, finSize: 0.5, finPos: 65, nozzle: 50, fuel: 12 }) }
@@ -265,20 +282,20 @@
     const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x07111c);
-    scene.fog = new THREE.Fog(0x07111c, 22, 70);
+    scene.background = new THREE.Color(0x07080c);
+    scene.fog = new THREE.Fog(0x07080c, 22, 70);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 280);
-    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 0.9));
-    const sun = new THREE.DirectionalLight(0xfff2dd, 1.25);
+    scene.add(new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85));
+    const sun = new THREE.DirectionalLight(0xfff3e2, 1.7);
     sun.position.set(6, 14, 8);
     scene.add(sun);
-    scene.add(new THREE.AmbientLight(0x8eb4d8, 0.25));
+    scene.add(new THREE.AmbientLight(0xf3ecdf, 0.12));
 
     const site = new THREE.Group();
     scene.add(site);
     const sea = new THREE.Mesh(
       new THREE.CircleGeometry(90, 48),
-      new THREE.MeshStandardMaterial({ color: 0x071826, roughness: 0.35, metalness: 0.4 })
+      new THREE.MeshStandardMaterial({ color: 0x1a2428, roughness: 0.42, metalness: 0.18 })
     );
     sea.rotation.x = -Math.PI / 2;
     sea.position.set(0, -0.12, 22);
@@ -342,8 +359,8 @@
       mark.position.y = y;
       site.add(mark);
     }
-    groundRing(1.5, 1.68, 0.53, 0x66ddff);
-    groundRing(2.55, 2.72, 0.47, 0xffb15a);
+    groundRing(1.5, 1.68, 0.53, 0xf3ecdf);
+    groundRing(2.55, 2.72, 0.47, 0xf3e6c0);
     const trench = new THREE.Mesh(
       new THREE.BoxGeometry(1.15, 0.18, 8),
       new THREE.MeshStandardMaterial({ color: 0x070b10, roughness: 0.85 })
@@ -447,67 +464,151 @@
 
     const screens = [];
     const crew = [];
-    function makeWorker(clothHex, skinHex, lead) {
+    function roundedRectShape(w, h, r) {
+      const hw = w * 0.5;
+      const hh = h * 0.5;
+      const rr = Math.min(r, hw * 0.46, hh * 0.46);
+      const s = new THREE.Shape();
+      s.moveTo(-hw + rr, -hh);
+      s.lineTo(hw - rr, -hh);
+      s.quadraticCurveTo(hw, -hh, hw, -hh + rr);
+      s.lineTo(hw, hh - rr);
+      s.quadraticCurveTo(hw, hh, hw - rr, hh);
+      s.lineTo(-hw + rr, hh);
+      s.quadraticCurveTo(-hw, hh, -hw, hh - rr);
+      s.lineTo(-hw, -hh + rr);
+      s.quadraticCurveTo(-hw, -hh, -hw + rr, -hh);
+      return s;
+    }
+    function softBox(w, h, d, radius, material) {
+      const geo = new THREE.ExtrudeGeometry(roundedRectShape(w, h, radius), {
+        depth: d, bevelEnabled: true,
+        bevelThickness: Math.min(0.08, radius * 0.35),
+        bevelSize: Math.min(0.08, radius * 0.35),
+        bevelSegments: 2, curveSegments: 8
+      });
+      geo.translate(0, 0, -d * 0.5);
+      geo.computeVertexNormals();
+      return new THREE.Mesh(geo, material);
+    }
+    function flatBox(w, h, d, radius, material) {
+      const geo = new THREE.ExtrudeGeometry(roundedRectShape(w, h, radius), {
+        depth: d, bevelEnabled: false, curveSegments: 8
+      });
+      geo.translate(0, 0, -d * 0.5);
+      geo.computeVertexNormals();
+      return new THREE.Mesh(geo, material);
+    }
+    const suit = (color) => new THREE.MeshStandardMaterial({ color: color, roughness: 0.74, metalness: 0.06 });
+    const headMat = suit(0xffd3be);
+    const torsoMat = suit(0x7ecbff);
+    const legMat = suit(0x3f86b8);
+    const faceCanvas = document.createElement("canvas");
+    faceCanvas.width = faceCanvas.height = 128;
+    const faceCtx = faceCanvas.getContext("2d");
+    faceCtx.fillStyle = "#d9fff4";
+    faceCtx.fillRect(0, 0, 128, 128);
+    faceCtx.fillStyle = "#062028";
+    faceCtx.beginPath();
+    faceCtx.arc(46, 58, 8, 0, Math.PI * 2);
+    faceCtx.arc(82, 58, 8, 0, Math.PI * 2);
+    faceCtx.fill();
+    faceCtx.strokeStyle = "#062028";
+    faceCtx.lineWidth = 5;
+    faceCtx.lineCap = "round";
+    faceCtx.beginPath();
+    faceCtx.arc(64, 72, 18, 0.25, Math.PI - 0.25);
+    faceCtx.stroke();
+    const faceTex = new THREE.CanvasTexture(faceCanvas);
+    const faceMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, map: faceTex, emissive: 0x9dffef, emissiveMap: faceTex,
+      emissiveIntensity: 0.35, roughness: 0.42, metalness: 0.04
+    });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x081018, emissive: 0x123038, emissiveIntensity: 0.4, roughness: 0.4, metalness: 0.06
+    });
+    function makeWorker(lead) {
       const person = new THREE.Group();
-      const cloth = new THREE.MeshStandardMaterial({ color: clothHex, roughness: 0.78 });
-      const skin = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.7 });
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), skin);
-      head.position.y = 1.02;
-      person.add(head);
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.42, 0.16), cloth);
-      body.position.y = 0.66;
-      person.add(body);
-      const armGeo = new THREE.BoxGeometry(0.08, 0.36, 0.08);
-      armGeo.translate(0, -0.18, 0);
-      const leftArm = new THREE.Mesh(armGeo, cloth);
-      leftArm.position.set(-0.2, 0.82, 0);
-      const rightArm = new THREE.Mesh(armGeo, cloth);
-      rightArm.position.set(0.2, 0.82, 0);
-      if (lead) {
-        leftArm.rotation.x = -1.25;
-        rightArm.rotation.x = -1.25;
-        leftArm.rotation.z = 0.4;
-        rightArm.rotation.z = -0.4;
-        const binos = new THREE.Mesh(
-          new THREE.BoxGeometry(0.24, 0.08, 0.1),
-          new THREE.MeshStandardMaterial({ color: 0x1b2430, metalness: 0.45, roughness: 0.4 })
-        );
-        binos.position.set(0, 1.0, 0.18);
-        person.add(binos);
-      } else {
-        leftArm.rotation.z = 0.12;
-        rightArm.rotation.z = -0.12;
+      const thighH = 1.05;
+      const shinH = 0.82;
+      const limbW = 0.72;
+      const torsoW = 2.05;
+      const torsoH = 2.2;
+      const torsoD = 1.28;
+      const headW = 3.05;
+      const headH = 2.28;
+      const headD = 2.05;
+      function leg(x) {
+        const thigh = new THREE.Group();
+        thigh.position.set(x, thighH + shinH, 0);
+        const thighMesh = softBox(limbW, thighH, limbW, 0.42, legMat);
+        thighMesh.position.y = -thighH / 2;
+        const shin = softBox(limbW * 0.92, shinH, limbW * 0.92, 0.4, legMat);
+        shin.position.y = -thighH - shinH / 2;
+        thigh.add(thighMesh, shin);
+        person.add(thigh);
       }
-      person.add(leftArm);
-      person.add(rightArm);
-      const legGeo = new THREE.BoxGeometry(0.09, 0.44, 0.09);
-      const leftLeg = new THREE.Mesh(legGeo, cloth);
-      leftLeg.position.set(-0.08, 0.22, 0);
-      person.add(leftLeg);
-      const rightLeg = leftLeg.clone();
-      rightLeg.position.x = 0.08;
-      person.add(rightLeg);
+      leg(-0.42);
+      leg(0.42);
+      const torso = new THREE.Group();
+      torso.position.set(0, thighH + shinH, 0);
+      const torsoMesh = softBox(torsoW, torsoH, torsoD, 0.55, torsoMat);
+      torsoMesh.position.y = torsoH / 2;
+      torso.add(torsoMesh);
+      const head = new THREE.Group();
+      head.position.set(0, torsoH + 0.08, 0);
+      const headMesh = flatBox(headW, headH, headD, 0.42, headMat);
+      headMesh.position.y = headH / 2;
+      head.add(headMesh);
+      const screenW = headW * 0.9;
+      const screenH = headH * 0.78;
+      const glass = flatBox(screenW, screenH, 0.14, 0.18, glassMat);
+      glass.position.set(0, headH / 2, headD / 2 + 0.08);
+      const picture = new THREE.Mesh(new THREE.PlaneGeometry(screenW * 0.86, screenH * 0.86), faceMat);
+      picture.position.set(0, headH / 2, headD / 2 + 0.2);
+      head.add(glass, picture);
+      torso.add(head);
+      function arm(side) {
+        const limb = new THREE.Group();
+        const w = 0.46;
+        const h = 1.28;
+        const mesh = softBox(w, h, 0.5, 0.22, torsoMat);
+        mesh.position.set(side * w * 0.28, -h * 0.5, 0);
+        limb.add(mesh);
+        limb.position.set(side * (torsoW * 0.42), torsoH * 0.74, 0.06);
+        torso.add(limb);
+        return limb;
+      }
+      const leftArm = arm(-1);
+      const rightArm = arm(1);
+      person.add(torso);
       person.userData = {
         head: head, leftArm: leftArm, rightArm: rightArm, lead: lead,
         phase: Math.random() * 6
       };
       return person;
     }
-    [[1.15, 2.45, 0x2f6fed, 0xf0c7a0, true], [2.05, 1.85, 0x3d9a6a, 0xe7c2a0, false], [0.35, 2.15, 0xc45b4a, 0xd9a07a, false]].forEach((spot) => {
-      const person = makeWorker(spot[2], spot[3], spot[4]);
-      person.position.set(spot[0], 0.48, spot[1]);
-      person.rotation.y = Math.atan2(-spot[0], -spot[1]);
-      person.scale.setScalar(1.15);
+    const crewAngle = Math.PI / 4 + 0.9;
+    [[0, 4.7, true], [0.2, 5.15, false], [-0.16, 5.2, false]].forEach((spot) => {
+      const x = Math.sin(crewAngle + spot[0]) * spot[1];
+      const z = Math.cos(crewAngle + spot[0]) * spot[1];
+      const person = makeWorker(spot[2]);
+      person.position.set(x, Math.max(0, terrainHeight(x, z)), z);
+      person.rotation.y = Math.atan2(-x, -z);
+      person.scale.setScalar(0.26);
       site.add(person);
       crew.push(person);
     });
+    const leadX = Math.sin(crewAngle) * 4.7;
+    const leadZ = Math.cos(crewAngle) * 4.7;
+    const leadD = Math.hypot(leadX, leadZ);
     const consoleBox = new THREE.Mesh(
       new THREE.BoxGeometry(0.55, 0.08, 0.36),
-      new THREE.MeshStandardMaterial({ color: 0x102838, emissive: 0x3de4ff, emissiveIntensity: 0.45, roughness: 0.4 })
+      new THREE.MeshStandardMaterial({ color: 0x2a2824, emissive: 0xf3e6c0, emissiveIntensity: 0.35, roughness: 0.45 })
     );
-    consoleBox.position.set(0.15, 1.28, 1.45);
-    consoleBox.rotation.x = -0.65;
-    consoleBox.rotation.y = Math.atan2(-0.15, -1.45);
+    consoleBox.position.set(leadX - leadX / leadD * 0.85, 0.7, leadZ - leadZ / leadD * 0.85);
+    consoleBox.rotation.x = -0.45;
+    consoleBox.rotation.y = Math.atan2(-leadX, -leadZ);
     site.add(consoleBox);
     screens.push(consoleBox);
     const consoleLeg = new THREE.Mesh(
@@ -914,7 +1015,7 @@
 
       const cgLocal = next.total - next.cg;
       rocket.position.y = -cgLocal;
-      pivot.position.set(0, cgLocal + nz.len, 0);
+      pivot.position.set(0, cgLocal + nz.len + 0.68, 0);
       pivot.rotation.set(0, 0, 0);
       pivot.userData.homeY = pivot.position.y;
       pivot.add(rocket);
@@ -1469,7 +1570,7 @@
             "Play again",
             () => location.reload(),
             true,
-            happy ? "art/end-clear.png" : "art/end-debt.png"
+            happy ? "art/end-clear.webp" : "art/end-debt.webp"
           );
           return;
         }
@@ -1508,7 +1609,7 @@
           "Play again",
           () => location.reload(),
           true,
-          "art/end-close.png"
+          "art/end-close.webp"
         );
         return;
       }
@@ -1568,7 +1669,7 @@
       ], "Close", () => {
         document.getElementById("launch").disabled = false;
         document.getElementById("reset").disabled = false;
-      }, false, "art/cg-teach.png");
+      }, false, "art/cg-teach.webp");
     });
     document.getElementById("about-cp").addEventListener("click", () => {
       if (mode !== "build") return;
@@ -1579,7 +1680,7 @@
       ], "Close", () => {
         document.getElementById("launch").disabled = false;
         document.getElementById("reset").disabled = false;
-      }, false, "art/cp-teach.png");
+      }, false, "art/cp-teach.webp");
     });
     document.getElementById("about-rep").addEventListener("click", () => {
       if (mode !== "build") return;
@@ -1729,13 +1830,9 @@
         const lookUp = mode === "fly" || mode === "result" || mode === "end";
         bits.head.rotation.x = (lookUp ? -0.7 : -0.28) + Math.sin(t * 1.3 + bits.phase) * 0.05;
         bits.head.rotation.y = Math.sin(t * 0.35 + bits.phase) * 0.1;
-        if (bits.lead) {
-          bits.leftArm.rotation.x = -1.25 + Math.sin(t * 1.8 + bits.phase) * 0.03;
-          bits.rightArm.rotation.x = -1.25 + Math.sin(t * 1.6 + bits.phase) * 0.03;
-        } else {
-          bits.leftArm.rotation.x = Math.sin(t * 1.1 + bits.phase) * 0.06;
-          bits.rightArm.rotation.x = Math.sin(t * 1.0 + bits.phase) * 0.05;
-        }
+        const watch = bits.lead ? -0.35 : -0.08;
+        bits.leftArm.rotation.x = watch + Math.sin(t * 1.1 + bits.phase) * 0.05;
+        bits.rightArm.rotation.x = watch + Math.sin(t * 1.0 + bits.phase) * 0.04;
       });
       screens.forEach((screen, i) => {
         screen.material.emissiveIntensity = 0.28 + Math.abs(Math.sin(t * 3.1 + i)) * 0.55;
@@ -1775,7 +1872,7 @@
       "Start the company",
       () => openMission(),
       true,
-      "art/founder.png"
+      "art/founder.webp"
     );
     requestAnimationFrame(frame);
   </script>

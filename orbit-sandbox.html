@@ -1,278 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta name="x-poe-datastore-behavior" content="local_only">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit Sandbox</title>
+    <title>Orbit sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
-        #ui {
-            position: absolute; top: 10px; left: 12px; background: rgba(0,12,30,0.93);
-            padding: 10px 12px; border-radius: 12px; width: 300px;
-            border: 1px solid #4af; z-index: 10; font-size: 0.88rem;
-            max-height: calc(100vh - 28px); overflow-y: auto;
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
         }
-        h1 { font-size: 1.05rem; margin: 0 0 2px; color: #6df; }
-        .sub { font-size: 0.72rem; opacity: 0.65; margin-bottom: 8px; }
-        .stat { margin: 5px 0; padding: 6px 8px; background: #0a1a2a; border-radius: 7px; transition: border-color 0.18s ease, box-shadow 0.18s ease; }
-        .stat.adjust { border: 1px solid #4af; }
-        .stat.source, .stat.driven {
-            border-color: #7ee0ff;
-            box-shadow: 0 0 0 1px #7ee0ff, 0 0 12px rgba(90, 200, 255, 0.4);
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+        canvas { display: block; }
+        #panel {
+            position: fixed; top: 22px; left: 22px; z-index: 6;
+            width: min(320px, calc(100vw - 44px));
+            padding: 18px 18px 16px;
+            background: rgba(8, 9, 12, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
         }
-        .stat.source {
-            box-shadow: 0 0 0 2px #7ee0ff, 0 0 16px rgba(90, 200, 255, 0.55);
+        h1 {
+            margin: 0 0 6px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 40px; letter-spacing: 0.04em; line-height: 1;
         }
-        .stat.derived {
-            border: 1px solid #f5a623;
-            background: #1a1408;
-            box-shadow: inset 0 0 0 1px rgba(245,166,35,0.25);
+        #eqNav { display: flex; gap: 16px; margin: 10px 0 14px; }
+        #eqNav button {
+            background: none; border: 0; padding: 0; cursor: pointer;
+            color: var(--dim); font-family: Outfit, system-ui, sans-serif; font-size: 15px;
         }
-        .stat.derived.source, .stat.derived.driven {
-            border-color: #7ee0ff;
-            box-shadow: 0 0 0 1px #7ee0ff, 0 0 12px rgba(90, 200, 255, 0.4);
-        }
-        .sym { color: #6df; font-weight: 700; font-style: italic; min-width: 1.8em; display: inline-block; }
-        .stat.derived .sym { color: #f5a623; }
-        .value { color: #0f8; font-weight: bold; }
-        .stat.derived .value { color: #ffc14d; }
-        .stat-hint { font-size: 0.68rem; opacity: 0.6; margin-top: 1px; }
-        .stat.derived .stat-hint { color: #f5a623; opacity: 0.9; }
-        input[type=range] { width: 100%; height: 16px; margin: 4px 0 0; accent-color: #4af; }
-        .stat.derived input[type=range] { display: none; }
-        input[type=text].inline-num {
-            width: 9.5em; margin: 0 4px; padding: 1px 6px;
-            border-radius: 5px; border: 1px solid #4af; background: #061018;
-            color: #0f8; font-weight: 700; font-size: 0.92rem;
-            font-variant-numeric: tabular-nums;
-        }
-        .circ { display: none; }
-        .eqs { display: none; }
-        #eqBar {
-            position: absolute; bottom: 16px; left: 12px; z-index: 10;
-            background: rgba(0,20,40,0.9); padding: 8px 12px; border-radius: 8px; border: 1px solid #4af;
-            font-size: 0.95rem; line-height: 1.45; color: #9cf;
-        }
-        #eqBar div {
-            cursor: pointer;
-            padding: 3px 6px;
-            margin: 0 -6px;
-            border-radius: 6px;
-        }
-        #eqBar div + div { margin-top: 2px; }
-        #eqBar div:hover { background: rgba(80, 180, 255, 0.15); }
-        #eqBar div.on {
-            background: rgba(80, 180, 255, 0.22);
-            outline: 1px solid #8cf;
-        }
-        .stat.eq-off { display: none; }
-        .r-sum { display: none; }
-        body[data-eq="rad"] .r-sum { display: inline; }
-        #vizFormula {
-            position: absolute;
-            left: 50%;
-            top: 38%;
+        #eqNav button.on { color: var(--ink); }
+        #controls { display: flex; flex-direction: column; gap: 14px; }
+        #controls[hidden] { display: none; }
+        .slide label { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+        .slide .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 28px; line-height: 1; }
+        .slide .num { font-variant-numeric: tabular-nums; color: var(--dim); }
+        input[type=range] { width: 100%; margin-top: 8px; accent-color: #f3ecdf; }
+        #formula {
+            position: fixed; z-index: 4; left: 50%; top: 46%;
             transform: translate(-50%, -50%);
-            z-index: 4;
-            pointer-events: none;
-            text-shadow: 0 0 24px rgba(0, 80, 160, 0.45);
-            user-select: none;
+            transform-origin: center center;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 18px;
+            user-select: none; pointer-events: none;
         }
-        .viz-view {
-            display: none;
-            align-items: center;
-            gap: 0.28em;
+        #formula .row { display: none; flex-direction: column; align-items: flex-start; gap: 18px; }
+        #formula .row.show { display: flex; }
+        .eqline { display: flex; align-items: center; gap: 0.28em; }
+        .mean {
+            margin: 0; max-width: 360px;
+            display: flex; flex-direction: column; gap: 6px;
+            font-family: Outfit, system-ui, sans-serif;
+            font-size: 17px; font-weight: 400; line-height: 1.35; color: var(--dim);
         }
-        .viz-view.on { display: flex; }
-        #vizFormula .viz-eq {
-            color: #9cf;
-            font-weight: 700;
-            font-size: 2.2rem;
-            transition: font-size 0.15s ease, color 0.18s ease;
+        .mean p { margin: 0; }
+        .op { font-family: "Cormorant Garamond", Georgia, serif; font-size: 56px; color: var(--dim); }
+        .const {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 500; font-size: 48px;
+            color: rgba(243, 236, 223, 0.38); cursor: default;
         }
-        #vizGM {
-            display: inline-flex;
-            align-items: baseline;
-            line-height: 1;
+        button.var {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 600; line-height: 0.85;
+            font-size: 64px; color: var(--ink);
+            background: transparent; border: 0; padding: 0.04em 0.08em;
+            border-radius: 10px; cursor: pointer; pointer-events: auto;
+            transition: text-shadow 0.2s ease, color 0.2s ease;
         }
-        #vizV, #vizG, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH {
-            color: #9cf;
-            font-weight: 800;
-            font-style: italic;
-            line-height: 1;
-            transition: font-size 0.15s ease, text-shadow 0.18s ease;
+        button.var:not(.on) { color: rgba(243, 236, 223, 0.42); }
+        button.var:hover { color: var(--ink); }
+        button.var.on {
+            color: #fff8ee; background: transparent; border: 0; box-shadow: none;
+            text-shadow: 0 0 10px rgba(243, 236, 223, 0.95), 0 0 24px rgba(243, 236, 223, 0.55);
         }
-        #vizG { font-size: 34px; }
-        #vizV.driven, #vizM.driven, #vizR.driven,
-        #vizV.source, #vizM.source, #vizR.source,
-        #vizRsym.driven, #vizBodyR.driven, #vizH.driven,
-        #vizRsym.source, #vizBodyR.source, #vizH.source {
-            text-shadow: 0 0 8px #7ee0ff, 0 0 18px rgba(90, 200, 255, 0.65);
+        button.var.pulse { animation: swell 0.7s ease 2; }
+        @keyframes swell {
+            0%, 100% { transform: scale(1); }
+            45% { transform: scale(1.18); }
         }
-        .viz-sqrt-group {
-            display: flex;
-            align-items: stretch;
-            color: #9cf;
-        }
-        #vizRadical {
-            flex: 0 0 auto;
-            width: 32px;
-            overflow: visible;
-            filter: drop-shadow(0 0 10px rgba(100, 200, 255, 0.35));
-        }
-        .viz-radicand {
-            border-top: 6px solid #9cf;
-            padding: 8px 16px 6px 10px;
-            margin-left: -3px;
-            box-shadow: 0 -8px 16px rgba(80, 180, 255, 0.12);
-        }
-        .viz-frac {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            line-height: 1;
-        }
-        #vizBar {
-            display: block;
-            height: 4px;
-            margin: 4px 0;
-            background: #9cf;
-            border-radius: 2px;
-            transition: width 0.15s ease;
-        }
-        #explain {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 20, 0.55);
-            z-index: 90;
-            align-items: center;
-            justify-content: center;
-        }
-        #explain.show { display: flex; }
-        #explain .box {
-            background: #0a1a2a;
-            border: 1px solid #4af;
-            border-radius: 14px;
-            padding: 22px 24px;
-            max-width: 440px;
-            width: 92%;
-            line-height: 1.5;
-            font-size: 1.02rem;
-            white-space: pre-wrap;
-        }
-        #explain h3 { color: #6df; font-size: 1.05rem; margin-bottom: 8px; }
-        #explainOk {
-            width: 100%; margin-top: 16px; padding: 12px;
-            border: none; border-radius: 10px; background: #09f;
-            color: #fff; font-weight: 800; font-size: 1.05rem; cursor: pointer;
-        }
-        #launchBtn, #resetBtn {
-            width: 48%; padding: 9px; margin-top: 10px; font-size: 0.95rem; font-weight: bold;
-            border: none; border-radius: 8px; cursor: pointer; color: white;
-        }
-        #launchBtn { background: linear-gradient(45deg, #09f, #06d); }
-        #resetBtn { background: #444; float: right; }
-        #launchBtn:hover, #resetBtn:hover { filter: brightness(1.15); }
-        #launchBtn:disabled { background: #333; cursor: not-allowed; }
-        #overlay { display: none; }
+        .sqrt { position: relative; display: inline-flex; align-items: stretch; padding-left: 22px; color: var(--ink); }
+        .tick { position: absolute; left: 0; top: 0; width: 26px; height: 100%; display: block; }
+        .radicand { border-top: 2px solid currentColor; padding: 6px 16px 2px 22px; margin-left: -3px; }
+        .frac { display: flex; flex-direction: column; align-items: center; }
+        .top { display: flex; align-items: flex-end; }
+        .bar { align-self: stretch; height: 3px; margin: 0.12em 0; background: var(--ink); border-radius: 2px; }
         #qCard {
-            position: absolute; top: 10px; right: 12px; width: 300px;
-            background: rgba(0,12,30,0.94); border: 1px solid #4af; border-radius: 12px;
-            padding: 12px 14px; z-index: 12; font-size: 0.92rem; line-height: 1.4;
+            position: fixed; top: 22px; right: 22px; z-index: 6;
+            width: min(300px, calc(100vw - 44px));
+            padding: 16px 16px 14px;
+            background: rgba(8, 9, 12, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
         }
-        .qstep { color: #6df; font-size: 0.78rem; margin-bottom: 6px; }
-        .qtext { font-size: 1.02rem; line-height: 1.4; margin-bottom: 12px; }
+        .qstep { color: var(--dim); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .qtext { font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; line-height: 1.15; margin-bottom: 14px; }
         .qbtns { display: flex; gap: 8px; }
-        .qbtns button {
-            flex: 1; padding: 10px; font-size: 1rem; font-weight: 800; border: none;
-            border-radius: 8px; cursor: pointer; color: #fff;
+        .qbtns button, #nextQ {
+            flex: 1; padding: 10px 12px; border-radius: 999px; cursor: pointer;
+            font-family: Outfit, system-ui, sans-serif; font-size: 14px;
         }
-        #trueBtn { background: #1a7a4a; }
-        #falseBtn { background: #246; }
-        #trueBtn:hover, #falseBtn:hover { filter: brightness(1.12); }
+        #trueBtn, #falseBtn {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28);
+        }
+        #nextQ { border: 0; background: #f3ecdf; color: #16140f; }
         #qAfter { display: none; }
         #qAfter.show { display: block; }
         #qAsk.hide { display: none; }
-        #qAfter .verdict { font-weight: 800; margin-bottom: 6px; }
-        #qAfter .verdict.ok { color: #86efac; }
-        #qAfter .verdict.no { color: #ff8a8a; }
-        #nextQ {
-            width: 100%; margin-top: 10px; padding: 10px; border: none; border-radius: 8px;
-            background: #09f; color: #fff; font-weight: 800; cursor: pointer;
+        #qAfter .verdict { font-weight: 500; margin-bottom: 6px; }
+        #qAfter .verdict.ok { color: #d7eccf; }
+        #qAfter .verdict.no { color: #f0c2b2; }
+        #tryText { color: var(--dim); line-height: 1.4; }
+        #nextQ, #playLink { width: 100%; margin-top: 12px; box-sizing: border-box; text-align: center; }
+        #playLink {
+            display: none; text-decoration: none; padding: 10px 12px; border-radius: 999px;
+            background: #f3ecdf; color: #16140f; font-family: Outfit, system-ui, sans-serif; font-size: 14px;
         }
-        .stat.pulse { animation: pulseGlow 0.75s ease 3; }
-        .stat.derived.pulse { animation: pulseAmber 0.75s ease 3; }
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(68,170,255,0); }
-            45% { box-shadow: 0 0 20px 3px rgba(80,200,255,0.75); }
-        }
-        @keyframes pulseAmber {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0); }
-            45% { box-shadow: 0 0 22px 4px rgba(255,193,77,0.85); }
-        }
-        .eqs.pulse-eq, #eqBar.pulse-eq { animation: pulseGlow 0.75s ease 3; }
-        #ui {
-            position: fixed; top: 0; left: 0; bottom: 0; width: 340px; height: 100%;
-            max-height: none; margin: 0; border-radius: 0; border: 0;
-            border-right: 1px solid #1d3c56; background: #071018ee; padding: 16px 16px 18px;
-        }
-        h1 { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
-        #launchBtn, #resetBtn { float: none; width: calc(50% - 6px); }
-        #launchBtn { background: #6df; color: #041018; border-radius: 10px; }
-        #resetBtn { margin-left: 8px; background: transparent; color: #e8f4ff; border: 1px solid #2a6a88; border-radius: 10px; }
-        #launchBtn:disabled { background: #102033; color: #9eb4c9; }
-        #eqBar { left: 356px; background: #071018ee; border: 1px solid #1d3c56; border-radius: 12px; }
-        #vizFormula { left: calc(50% + 170px); }
-        #qCard { background: #071018; border: 1px solid #2a6a88; border-radius: 16px; }
-        #nextQ { background: #6df; color: #041018; }
-        @media (max-width: 800px) {
-            #ui {
-                position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
-                height: auto; max-height: calc(100vh - 28px); border-radius: 16px; border: 1px solid #1d3c56;
-            }
-            #eqBar { left: 12px; }
-            #vizFormula { left: 50%; }
+        #playLink.show { display: block; }
+        @media (max-width: 1100px) {
+            #qCard { top: auto; bottom: 16px; right: 16px; width: min(300px, calc(100vw - 32px)); }
         }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
     </script>
 </head>
-<body data-eq="circ">
-    <div id="ui">
-        <h1>Orbit sandbox</h1>
-        <div class="sub" id="eqSub">Only V, GM and r. Tap a formula below to switch. r is locked.</div>
+<body>
+    <div id="panel">
+        <h1>Orbit</h1>
+        <div id="eqNav">
+            <button type="button" data-eq="0" data-name="speed">Speed</button>
+            <button type="button" data-eq="1" data-name="radius">Radius</button>
+        </div>
+        <div id="controls" hidden></div>
+    </div>
 
-        <div class="stat adjust" id="velStat">
-            <span class="sym">V</span> = <input type="text" inputmode="decimal" class="inline-num" id="velInput" value="7.65"> km/s
-            <input type="range" id="velSlider" min="0.5" max="15" step="0.01" value="7.65">
-            <div class="stat-hint">insertion speed</div>
+    <div id="formula" aria-label="Orbit equations">
+        <div class="row show">
+            <div class="eqline">
+                <button type="button" class="var" data-id="V">V</button>
+                <span class="op">=</span>
+                <span class="sqrt">
+                    <svg class="tick" viewBox="0 0 22 48" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M2 28 H9 L13 46 L21 1" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+                    </svg>
+                    <span class="radicand">
+                        <span class="frac">
+                            <span class="top"><span class="const" title="G is a constant">G</span><button type="button" class="var" data-id="M">M</button></span>
+                            <span class="bar"></span>
+                            <button type="button" class="var" data-id="r">r</button>
+                        </span>
+                    </span>
+                </span>
+            </div>
+            <div class="mean">
+                <p>V is the speed to stay in a circle.</p>
+                <p>G is a constant, the same number everywhere.</p>
+                <p>M is the planet’s mass.</p>
+                <p>r is the distance from its centre.</p>
+            </div>
         </div>
-        <div class="stat adjust" id="gmStat">
-            <span class="sym">GM</span> = <input type="text" inputmode="decimal" class="inline-num" id="gmInput" value="398600"> km³/s²
-            <input type="range" id="gmSlider" min="20000" max="500000" step="100" value="398600">
-            <div class="stat-hint">central body (G × mass)</div>
+        <div class="row">
+            <div class="eqline">
+                <button type="button" class="var" data-id="r">r</button>
+                <span class="op">=</span>
+                <button type="button" class="var" data-id="R">R</button>
+                <span class="op">+</span>
+                <button type="button" class="var" data-id="h">h</button>
         </div>
-        <div class="stat adjust" id="bodyRStat">
-            <span class="sym">R</span> = <input type="text" inputmode="decimal" class="inline-num" id="bodyRInput" value="6371"> km
-            <input type="range" id="bodyRSlider" min="800" max="8000" step="1" value="6371">
-            <div class="stat-hint">central body radius</div>
+            <div class="mean">
+                <p>r is the distance from the centre.</p>
+                <p>R is the planet’s radius.</p>
+                <p>h is the height above the ground.</p>
         </div>
-        <div class="stat adjust" id="altStat">
-            <span class="sym">h</span> = <input type="text" inputmode="decimal" class="inline-num" id="altInput" value="440"> km
-            <input type="range" id="altSlider" min="100" max="40000" step="1" value="440">
-            <div class="stat-hint">height above the surface, aka altitude</div>
         </div>
-        <div class="stat derived" id="rStat">
-            <span class="sym">r</span> = <span class="r-sum">R + h = </span><span class="value" id="rDisp">6 811</span> km
-            <div class="stat-hint">orbital radius</div>
-        </div>
-
-        <button id="launchBtn">LAUNCH</button>
-        <button id="resetBtn">RESET</button>
     </div>
 
     <div id="qCard">
@@ -288,544 +196,407 @@
             <div class="verdict" id="verdict"></div>
             <div id="tryText"></div>
             <button type="button" id="nextQ">Next question</button>
-        </div>
-    </div>
-
-    <div id="vizFormula" aria-hidden="true">
-        <div id="vizViewCirc" class="viz-view on">
-            <span id="vizV">V</span>
-            <span class="viz-eq">=</span>
-            <span class="viz-sqrt-group">
-                <svg id="vizRadical" viewBox="0 0 24 100" preserveAspectRatio="none" aria-hidden="true">
-                    <polyline
-                        points="1,50 7,50 12,96 23,5"
-                        fill="none"
-                        stroke="#9cf"
-                        stroke-width="4.2"
-                        stroke-linejoin="miter"
-                        stroke-linecap="butt" />
-                </svg>
-                <span class="viz-radicand">
-                    <span class="viz-frac">
-                        <span id="vizGM"><span id="vizG">G</span><span id="vizM">M</span></span>
-                        <span id="vizBar"></span>
-                        <span id="vizR">r</span>
-                    </span>
-                </span>
-            </span>
-        </div>
-        <div id="vizViewRad" class="viz-view">
-            <span id="vizRsym">r</span>
-            <span class="viz-eq">=</span>
-            <span id="vizBodyR">R</span>
-            <span class="viz-eq">+</span>
-            <span id="vizH">h</span>
-        </div>
-    </div>
-
-    <div id="eqBar">
-        <div id="eqCirc" class="on">V = √(GM / r)</div>
-        <div id="eqRad">r = R + h</div>
-    </div>
-
-    <div id="explain">
-        <div class="box">
-            <h3 id="explainTitle"></h3>
-            <div id="explainBody"></div>
-            <button type="button" id="explainOk">Understood</button>
+            <a id="playLink" href="orbit-commander.html">Play Orbit Commander</a>
         </div>
     </div>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import * as THREE from "three";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-        const VIS_R = 3;
+        const G = 6.6743e-20;
+        const SPEC = {
+            V: { lo: 0.8, hi: 14, step: 0.01, digits: 2, unit: "km/s", name: "speed" },
+            M: { lo: 0.4, hi: 20, step: 0.01, digits: 2, unit: "×10²⁴ kg", name: "planet mass", scale: 1e24 },
+            r: { lo: 2000, hi: 40000, step: 1, digits: 0, unit: "km", name: "orbital radius" },
+            R: { lo: 1000, hi: 8000, step: 1, digits: 0, unit: "km", name: "planet radius" },
+            h: { lo: 0, hi: 30000, step: 1, digits: 0, unit: "km", name: "altitude" }
+        };
+        const state = { R: 6371, h: 440, r: 6811, M: 5.972e24, V: 7.65 };
+        state.V = Math.sqrt(G * state.M / state.r);
+        const picked = [];
+        const baseline = {};
+
         const questions = [
-            {
-                text: 'A satellite at a higher orbit needs a higher velocity to stay in orbit.',
-                answer: false,
-                eq: 'circ',
-                pulse: ['velStat', 'rStat', 'eqBar'],
-                try: 'Tap r = R + h and raise h. Then tap V = √(GM / r). r gets bigger and circular V goes down, not up.'
-            },
-            {
-                text: 'A satellite at a lower orbit needs a lower velocity to stay in orbit.',
-                answer: false,
-                eq: 'circ',
-                pulse: ['velStat', 'rStat', 'eqBar'],
-                try: 'Tap r = R + h and lower h. Then tap V = √(GM / r). r gets smaller and circular V goes up.'
-            },
-            {
-                text: "A satellite's mass is considered in the orbital speed formula.",
-                answer: false,
-                eq: 'circ',
-                pulse: ['eqBar', 'velStat', 'gmStat', 'rStat'],
-                try: 'Only V, GM and r are on the board. There is no satellite mass to set.'
-            },
-            {
-                text: 'Mass of the central body is considered in the orbital speed formula.',
-                answer: true,
-                eq: 'circ',
-                pulse: ['gmStat', 'velStat', 'rStat', 'eqBar'],
-                try: 'Raise or lower GM. r will change so V = √(GM / r) still holds. A heavier planet needs a higher circular speed.'
-            },
-            {
-                text: 'The orbital radius of a satellite is the sum of its altitude plus the central body radius.',
-                answer: true,
-                eq: 'rad',
-                pulse: ['rStat', 'bodyRStat', 'altStat'],
-                try: 'Change h or R. r is locked, so it always follows. That is why it has a different colour.'
-            }
+            { text: "A higher orbit needs a higher speed to stay in a circle.", answer: false, vars: ["V", "r"], try: "On Speed, pick V and r. Raise r. V gets smaller." },
+            { text: "A lower orbit needs a lower speed to stay in a circle.", answer: false, vars: ["V", "r"], try: "On Speed, pick V and r. Lower r. V gets larger." },
+            { text: "The satellite's own mass is in the orbital speed formula.", answer: false, vars: ["V", "M"], try: "On Speed, look at the letters. They are V, G, M and r. M is the planet. There is no mass for the satellite." },
+            { text: "A heavier planet needs a higher speed for the same orbit.", answer: true, vars: ["V", "M"], try: "On Speed, pick V and M. Raise M. V gets bigger." },
+            { text: "Orbital radius is the planet's radius plus the height above the ground.", answer: true, vars: ["r", "h"], try: "On Radius, pick r and h. Raise h. r gets bigger." },
+            { text: "A bigger planet, with the same height above the ground, means a bigger orbit radius.", answer: true, vars: ["r", "R"], try: "On Radius, pick r and R. Raise R. r gets bigger." }
         ];
-
         let qIndex = 0;
-        let bodyR = 6371, alt = 440, GM = 398600, visGM = 50;
-        let simulating = false, crashed = false, escaped = false, judged = false;
-        let flightT = 0, rMin = Infinity, rMax = 0, launchR = 3, rVis = VIS_R * (6371 + 440) / 6371;
-        let velocity = new THREE.Vector3();
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000011);
-        function stageBox() {
-            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
-            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
-        }
-        const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
-        camera.position.set(0, 4, 10);
+        scene.background = new THREE.Color(0x07080c);
+        const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(0, 4.2, 11);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        function fitStage() {
-            const b = stageBox();
-            camera.aspect = b.w / b.h;
-            camera.updateProjectionMatrix();
-            renderer.setSize(b.w, b.h);
-            const el = renderer.domElement;
-            el.style.position = 'absolute';
-            el.style.inset = 'auto';
-            el.style.left = b.x + 'px';
-            el.style.top = b.y + 'px';
-        }
-        fitStage();
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+        renderer.setSize(innerWidth, innerHeight);
         document.body.appendChild(renderer.domElement);
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.enablePan = false;
-        controls.enableZoom = false;
         controls.target.set(0, 0, 0);
-        let camDist = camera.position.distanceTo(controls.target);
+        let camDist = camera.position.length();
 
         const starGeo = new THREE.BufferGeometry();
         const starPos = [];
-        for (let i = 0; i < 1600; i++) starPos.push((Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500, (Math.random() - 0.5) * 500);
-        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.4 })));
+        for (let i = 0; i < 900; i++) starPos.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400);
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.35, transparent: true, opacity: 0.55 })));
 
-        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R, 64, 64), new THREE.MeshPhongMaterial({ color: 0x2266aa, emissive: 0x112244 }));
+        const VIS = 3;
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.72 }));
         scene.add(planet);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R * 1.06, 32, 32), new THREE.MeshBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.12, side: THREE.BackSide }));
-        scene.add(glow);
-
-        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0x44ffaa, dashSize: 0.4, gapSize: 0.2, transparent: true, opacity: 0.6 }));
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0xf3ecdf, dashSize: 0.28, gapSize: 0.18, transparent: true, opacity: 0.45 }));
         scene.add(orbitLine);
-
-        const sat = new THREE.Group();
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.07, 14, 12), new THREE.MeshPhongMaterial({ color: 0xd4b24a, emissive: 0x443300 }));
-        sat.add(ball);
+        const sat = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), new THREE.MeshStandardMaterial({ color: 0xf3ecdf, roughness: 0.4 }));
         scene.add(sat);
-
-        const trailMax = 360, trailPos = new Float32Array(trailMax * 3);
-        const trailGeo = new THREE.BufferGeometry();
-        trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
-        trailGeo.setDrawRange(0, 0);
-        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.78 }));
-        scene.add(trail);
-        let trailCount = 0;
-        function clearTrail() {
-            trailCount = 0; trailPos.fill(0);
-            trailGeo.setDrawRange(0, 0);
-            trailGeo.attributes.position.needsUpdate = true;
-        }
-        function pushTrail(x, y, z) {
-            if (trailCount < trailMax) {
-                const i = trailCount * 3;
-                trailPos[i] = x; trailPos[i + 1] = y; trailPos[i + 2] = z;
-                trailCount++;
-            } else {
-                trailPos.copyWithin(0, 3);
-                const i = (trailMax - 1) * 3;
-                trailPos[i] = x; trailPos[i + 1] = y; trailPos[i + 2] = z;
-            }
-            trailGeo.setDrawRange(0, trailCount);
-            trailGeo.attributes.position.needsUpdate = true;
-        }
-
-        scene.add(new THREE.AmbientLight(0x334466, 0.5));
-        const sun = new THREE.DirectionalLight(0xffffee, 1.3);
-        sun.position.set(25, 15, 20);
+        scene.add(new THREE.AmbientLight(0xf3ecdf, 0.35));
+        const sun = new THREE.DirectionalLight(0xfff6ea, 1.4);
+        sun.position.set(18, 12, 10);
         scene.add(sun);
 
-        const clock = new THREE.Clock();
-        const velInput = document.getElementById('velInput');
-        const velSlider = document.getElementById('velSlider');
-        const gmInput = document.getElementById('gmInput');
-        const gmSlider = document.getElementById('gmSlider');
-        const bodyRInput = document.getElementById('bodyRInput');
-        const bodyRSlider = document.getElementById('bodyRSlider');
-        const altInput = document.getElementById('altInput');
-        const altSlider = document.getElementById('altSlider');
-        const rDisp = document.getElementById('rDisp');
-        const launchBtn = document.getElementById('launchBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const qAsk = document.getElementById('qAsk');
-        const qAfter = document.getElementById('qAfter');
-        let vel = 7.65;
-        let syncing = false;
-
-        function parseTyped(raw) {
-            const s = String(raw).trim().replace(',', '.');
-            const v = Number(s);
-            return Number.isFinite(v) ? v : NaN;
+        function bounds(id) {
+            const s = SPEC[id];
+            let lo = s.lo, hi = s.hi;
+            if (id === "h") lo = 0;
+            if (id === "r") lo = Math.max(lo, state.R);
+            if (id === "R") hi = Math.min(hi, state.r);
+            if (id === "V") hi = Math.min(hi, Math.sqrt(G * state.M / Math.max(state.R, 1)));
+            if (lo > hi) lo = hi;
+            return { lo, hi };
         }
-        function readClamped(input, slider, lo, hi, fallback) {
-            const v = parseTyped(input.value);
-            if (Number.isFinite(v)) return Math.min(hi, Math.max(lo, v));
-            const s = parseFloat(slider.value);
-            return Number.isFinite(s) ? s : fallback;
+        function fit(id, actual) {
+            const s = SPEC[id];
+            const b = bounds(id);
+            const shown = s.scale ? actual / s.scale : actual;
+            const c = Math.min(b.hi, Math.max(b.lo, shown));
+            return s.scale ? c * s.scale : c;
         }
-        function updateOrbitPath(r) {
+        function shown(id) { return SPEC[id].scale ? state[id] / SPEC[id].scale : state[id]; }
+        function format(id) {
+            const s = SPEC[id];
+            const v = shown(id);
+            return (s.digits ? v.toFixed(s.digits) : String(Math.round(v))) + " " + s.unit;
+        }
+        function has(src, dst, a, b) { return (src === a && dst === b) || (src === b && dst === a); }
+        function link(src, dst) {
+            if (has(src, dst, "R", "h")) {
+                if (src === "R") state.h = state.r - state.R;
+                else state.R = state.r - state.h;
+            } else if (has(src, dst, "r", "h")) {
+                if (src === "h") state.r = state.R + state.h;
+                else state.h = state.r - state.R;
+            } else if (has(src, dst, "r", "R")) {
+                if (src === "R") state.r = state.R + state.h;
+                else state.R = state.r - state.h;
+            } else if (has(src, dst, "V", "M")) {
+                state.r = state.R + state.h;
+                if (src === "V") state.M = state.V * state.V * state.r / G;
+                else state.V = Math.sqrt(G * state.M / state.r);
+            } else if (has(src, dst, "V", "r")) {
+                if (src === "V") state.r = G * state.M / (state.V * state.V);
+                else state.V = Math.sqrt(G * state.M / state.r);
+                state.h = state.r - state.R;
+            } else if (has(src, dst, "M", "r")) {
+                if (src === "M") state.r = G * state.M / (state.V * state.V);
+                else state.M = state.V * state.V * state.r / G;
+                state.h = state.r - state.R;
+            } else if (has(src, dst, "V", "h")) {
+                if (src === "h") {
+                    state.r = state.R + state.h;
+                    state.V = Math.sqrt(G * state.M / state.r);
+                } else {
+                    state.r = G * state.M / (state.V * state.V);
+                    state.h = state.r - state.R;
+                }
+            } else if (has(src, dst, "V", "R")) {
+                if (src === "R") {
+                    state.r = state.R + state.h;
+                    state.V = Math.sqrt(G * state.M / state.r);
+                } else {
+                    state.r = G * state.M / (state.V * state.V);
+                    state.R = state.r - state.h;
+                }
+            } else if (has(src, dst, "M", "h")) {
+                if (src === "h") {
+                    state.r = state.R + state.h;
+                    state.M = state.V * state.V * state.r / G;
+            } else {
+                    state.r = G * state.M / (state.V * state.V);
+                    state.h = state.r - state.R;
+                }
+            } else if (has(src, dst, "M", "R")) {
+                if (src === "R") {
+                    state.r = state.R + state.h;
+                    state.M = state.V * state.V * state.r / G;
+                } else {
+                    state.r = G * state.M / (state.V * state.V);
+                    state.R = state.r - state.h;
+                }
+            }
+            const pair = new Set([src, dst]);
+            if (!pair.has("V") && !pair.has("M")) state.V = Math.sqrt(G * state.M / Math.max(state.r, 1));
+            if (!pair.has("r") && !pair.has("R") && !pair.has("h")) state.r = state.R + state.h;
+        }
+        function settleSurface(src, dst) {
+            if (state.h >= -1e-6 && state.r + 1e-4 >= state.R) {
+                if (state.h < 0) state.h = 0;
+                return;
+            }
+            if (src === "R") {
+                state.R = Math.min(state.R, state.r);
+                state.h = Math.max(0, state.r - state.R);
+                state.r = state.R + state.h;
+            } else {
+                state.r = Math.max(state.r, state.R);
+                state.h = state.r - state.R;
+                if (state.h < 0) {
+                    state.h = 0;
+                    state.r = state.R;
+                }
+            }
+            const other = [src, dst].find((id) => id !== "r" && id !== "R" && id !== "h");
+            const anchor = [src, dst].find((id) => id === "r" || id === "h" || id === "R");
+            if (other && anchor) link(anchor, other);
+        }
+        function solve(src) {
+            const dst = picked.find((id) => id !== src);
+            if (!dst) return;
+            link(src, dst);
+            const c = fit(dst, state[dst]);
+            if (Math.abs(c - state[dst]) > 1e-6) {
+                state[dst] = c;
+                link(dst, src);
+                state[src] = fit(src, state[src]);
+            } else state[dst] = c;
+            state[src] = fit(src, state[src]);
+            settleSurface(src, dst);
+            state[src] = fit(src, state[src]);
+            state[dst] = fit(dst, state[dst]);
+        }
+        function takeBaseline() {
+            Object.keys(baseline).forEach((id) => delete baseline[id]);
+            picked.forEach((id) => { baseline[id] = state[id]; });
+        }
+        function px(id) {
+            const rest = 64;
+            if (!picked.includes(id)) return rest;
+            const base = baseline[id];
+            if (!base) return rest;
+            const scaled = Math.pow(Math.max(state[id] / base, 0.05), 0.9);
+            return rest * Math.min(2.05, Math.max(0.7, scaled));
+        }
+        function placeFormula() {
+            const el = document.getElementById("formula");
+            const panel = document.getElementById("panel").getBoundingClientRect();
+            const q = document.getElementById("qCard");
+            const qOn = q && getComputedStyle(q).display !== "none";
+            const qb = qOn ? q.getBoundingClientRect() : null;
+            let left = 20, right = innerWidth - 20, top = 24, bottom = innerHeight - 24;
+            if (innerWidth >= 1100) {
+                left = Math.max(left, panel.right + 36);
+                if (qb) right = Math.min(right, qb.left - 28);
+            } else {
+                top = Math.max(top, panel.bottom + 16);
+                if (qb) bottom = Math.min(bottom, qb.top - 16);
+            }
+            const roomW = Math.max(40, right - left);
+            const roomH = Math.max(40, bottom - top);
+            el.style.left = ((left + right) / 2) + "px";
+            el.style.top = ((top + bottom) / 2) + "px";
+            el.style.transform = "translate(-50%, -50%)";
+            const rect = el.getBoundingClientRect();
+            const fitScale = Math.min(roomW / Math.max(rect.width, 1), roomH / Math.max(rect.height, 1));
+            const s = Math.min(1.22, fitScale);
+            el.style.transform = "translate(-50%, -50%) scale(" + s.toFixed(3) + ")";
+        }
+        const drawn = {};
+        function easeLetters(dt) {
+            const glide = 1 - Math.exp(-Math.max(dt, 0.001) * 8);
+            let layout = false;
+            document.querySelectorAll("button.var").forEach((el) => {
+                const id = el.dataset.id;
+                const target = px(id);
+                if (drawn[id] == null) drawn[id] = target;
+                const next = Math.abs(target - drawn[id]) < 0.2 ? target : drawn[id] + (target - drawn[id]) * glide;
+                if (Math.abs(next - drawn[id]) > 0.04) layout = true;
+                drawn[id] = next;
+                el.style.fontSize = next.toFixed(2) + "px";
+                el.classList.toggle("on", picked.includes(id));
+            });
+            if (layout) placeFormula();
+        }
+        function sizeSymbols() {
+            document.querySelectorAll("button.var").forEach((el) => {
+                el.classList.toggle("on", picked.includes(el.dataset.id));
+            });
+            placeFormula();
+        }
+        function renderControls() {
+            const box = document.getElementById("controls");
+            if (picked.length < 2) {
+                box.hidden = true;
+                box.innerHTML = "";
+                return;
+            }
+            box.hidden = false;
+            box.innerHTML = picked.map((id) => {
+                const s = SPEC[id];
+                const b = bounds(id);
+                return `<div class="slide"><label><span class="sym">${id}</span><span class="num">${format(id)}</span></label><input type="range" data-id="${id}" min="${b.lo}" max="${b.hi}" step="${s.step}" value="${shown(id)}" aria-label="${s.name}"></div>`;
+            }).join("");
+            box.querySelectorAll("input").forEach((input) => {
+                input.addEventListener("input", () => {
+                    const id = input.dataset.id;
+                    state[id] = fromSlider(id, parseFloat(input.value));
+                    solve(id);
+                    paint();
+                });
+            });
+        }
+        function fromSlider(id, v) { return SPEC[id].scale ? v * SPEC[id].scale : v; }
+        function paint() {
+            document.querySelectorAll("#controls input").forEach((input) => {
+                const id = input.dataset.id;
+                const b = bounds(id);
+                input.min = String(b.lo);
+                input.max = String(b.hi);
+                input.value = String(Math.min(b.hi, Math.max(b.lo, shown(id))));
+                input.parentElement.querySelector(".num").textContent = format(id);
+            });
+            sizeSymbols();
+            placeScene();
+        }
+        function placeScene() {
+            const scale = state.R / 6371;
+            planet.scale.setScalar(scale);
+            const orbitR = VIS * state.r / 6371;
+            sat.position.set(orbitR, 0, 0);
             const pts = [];
-            for (let i = 0; i <= 80; i++) {
-                const a = i / 80 * Math.PI * 2;
-                pts.push(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r));
+            for (let i = 0; i <= 96; i++) {
+                const a = i / 96 * Math.PI * 2;
+                pts.push(new THREE.Vector3(Math.cos(a) * orbitR, 0, Math.sin(a) * orbitR));
             }
             orbitLine.geometry.setFromPoints(pts);
             orbitLine.computeLineDistances();
         }
-        function wantedCamDist() {
-            return Math.max(8, Math.min(56, 3.6 + rVis * 2.65));
-        }
-        function tweenCamera(dt) {
-            const want = wantedCamDist();
-            const k = 1 - Math.exp(-4.2 * dt);
-            camDist += (want - camDist) * k;
-            const from = controls.target;
-            const dir = camera.position.clone().sub(from);
-            if (dir.lengthSq() < 1e-8) dir.set(0, 0.35, 1);
-            dir.setLength(camDist);
-            camera.position.copy(from).add(dir);
-        }
-        function setNum(input, slider, n, digits) {
-            const v = Number(n);
-            const shown = digits == null ? String(Math.round(v)) : v.toFixed(digits);
-            input.value = shown;
-            slider.value = String(v);
-        }
-        function applyChange(which) {
-            if (syncing) return;
-            syncing = true;
-            if (which === 'h') alt = readClamped(altInput, altSlider, 50, 40000, alt);
-            if (which === 'R') bodyR = readClamped(bodyRInput, bodyRSlider, 400, 9000, bodyR);
-            if (which === 'GM') GM = readClamped(gmInput, gmSlider, 5000, 600000, GM);
-            if (which === 'V') vel = readClamped(velInput, velSlider, 0.2, 15, vel);
+        function wantedDist() { return Math.max(8, Math.min(48, 4 + VIS * state.r / 6371 * 2.4)); }
 
-            let r = bodyR + alt;
-            if (which === 'V' || which === 'GM') {
-                r = GM / (vel * vel);
-                alt = r - bodyR;
-                if (alt < 50) {
-                    alt = 50;
-                    bodyR = Math.max(400, r - alt);
-                    r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
+        document.querySelectorAll("button.var").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                const i = picked.indexOf(id);
+                if (i >= 0) picked.splice(i, 1);
+                else {
+                    if (picked.length >= 2) picked.shift();
+                    picked.push(id);
                 }
-                if (alt > 40000) {
-                    alt = 40000;
-                    r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
-                }
-            } else {
-                r = bodyR + alt;
-                vel = Math.sqrt(GM / r);
-                if (vel > 15) {
-                    vel = 15;
-                    r = GM / (vel * vel);
-                    alt = r - bodyR;
-                    if (alt < 50) {
-                        alt = 50;
-                        bodyR = Math.max(400, r - alt);
-                        r = bodyR + alt;
-                        vel = Math.sqrt(GM / r);
-                    }
-                }
-                if (vel < 0.5) {
-                    vel = 0.5;
-                    r = GM / (vel * vel);
-                    alt = Math.min(40000, r - bodyR);
-                    if (alt < 50) alt = 50;
-                    r = bodyR + alt;
-                    vel = Math.sqrt(GM / r);
-                }
-            }
-
-            setNum(altInput, altSlider, alt, Math.abs(alt - Math.round(alt)) < 1e-6 ? null : 1);
-            setNum(bodyRInput, bodyRSlider, bodyR, null);
-            setNum(gmInput, gmSlider, GM, null);
-            setNum(velInput, velSlider, vel, 4);
-            rDisp.textContent = Math.round(r).toLocaleString();
-            updateViz(r);
-
-            visGM = 50 * (GM / 398600) * (6371 / bodyR);
-            rVis = VIS_R * r / bodyR;
-            const visNeed = Math.sqrt(visGM / rVis);
-            velocity.set(0, 0, visNeed);
-            sat.position.set(rVis, 0, 0);
-            sat.quaternion.identity();
-            updateOrbitPath(rVis);
-            crashed = escaped = judged = false;
-            if (simulating) {
-                launchR = rVis;
-                flightT = 0; rMin = Infinity; rMax = 0;
-                clearTrail();
-            }
-            syncing = false;
-        }
-        function mapSize(val, lo, hi, minPx, maxPx, useLog) {
-            const v = Math.min(hi, Math.max(lo, val));
-            const a = useLog ? Math.log(v) : v;
-            const b = useLog ? Math.log(lo) : lo;
-            const c = useLog ? Math.log(hi) : hi;
-            const t = (a - b) / (c - b);
-            return minPx + t * (maxPx - minPx);
-        }
-        function updateViz(r) {
-            const vPx = mapSize(vel, 0.6, 12, 36, 108, false);
-            const mPx = mapSize(GM, 25000, 480000, 28, 96, true);
-            const rPx = mapSize(r, 1600, 42000, 28, 96, true);
-            const gPx = 34;
-            const bodyPx = mapSize(bodyR, 400, 9000, 28, 88, true);
-            const hPx = mapSize(Math.max(alt, 1), 1, 40000, 28, 96, true);
-            document.getElementById('vizV').style.fontSize = vPx + 'px';
-            document.getElementById('vizM').style.fontSize = mPx + 'px';
-            document.getElementById('vizR').style.fontSize = rPx + 'px';
-            document.getElementById('vizRsym').style.fontSize = rPx + 'px';
-            document.getElementById('vizBodyR').style.fontSize = bodyPx + 'px';
-            document.getElementById('vizH').style.fontSize = hPx + 'px';
-            const eqPx = (selectedEq === 'circ' ? vPx : rPx) * 0.42;
-            document.querySelectorAll('#vizFormula .viz-eq').forEach(el => { el.style.fontSize = eqPx + 'px'; });
-            document.getElementById('vizBar').style.width = Math.max(gPx + mPx * 1.15, rPx * 1.2) + 'px';
-            const roofH = Math.max(gPx, mPx) + rPx + 36;
-            const radical = document.getElementById('vizRadical');
-            radical.style.height = roofH + 'px';
-            radical.style.width = Math.max(26, roofH * 0.24) + 'px';
-        }
-        function updateDisplays() { applyChange('h'); }
-
-        const eqViews = {
-            circ: {
-                stats: ['velStat', 'gmStat', 'rStat'],
-                view: 'vizViewCirc',
-                btn: 'eqCirc',
-                sub: 'Only V, GM and r. Tap a formula below to switch. r is locked.',
-                title: 'Circular orbit speed',
-                body: 'V = √(GM / r)\n\nThis is how fast the satellite must go to stay in a circle at distance r from the centre.\n\nA heavier planet (bigger GM) needs a higher speed.\nA higher orbit (bigger r) needs a lower speed.\n\nThe satellite’s own mass is not in this formula — only the planet and the distance matter.\n\nG is a constant, so in the big formula only M (the planet’s mass) grows and shrinks. V grows with M and shrinks as r grows.'
-            },
-            rad: {
-                stats: ['bodyRStat', 'altStat', 'rStat'],
-                view: 'vizViewRad',
-                btn: 'eqRad',
-                sub: 'Only r, R and h. Tap a formula below to switch. r is locked.',
-                title: 'Orbital radius',
-                body: 'r = R + h\n\nR is the planet or moon, measured from its centre to the surface.\nh is how high the satellite sits above that surface (altitude).\n\nAdd them to get r — the distance from the centre out to the satellite.\nYou cannot set r yourself. Change R or h, and r follows.'
-            }
-        };
-        let selectedEq = 'circ';
-        function selectEq(id, explainIfSame) {
-            const spec = eqViews[id];
-            if (!spec) return;
-            if (explainIfSame && selectedEq === id) {
-                showExplain(spec.title, spec.body);
-                return;
-            }
-            selectedEq = id;
-            document.body.dataset.eq = id;
-            document.getElementById('eqSub').textContent = spec.sub;
-            ['velStat', 'gmStat', 'bodyRStat', 'altStat', 'rStat'].forEach(sid => {
-                document.getElementById(sid).classList.toggle('eq-off', !spec.stats.includes(sid));
+                renderControls();
+                takeBaseline();
+                sizeSymbols();
             });
-            document.querySelectorAll('#eqBar div').forEach(el => el.classList.toggle('on', el.id === spec.btn));
-            document.querySelectorAll('.viz-view').forEach(el => el.classList.toggle('on', el.id === spec.view));
-            updateViz(bodyR + alt);
-        }
-
-        const explain = document.getElementById('explain');
-        function showExplain(title, body) {
-            document.getElementById('explainTitle').textContent = title;
-            document.getElementById('explainBody').textContent = body;
-            explain.classList.add('show');
-        }
-        document.getElementById('eqCirc').onclick = () => selectEq('circ', true);
-        document.getElementById('eqRad').onclick = () => selectEq('rad', true);
-        document.getElementById('explainOk').onclick = () => explain.classList.remove('show');
-        explain.addEventListener('click', e => {
-            if (e.target === explain) explain.classList.remove('show');
         });
-        const linkMap = {
-            h: { src: 'altStat', stats: ['velStat', 'rStat'], vizSrc: 'vizH', viz: ['vizRsym', 'vizV'] },
-            R: { src: 'bodyRStat', stats: ['velStat', 'rStat'], vizSrc: 'vizBodyR', viz: ['vizRsym', 'vizV'] },
-            GM: { src: 'gmStat', stats: ['altStat', 'rStat'], vizSrc: 'vizM', viz: ['vizR'] },
-            V: { src: 'velStat', stats: ['altStat', 'rStat'], vizSrc: 'vizV', viz: ['vizR'] }
-        };
-        let linkClearT = 0;
-        function clearLinkLook() {
-            document.querySelectorAll('.stat.source, .stat.driven, #vizV, #vizM, #vizR, #vizRsym, #vizBodyR, #vizH').forEach(el => {
-                el.classList.remove('source', 'driven');
-            });
-        }
-        function setLinkLook(which) {
-            clearTimeout(linkClearT);
-            clearLinkLook();
-            const m = linkMap[which];
-            if (!m) return;
-            document.getElementById(m.src)?.classList.add('source');
-            m.stats.forEach(id => document.getElementById(id)?.classList.add('driven'));
-            if (m.vizSrc) document.getElementById(m.vizSrc)?.classList.add('source');
-            m.viz.forEach(id => document.getElementById(id)?.classList.add('driven'));
-        }
-        function bindTune(slider, input, which) {
-            const start = () => setLinkLook(which);
-            const end = () => { linkClearT = setTimeout(clearLinkLook, 500); };
-            slider.addEventListener('pointerdown', start);
-            slider.addEventListener('pointerup', end);
-            slider.addEventListener('pointercancel', end);
-            input.addEventListener('pointerdown', start);
-            input.addEventListener('pointerup', end);
-            input.addEventListener('pointercancel', end);
-            slider.addEventListener('input', () => {
-                const v = parseFloat(slider.value);
-                if (!Number.isFinite(v)) return;
-                input.value = String(v);
-                setLinkLook(which);
-                applyChange(which);
-            });
-            input.addEventListener('input', () => {
-                const v = parseTyped(input.value);
-                if (!Number.isFinite(v)) return;
-                slider.value = v;
-                setLinkLook(which);
-                applyChange(which);
-            });
-        }
-        bindTune(velSlider, velInput, 'V');
-        bindTune(gmSlider, gmInput, 'GM');
-        bindTune(bodyRSlider, bodyRInput, 'R');
-        bindTune(altSlider, altInput, 'h');
 
-        function resetSim() {
-            simulating = crashed = escaped = judged = false;
-            flightT = 0; rMin = Infinity; rMax = 0;
-            sat.visible = true;
-            clearTrail();
-            launchBtn.disabled = false;
-            updateDisplays();
-        }
-
-        launchBtn.onclick = () => {
-            if (simulating) return;
-            simulating = true;
-            launchBtn.disabled = true;
-            applyChange('h');
-            launchR = rVis;
-            flightT = 0; rMin = Infinity; rMax = 0; judged = false;
-            clearTrail();
-        };
-        resetBtn.onclick = () => {
-            syncing = true;
-            bodyR = 6371; alt = 440; GM = 398600; vel = Math.sqrt(GM / (bodyR + alt));
-            syncing = false;
-            resetSim();
-        };
-
-        function pulse(ids) {
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                el.classList.remove('pulse', 'pulse-eq');
-                void el.offsetWidth;
-                el.classList.add(id === 'eqBar' ? 'pulse-eq' : 'pulse');
-            });
-        }
-
+        const qAsk = document.getElementById("qAsk");
+        const qAfter = document.getElementById("qAfter");
         function showQuestion() {
             const q = questions[qIndex];
-            document.getElementById('qStep').textContent = 'Question ' + (qIndex + 1) + ' of ' + questions.length;
-            document.getElementById('qText').textContent = q.text;
-            qAsk.classList.remove('hide');
-            qAfter.classList.remove('show');
-            selectEq(q.eq);
+            document.getElementById("qStep").textContent = "Question " + (qIndex + 1) + " of " + questions.length;
+            document.getElementById("qText").textContent = q.text;
+            qAsk.classList.remove("hide");
+            qAfter.classList.remove("show");
+        }
+        function eqFor(ids) {
+            const rows = [...document.querySelectorAll("#formula .row")];
+            let best = 0, score = -1;
+            rows.forEach((row, i) => {
+                const have = new Set([...row.querySelectorAll("button.var")].map((b) => b.dataset.id));
+                const s = ids.filter((id) => have.has(id)).length;
+                if (s > score) { score = s; best = i; }
+            });
+            return best;
+        }
+        function showEq(i) {
+            document.querySelectorAll("#formula .row").forEach((row, n) => row.classList.toggle("show", n === i));
+            document.querySelectorAll("#eqNav button").forEach((btn, n) => btn.classList.toggle("on", n === i));
+            const name = document.querySelector("#eqNav button.on");
+            if (name) {
+                const url = new URL(location.href);
+                url.searchParams.set("eq", name.dataset.name);
+                history.replaceState(null, "", url);
+            }
+            const ids = new Set([...document.querySelectorAll("#formula .row.show button.var")].map((b) => b.dataset.id));
+            for (let k = picked.length - 1; k >= 0; k--) if (!ids.has(picked[k])) picked.splice(k, 1);
+            renderControls();
+            takeBaseline();
+            sizeSymbols();
+        }
+        document.querySelectorAll("#eqNav button").forEach((btn) => {
+            btn.addEventListener("click", () => showEq(Number(btn.dataset.eq)));
+        });
+        function pulse(ids) {
+            showEq(eqFor(ids));
+            document.querySelectorAll("button.var.pulse").forEach((el) => el.classList.remove("pulse"));
+            ids.forEach((id) => {
+                document.querySelectorAll('button.var[data-id="' + id + '"]').forEach((el) => {
+                void el.offsetWidth;
+                    el.classList.add("pulse");
+                });
+            });
         }
         function answer(choice) {
             const q = questions[qIndex];
             const ok = choice === q.answer;
-            const verdict = document.getElementById('verdict');
-            verdict.textContent = ok ? 'That’s right.' : 'Not quite.';
-            verdict.className = 'verdict ' + (ok ? 'ok' : 'no');
-            document.getElementById('tryText').textContent = q.try;
-            document.getElementById('nextQ').textContent = qIndex >= questions.length - 1 ? 'Finish' : 'Next question';
-            qAsk.classList.add('hide');
-            qAfter.classList.add('show');
-            selectEq(q.eq);
-            pulse(q.pulse);
+            const verdict = document.getElementById("verdict");
+            verdict.textContent = ok ? "That's right." : "Not quite.";
+            verdict.className = "verdict " + (ok ? "ok" : "no");
+            document.getElementById("tryText").textContent = q.try;
+            const last = qIndex >= questions.length - 1;
+            document.getElementById("nextQ").hidden = last;
+            document.getElementById("playLink").classList.toggle("show", last);
+            qAsk.classList.add("hide");
+            qAfter.classList.add("show");
+            pulse(q.vars);
         }
-        document.getElementById('trueBtn').onclick = () => answer(true);
-        document.getElementById('falseBtn').onclick = () => answer(false);
-        document.getElementById('nextQ').onclick = () => {
-            if (qIndex >= questions.length - 1) {
-                qAfter.classList.remove('show');
-                qAsk.classList.add('hide');
-                document.getElementById('qCard').style.display = 'none';
-                return;
-            }
+        document.getElementById("trueBtn").onclick = () => answer(true);
+        document.getElementById("falseBtn").onclick = () => answer(false);
+        document.getElementById("nextQ").onclick = () => {
             qIndex++;
             showQuestion();
         };
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const dt = Math.min(clock.getDelta(), 0.04) * 0.9;
-            if (simulating && !crashed && !escaped) {
-                const pos = sat.position, r = pos.length();
-                const accel = pos.clone().normalize().multiplyScalar(-visGM / (r * r));
-                velocity.add(accel.multiplyScalar(dt));
-                pos.add(velocity.clone().multiplyScalar(dt));
-                pushTrail(pos.x, pos.y, pos.z);
-                if (velocity.lengthSq() > 1e-8) {
-                    sat.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), velocity.clone().normalize());
-                }
-                flightT += dt;
-                if (flightT > 0.12) {
-                    rMin = Math.min(rMin, r);
-                    rMax = Math.max(rMax, r);
-                }
-                const energy = 0.5 * velocity.lengthSq() - visGM / r;
-                if (r < VIS_R) {
-                    crashed = true; judged = true;
-                } else if (energy > 0 && r > launchR * 1.4) {
-                    escaped = true; judged = true;
-                } else if (!judged && flightT > 2.4) {
-                    judged = true;
-                }
-            }
+        let lastT = 0;
+        function frame(now) {
+            requestAnimationFrame(frame);
+            const t = now || performance.now();
+            const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016;
+            lastT = t;
+            easeLetters(dt);
+            const want = wantedDist();
+            camDist += (want - camDist) * 0.08;
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-6) dir.set(0, 0.35, 1);
+            dir.setLength(camDist);
+            camera.position.copy(controls.target).add(dir);
             controls.update();
-            tweenCamera(dt);
             renderer.render(scene, camera);
         }
-
-        window.addEventListener('resize', fitStage);
-
-        updateDisplays();
-        selectEq('circ');
+        window.addEventListener("resize", () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+            placeFormula();
+        });
+        const asked = new URLSearchParams(location.search).get("eq");
+        const startEq = [...document.querySelectorAll("#eqNav button")].findIndex((b) => b.dataset.name === asked);
+        showEq(startEq >= 0 ? startEq : 0);
+        placeScene();
         showQuestion();
-        animate();
+        frame();
     </script>
 </body>
 </html>

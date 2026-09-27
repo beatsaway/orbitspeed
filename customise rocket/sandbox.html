@@ -4,42 +4,60 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Rocket sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
-    :root { --ink: #e7f2ff; --muted: #9eb4c8; --cyan: #6df; --line: #24384c; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #07111c; color: var(--ink); font-family: "Segoe UI", sans-serif; }
-    #app { display: flex; height: 100%; }
-    aside {
-      width: 320px; flex: none; padding: 14px 14px 16px; display: flex; flex-direction: column; gap: 10px;
-      background: #0c1826; border-right: 1px solid var(--line); min-height: 0;
+    :root {
+      --ink: #f3ecdf;
+      --dim: rgba(243, 236, 223, 0.62);
+      --line: rgba(243, 236, 223, 0.16);
+      --card: rgba(8, 9, 12, 0.86);
     }
-    h1 { margin: 0; font-size: 1.15rem; color: var(--cyan); }
-    .sub { margin: 0; color: var(--muted); font-size: 0.82rem; line-height: 1.35; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+    body { overflow: hidden; user-select: none; }
+    input, select { user-select: text; }
+    #app { position: relative; height: 100%; }
+    aside {
+      position: absolute; top: 14px; left: 14px; z-index: 6;
+      width: 268px; max-height: min(520px, calc(100vh - 28px));
+      padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      backdrop-filter: blur(10px); min-height: 0;
+    }
+    h1 {
+      margin: 0; color: var(--ink);
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500; font-size: 28px; line-height: 1;
+    }
+    .sub { margin: 0; color: var(--dim); font-size: 0.85rem; line-height: 1.35; }
     #controls { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
     label.ctrl span { display: block; font-size: 0.88rem; margin-bottom: 3px; }
     label.ctrl select, label.ctrl input[type="range"] { width: 100%; }
-    .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.72rem; }
-    #result { margin: 0; font-size: 1rem; font-weight: 700; }
-    #result.good { color: #9dface; }
-    #result.bad { color: #ffb0a8; }
-    .key { margin: 0; color: var(--muted); font-size: 0.8rem; }
+    label.ctrl select {
+      font: inherit; color: var(--ink); background: rgba(7, 8, 12, 0.55);
+      border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+    }
+    input[type="range"] { accent-color: #f3ecdf; }
+    .ends { display: flex; justify-content: space-between; color: var(--dim); font-size: 0.72rem; }
+    #result { margin: 0; font-size: 1rem; font-weight: 500; }
+    #result.good { color: #d7eccf; }
+    #result.bad { color: #f0c2b2; }
+    .key { margin: 0; color: var(--dim); font-size: 0.8rem; }
     .key b.cg { color: #ff2bd6; }
     .key b.cp { color: #3de4ff; }
     .actions { display: flex; gap: 8px; }
     button {
-      font: inherit; font-weight: 700; border: 0; border-radius: 10px; padding: 10px 12px; cursor: pointer;
-      background: var(--cyan); color: #041018;
+      font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+      border: 0; border-radius: 999px; padding: 10px 12px; cursor: pointer;
+      background: #f3ecdf; color: #16140f;
     }
-    button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+    button.ghost { background: transparent; color: var(--ink); border: 1px solid rgba(243, 236, 223, 0.28); }
     #launch { flex: 1; }
-    button:disabled { opacity: 0.45; cursor: default; }
-    #stage { flex: 1; position: relative; min-width: 0; }
+    button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); cursor: default; }
+    #stage { position: absolute; inset: 0; }
     canvas { width: 100%; height: 100%; display: block; }
-    @media (max-width: 800px) {
-      #app { flex-direction: column; }
-      #stage { height: 46vh; flex: none; order: -1; }
-      aside { width: auto; flex: 1; border-right: 0; border-top: 1px solid var(--line); }
-    }
   </style>
 </head>
 <body>
@@ -96,22 +114,22 @@
     const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x07111c);
-    scene.fog = new THREE.Fog(0x07111c, 18, 55);
+    scene.background = new THREE.Color(0x07080c);
+    scene.fog = new THREE.Fog(0x07080c, 18, 55);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
-    scene.add(new THREE.HemisphereLight(0xb9d4ff, 0x1b2430, 0.9));
-    const sun = new THREE.DirectionalLight(0xfff2dd, 1.2);
+    scene.add(new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85));
+    const sun = new THREE.DirectionalLight(0xfff3e2, 1.7);
     sun.position.set(6, 14, 8);
     scene.add(sun);
     const ground = new THREE.Mesh(
       new THREE.CircleGeometry(40, 40),
-      new THREE.MeshStandardMaterial({ color: 0x1a2836, roughness: 0.9 })
+      new THREE.MeshStandardMaterial({ color: 0x1c221c, roughness: 0.92 })
     );
     ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
     const pad = new THREE.Mesh(
       new THREE.CylinderGeometry(2.2, 2.4, 0.28, 32),
-      new THREE.MeshStandardMaterial({ color: 0x2c3848, metalness: 0.4, roughness: 0.5 })
+      new THREE.MeshStandardMaterial({ color: 0x3a3832, metalness: 0.28, roughness: 0.55 })
     );
     pad.position.y = 0.14;
     scene.add(pad);
@@ -249,7 +267,7 @@
       rocket.add(plume);
       const cgLocal = next.total - next.cg;
       rocket.position.y = -cgLocal;
-      pivot.position.set(0, cgLocal + nz.len, 0);
+      pivot.position.set(0, cgLocal + nz.len + 0.42, 0);
       pivot.rotation.set(0, 0, 0);
       pivot.userData.homeY = pivot.position.y;
       pivot.add(rocket);

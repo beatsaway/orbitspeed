@@ -2,6 +2,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gravity Researcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #07111c; font-family: "Segoe UI", system-ui, sans-serif; color: #e8f4ff; }
@@ -84,12 +87,14 @@
         .stat.adjust .value.swap { display: none; }
         .tune-controls { display: none; }
         .stat.adjust {
-            border: 1px solid #4af;
-            box-shadow: inset 0 0 0 1px rgba(68,170,255,0.25);
+            border: 0;
+            box-shadow: none;
+            background: transparent;
         }
         .stat.adjust.drop-target {
-            border-color: #0f8;
-            box-shadow: inset 0 0 0 1px rgba(15,255,136,0.45), 0 0 14px rgba(0,255,136,0.25);
+            border: 0;
+            box-shadow: none;
+            background: transparent;
         }
         .stat.adjust .tune-controls { display: block; }
         .adjust-label {
@@ -319,11 +324,116 @@
         @media (max-width: 800px) {
             #ui {
                 position: absolute; top: 10px; left: 12px; bottom: auto; width: min(300px, calc(100% - 24px));
-                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid #1d3c56;
+                height: auto; max-height: calc(100vh - 160px); border-radius: 16px; border: 1px solid var(--line);
+                background: rgba(8, 9, 12, 0.88);
             }
             #detailBtn, #endBtn { left: 50%; }
             #control { max-width: min(300px, calc(100% - 28px)); }
         }
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+            --card: rgba(8, 9, 12, 0.78);
+        }
+        body { background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
+        input, textarea { user-select: text; -webkit-user-select: text; }
+        h1 {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 28px; letter-spacing: 0.02em;
+            text-transform: none; line-height: 1; color: var(--ink); margin: 0 0 8px;
+        }
+        #ui {
+            top: 14px; left: 14px; right: auto; bottom: auto;
+            width: 268px; height: auto; max-height: min(520px, calc(100vh - 28px));
+            border-radius: 16px; border: 1px solid var(--line);
+            background: rgba(8, 9, 12, 0.86); color: var(--ink); overflow: auto;
+        }
+        #detailBtn, #endBtn { left: 50%; }
+        .popup-box { max-width: 340px; padding: 16px; font-size: 0.95rem; line-height: 1.4; }
+        .brief-art { max-height: 84px; margin-bottom: 8px; }
+        .intro-art {
+            display: block; width: 100%; height: 112px; object-fit: cover;
+            object-position: center 62%; border-radius: 10px; margin: 0 0 10px; background: #041018;
+        }
+        .brief-face { font-size: 1.5rem; }
+        #popupOk { margin-top: 12px; padding: 10px 14px; font-size: 1rem; min-height: 0; }
+        #quiz p { font-size: 0.98rem; }
+        #quiz button { min-height: 0; padding: 10px 12px; font-size: 0.95rem; }
+        #hud, #eqPanel, #control, #calcPad, .popup-box, .end-card {
+            background: var(--card); border: 1px solid var(--line); color: var(--ink);
+            box-shadow: none; backdrop-filter: blur(10px);
+        }
+        #hud { border-radius: 16px; }
+        #hud .hud-row span, .stat-hint, .extra, #control .hint { color: var(--dim); opacity: 1; }
+        #hud .hud-row b { color: var(--ink); }
+        #hud .hud-row b.ok { color: #d7eccf; }
+        #hud .hud-row b.bad { color: #f0c2b2; }
+        #hud .hud-row b.warn { color: #f3e6c0; }
+        .stat { background: transparent; border: 0; border-radius: 12px; padding: 8px 4px; cursor: grab; user-select: none; }
+        .stat input { cursor: auto; }
+        .stat:hover { background: rgba(243, 236, 223, 0.06); }
+        .value, .sym, .inline-num, #calcScreen { color: var(--ink); }
+        .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; font-size: 22px; }
+        .stat:not(.adjust) .value { border-bottom-color: rgba(243, 236, 223, 0.35); }
+        input[type=range] { accent-color: #f3ecdf; }
+        input.inline-num { background: transparent; border: 1px solid var(--line); color: var(--ink); border-radius: 8px; }
+        .stat.adjust, .stat.adjust:hover {
+            border: 0; box-shadow: none; background: transparent; color: #ffe9a8;
+        }
+        .stat.adjust .sym, .stat.adjust .value, .stat.adjust .inline-num,
+        .stat.adjust .adjust-label, .stat.adjust .stat-hint, .stat.adjust .extra { color: #ffe9a8; }
+        .stat.adjust input.inline-num {
+            color: #ffe9a8; background: transparent; border-color: transparent;
+        }
+        .stat.adjust.drop-target, .stat.adjust.drop-target .sym, .stat.adjust.drop-target .value,
+        .stat.adjust.drop-target .inline-num, .stat.adjust.drop-target .adjust-label,
+        .stat.adjust.drop-target .stat-hint, .stat.adjust.drop-target .extra,
+        .stat.adjust.drop-target input.inline-num {
+            color: #0f8; border: 0; box-shadow: none; background: transparent;
+        }
+        .adjust-label { color: var(--dim); text-transform: none; letter-spacing: 0; font-size: 15px; }
+        #launchBtn, #popupOk, #nextBtn, #saveEndBtn {
+            background: #f3ecdf; color: #16140f; border: 0; border-radius: 999px;
+            font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+        }
+        #resetBtn, #detailBtn, #endBtn, #calcToggle, #calcClose {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28); border-radius: 999px; box-shadow: none;
+        }
+        #ui > button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); border-color: transparent; }
+        #eqPanel .eq, .eq { background: transparent; color: var(--ink); border-radius: 8px; }
+        #eqPanel .eq:hover { background: rgba(243, 236, 223, 0.08); }
+        .calc-keys button { background: rgba(243, 236, 223, 0.08); color: var(--ink); border-radius: 8px; }
+        .calc-keys button.op { background: rgba(243, 236, 223, 0.16); }
+        .calc-keys button.go { background: #f3ecdf; color: #16140f; grid-column: 1 / -1; padding: 8px 0; }
+        .calc-keys button.mem { letter-spacing: 0.04em; }
+        .calc-keys button.warn { background: rgba(240, 194, 178, 0.2); color: #f0c2b2; }
+        #calcScreen { background: rgba(7, 8, 12, 0.55); border: 1px solid var(--line); }
+        #calcPad { background: rgba(8, 9, 12, 0.92); }
+        .calc-body { background: transparent; }
+        #quiz button {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28); border-radius: 999px;
+            font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+        }
+        #quizNote { color: var(--dim); }
+        #quiz.quiz-wrong #quizNote { color: #f0c2b2; }
+        #quiz button.wrong { background: rgba(240, 194, 178, 0.18); color: #f0c2b2; }
+        #quiz button.right { background: rgba(215, 236, 207, 0.18); color: #d7eccf; }
+        .brief-date, .end-card h3, #control .caret, .brief-body .caret { color: var(--ink); }
+        .brief-crew { color: var(--dim); }
+        .brief-name { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 24px; color: var(--ink); }
+        #introPopup { background: rgba(7, 8, 12, 0.72); }
+        .popup-box { box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); }
+        #limitStat { background: rgba(243, 236, 223, 0.06); border: 1px solid var(--line); color: var(--ink); }
+        #limitStat .sym, #limitStat .value, #limitStat .stat-hint, #limitStat .extra { color: var(--ink); }
+        #limitStat.over, .stat.over { border-color: #f0c2b2; background: rgba(240, 194, 178, 0.08); }
+        .stat.over .value, .stat.over .inline-num, #limitStat.over .sym, #limitStat.over .value { color: #f0c2b2; }
+        #ui > #launchBtn { background: #f3ecdf; color: #16140f; }
+        #ui > #launchBtn:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); }
+        #ui > #resetBtn { background: transparent; color: var(--ink); border: 1px solid rgba(243, 236, 223, 0.28); }
+        #ui > #resetBtn.ready { background: #f3ecdf; color: #16140f; }
     </style>
     <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
@@ -347,15 +457,15 @@
         <div class="stat is-hidden" id="limitStat">
             <span class="sym">L</span> = <span id="limitDisp" class="value">0</span> N
             <div class="stat-hint">most weight this part can hold</div>
-            <div class="extra">Most weight this part can hold.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat is-hidden" id="givenWStat">
             <span class="sym">W</span> = <span id="givenWDisp" class="value">81</span> N
             <div class="stat-hint" id="givenWHint">weight on the Moon</div>
-            <div class="extra">Weight of this rock on the Moon.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat" id="gStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">g</span> = <span id="gDisp" class="value swap">8.69</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="gInput" value="8.69"> N/kg
             <div class="tune-controls" id="gTune">
                 <input type="range" id="gSlider" min="0.3" max="15" step="0.01" value="8.69">
@@ -364,13 +474,13 @@
             <div class="extra">Work out g = GM / r², then set it here.</div>
         </div>
         <div class="stat is-hidden" id="nStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">n</span> = <span id="nDisp" class="value swap">2</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="nInput" value="2"> <span id="nUnit">items</span>
             <div class="tune-controls" id="nTune">
                 <input type="range" id="nSlider" min="1" max="40" step="1" value="2">
             </div>
             <div class="stat-hint" id="nHint">how many</div>
-            <div class="extra">How many of these can we take? Total mass m = n × mass of one.</div>
+            <div class="extra">Total mass is n times the mass of one.</div>
         </div>
         <div class="stat is-hidden" id="eachStat">
             <span class="sym">one</span> = <span id="eachDisp" class="value">1</span> kg
@@ -378,37 +488,37 @@
             <div class="extra">Every item has this mass. It stays the same on every world.</div>
         </div>
         <div class="stat is-hidden" id="mStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">m</span> = <span id="mDisp" class="value swap">140</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="mInput" value="140"> kg
             <div class="tune-controls" id="mTune">
                 <input type="range" id="mSlider" min="1" max="2000" step="1" value="140">
             </div>
             <div class="stat-hint">mass of the load</div>
-            <div class="extra">Mass of the load.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat is-hidden" id="earthGStat">
             <span class="sym">g</span> = <span id="earthGDisp" class="value">9.8</span> N/kg
             <div class="stat-hint">g on Earth</div>
-            <div class="extra">g on Earth.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat is-hidden" id="wStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">W</span> = <span id="wDisp" class="value swap">227</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="wInput" value="227"> N
             <div class="tune-controls" id="wTune">
                 <input type="range" id="wSlider" min="1" max="2000" step="1" value="227">
             </div>
             <div class="stat-hint" id="wHint">weight back on Earth</div>
-            <div class="extra">Weight of this rock on Earth.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat" id="gmStat">
             <span class="sym">GM</span> = <span id="gmDisp" class="value">398 600 000</span> N km²/kg
             <div class="stat-hint">GM for this world</div>
-            <div class="extra">GM for this world.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat" id="rStat">
             <span class="sym">r</span> = <span id="rDisp" class="value">6 761</span> km
             <div class="stat-hint">distance from the centre</div>
-            <div class="extra">Distance from the centre.</div>
+            <div class="extra"></div>
         </div>
         <div class="stat is-hidden" id="bodyRStat">
             <span class="sym">R</span> = <span id="bodyRDisp" class="value">6 371</span> km
@@ -416,13 +526,13 @@
             <div class="extra">How big this planet or moon is, from the centre to the surface.</div>
         </div>
         <div class="stat is-hidden" id="altStat">
-            <div class="adjust-label">Adjust this</div>
+            <div class="adjust-label">What should this be?</div>
             <span class="sym">h</span> = <span id="altDisp" class="value swap">390</span><input type="text" inputmode="decimal" autocomplete="off" spellcheck="false" class="inline-num" id="altInput" value="390"> km
             <div class="tune-controls" id="altTune">
                 <input type="range" id="altSlider" min="0" max="40000" step="1" value="390">
             </div>
             <div class="stat-hint">height above the surface</div>
-            <div class="extra">Height above the surface.</div>
+            <div class="extra"></div>
         </div>
 
         <button id="launchBtn">LAND</button>
@@ -455,25 +565,26 @@
             <button type="button" id="calcClose" title="Close">×</button>
         </div>
         <div class="calc-keys">
+            <button type="button" data-calc="ans" class="mem">Ans</button>
             <button type="button" data-calc="C" class="warn">C</button>
             <button type="button" data-calc="sqrt">√</button>
             <button type="button" data-calc="sq">x²</button>
-            <button type="button" data-calc="/" class="op">÷</button>
             <button type="button" data-calc="7">7</button>
             <button type="button" data-calc="8">8</button>
             <button type="button" data-calc="9">9</button>
-            <button type="button" data-calc="*" class="op">×</button>
+            <button type="button" data-calc="/" class="op">÷</button>
             <button type="button" data-calc="4">4</button>
             <button type="button" data-calc="5">5</button>
             <button type="button" data-calc="6">6</button>
-            <button type="button" data-calc="-" class="op">−</button>
+            <button type="button" data-calc="*" class="op">×</button>
             <button type="button" data-calc="1">1</button>
             <button type="button" data-calc="2">2</button>
             <button type="button" data-calc="3">3</button>
-            <button type="button" data-calc="+" class="op">+</button>
+            <button type="button" data-calc="-" class="op">−</button>
             <button type="button" data-calc="0">0</button>
             <button type="button" data-calc=".">.</button>
             <button type="button" data-calc="bs">⌫</button>
+            <button type="button" data-calc="+" class="op">+</button>
             <button type="button" data-calc="=" class="go">=</button>
         </div>
         </div>
@@ -485,7 +596,7 @@
         <div class="popup-box" id="popupBox">
             <div id="popupText"></div>
             <div id="quiz">
-                <p id="quizQ">Compared with the surface of the Earth, g here is…</p>
+                <p id="quizQ">Compared with Earth, gravity on the Moon is…</p>
                 <p id="quizNote"></p>
                 <button type="button" id="sameBtn">about the same</button>
                 <button type="button" id="smallBtn">much smaller</button>
@@ -512,24 +623,24 @@
         }
 
         const taskArt = [
-            'gravity-art/t1-change3.png',
-            'gravity-art/t2-cargo.png',
-            'gravity-art/t3-change5.png',
-            'gravity-art/t4-tubes.png',
-            'gravity-art/t5-zhurong.png',
-            'gravity-art/t6-crane.png',
-            'gravity-art/t7-tianhe.png',
-            'gravity-art/t8-home.png'
+            'gravity-art/t1-change3.webp',
+            'gravity-art/t2-cargo.webp',
+            'gravity-art/t3-change5.webp',
+            'gravity-art/t4-tubes.webp',
+            'gravity-art/t5-zhurong.webp',
+            'gravity-art/t6-crane.webp',
+            'gravity-art/t7-tianhe.webp',
+            'gravity-art/t8-home.webp'
         ];
         const missions = [
-            { date: "December 2013", name: "Chang'e-3", body: "Moon", alt: 0, mode: "g", startG: 9.8, job: "landing", cost: 10, crew: 0, craft: "lunar", look: "change3", face: "🌙", quiz: "small", brief: "Chang'e-3 is landing on the Moon. Find g.", ask: "Flight calls. Compared with Earth, g on the Moon is…", askWrong: "Not right. The Moon pulls less than Earth. g on Earth is about 9.8 N/kg. Try again.", askRight: "Right. g on the Moon is much smaller than on Earth." },
-            { date: "December 2013", name: "Chang'e-3 cargo", body: "Moon", alt: 0, mode: "mass", startM: 200, limit: 2200, job: "landing", cost: 10, crew: 0, craft: "lunar", look: "change3", face: "🌙", quiz: "small", brief: "What is the biggest cargo mass the legs can carry?", ask: "Flight calls again. This cargo, compared with the same mass on Earth, weighs…", askWrong: "Not right. Same mass, smaller g, so the weight is much smaller. Try again.", askRight: "Right. The mass is the same. The weight is much smaller on the Moon." },
-            { date: "December 2020", name: "Chang'e-5", body: "Moon", alt: 0, mode: "g", startG: 9.8, job: "arm", cost: 12, crew: 0, craft: "lunar", look: "change5", face: "📦", quiz: "small", brief: "Chang'e-5 is on the Moon to collect rock. Find g.", ask: "The sample lead calls. g here, compared with Earth, is…", askWrong: "Not right. You are on the Moon. g is not zero, and it is not the same as Earth. Try again.", askRight: "Right. g is much smaller than on Earth." },
-            { date: "December 2020", name: "Chang'e-5 tubes", body: "Moon", alt: 0, mode: "count", item: "tube", each: 3, startN: 2, limit: 80, job: "arm", cost: 12, crew: 0, craft: "lunar", look: "arm", face: "🧪", quiz: "small", brief: "How many tubes can the arm lift?", ask: "The arm engineer calls. One tube on the Moon, compared with Earth, weighs…", askWrong: "Not right. The tube still has weight, but much less than on Earth. Try again.", askRight: "Right. Each tube weighs much less here, so the arm can lift more of them." },
-            { date: "May 2021", name: "Zhurong", body: "Mars", alt: 0, mode: "g", startG: 9.8, job: "landing", cost: 14, crew: 0, craft: "mars", look: "zhurong", face: "🔴", quiz: "small", brief: "Zhurong is going down to Mars. Find g.", ask: "The crane team calls. Compared with Earth, g on Mars is…", askWrong: "Not right. Mars still pulls. g is smaller than on Earth, not zero. Try again.", askRight: "Right. g on Mars is much smaller than on Earth." },
-            { date: "May 2021", name: "Zhurong load", body: "Mars", alt: 0, mode: "mass", startM: 80, limit: 1600, job: "landing", cost: 15, crew: 0, craft: "mars", look: "zhurong", face: "🔴", quiz: "small", brief: "What is the biggest mass the crane can lower?", ask: "The crane team calls again. This load, compared with Earth, weighs…", askWrong: "Not right. Mars pulls less than Earth, so the weight is smaller. Try again.", askRight: "Right. The same mass weighs less on Mars." },
-            { date: "April 2021", name: "Tianhe", body: "Earth", alt: 390, mode: "g", startG: 0.5, job: "passenger", cost: 12, crew: 3, craft: "station", look: "tianhe", face: "🚀", quiz: "same", brief: "Tianhe is above Earth. Find g.", ask: "A teammate says g up here is zero. At this height, g is…", askWrong: "Not right. You are still close to Earth. g is about the same as on the surface. Try again.", askRight: "Right. g here is about the same as on the surface. The crew float because they are falling." },
-            { date: "December 2020", name: "Rock back home", body: "Earth", alt: 0, mode: "earth", moonW: 81, moonG: 1.62, earthG: 9.8, startW: 81, job: "landing", cost: 12, crew: 0, craft: "lunar", look: "home", face: "🪨", quiz: "same", brief: "This rock was weighed on the Moon. How heavy will it be on Earth?", ask: "The rock is home. g on Earth is…", askWrong: "Not right. You are on Earth. g is about 9.8 N/kg. It is not the small Moon value, and it is not zero. Try again.", askRight: "Right. g on Earth is about 9.8 N/kg, so the rock weighs much more than it did on the Moon." }
+            { date: "December 2013", name: "Chang'e-3", body: "Moon", alt: 0, mode: "g", startG: 9.8, job: "landing", cost: 10, crew: 0, craft: "lunar", look: "change3", face: "🌙", quiz: "small", brief: "Chang'e-3 is landing on the Moon. Work out g so the engine slows the craft to match the Moon's pull.", ask: "Compared with Earth, gravity on the Moon is…", askWrong: "Not quite. The Moon pulls less than Earth. On Earth, g is about 9.8 N/kg.", askRight: "Yes. Gravity on the Moon is much weaker than on Earth." },
+            { date: "December 2013", name: "Chang'e-3 cargo", body: "Moon", alt: 0, mode: "mass", startM: 200, limit: 2200, job: "landing", cost: 10, crew: 0, craft: "lunar", look: "change3", face: "🌙", quiz: "small", brief: "The legs can only hold so much weight. Work out the biggest mass they can carry, so the cargo does not break them on touchdown.", ask: "This load has the same mass as on Earth. Its weight on the Moon is…", askWrong: "Not quite. The mass stays the same. Weaker gravity means a smaller weight.", askRight: "Yes. The mass is the same. The weight is much smaller on the Moon." },
+            { date: "December 2020", name: "Chang'e-5", body: "Moon", alt: 0, mode: "g", startG: 9.8, job: "arm", cost: 12, crew: 0, craft: "lunar", look: "change5", face: "📦", quiz: "small", brief: "Chang'e-5 has to scoop up Moon rock. Work out g so you know how hard the Moon pulls on each piece.", ask: "You are on the Moon. Compared with Earth, g here is…", askWrong: "Not quite. Gravity on the Moon is not zero, and it is not the same as on Earth.", askRight: "Yes. g is much smaller than on Earth." },
+            { date: "December 2020", name: "Chang'e-5 tubes", body: "Moon", alt: 0, mode: "count", item: "tube", each: 3, startN: 2, limit: 80, job: "arm", cost: 12, crew: 0, craft: "lunar", look: "arm", face: "🧪", quiz: "small", brief: "The arm can only lift a certain weight. Work out how many tubes that is, so it does not try to lift more than it can hold.", ask: "One tube on the Moon, compared with the same tube on Earth, weighs…", askWrong: "Not quite. The tube still has weight, but much less than on Earth.", askRight: "Yes. Each tube weighs much less here, so the arm can lift more of them." },
+            { date: "May 2021", name: "Zhurong", body: "Mars", alt: 0, mode: "g", startG: 9.8, job: "landing", cost: 14, crew: 0, craft: "mars", look: "zhurong", face: "🔴", quiz: "small", brief: "Zhurong is landing on Mars. Work out g so the crane lowers the rover gently in Mars's pull.", ask: "Compared with Earth, gravity on Mars is…", askWrong: "Not quite. Mars still has gravity. It is weaker than Earth's, not zero.", askRight: "Yes. Gravity on Mars is weaker than on Earth." },
+            { date: "May 2021", name: "Zhurong load", body: "Mars", alt: 0, mode: "mass", startM: 80, limit: 1600, job: "landing", cost: 15, crew: 0, craft: "mars", look: "zhurong", face: "🔴", quiz: "small", brief: "The crane cables can only hold so much weight. Work out the biggest mass they can lower, so the rover is not too heavy.", ask: "This load has the same mass as on Earth. Its weight on Mars is…", askWrong: "Not quite. Mars pulls less than Earth, so the weight is smaller.", askRight: "Yes. The same mass weighs less on Mars." },
+            { date: "April 2021", name: "Tianhe", body: "Earth", alt: 390, mode: "g", startG: 0.5, job: "passenger", cost: 12, crew: 3, craft: "station", look: "tianhe", face: "🚀", quiz: "same", brief: "Three people are docking with Tianhe. Work out g at this height so the push that joins the ships matches Earth's pull up here.", ask: "Someone says gravity up here is zero. At this height, g is…", askWrong: "Not quite. You are still close to Earth. g is about the same as on the ground.", askRight: "Yes. g here is about the same as on the ground. The crew float because they are falling around Earth." },
+            { date: "December 2020", name: "Rock back home", body: "Earth", alt: 0, mode: "earth", moonW: 81, moonG: 1.62, earthG: 9.8, startW: 81, job: "landing", cost: 12, crew: 0, craft: "lunar", look: "home", face: "🪨", quiz: "same", brief: "This rock felt light on the Moon. Work out its weight on Earth so the lab bench is strong enough to hold it.", ask: "The rock is back on Earth. g on Earth is…", askWrong: "Not quite. On Earth, g is about 9.8 N/kg. That is bigger than on the Moon.", askRight: "Yes. g on Earth is about 9.8 N/kg, so the rock weighs much more than it did on the Moon." }
         ];
 
         const escapeLines = [
@@ -562,10 +673,9 @@
         let body = bodies.Earth, alt = 390, rVis, visGM = 50, requiredG = 8.69, probeMass = 80;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000011);
+        scene.background = new THREE.Color(0x07080c);
         function stageBox() {
-            if (innerWidth <= 800) return { x: 0, y: 0, w: innerWidth, h: innerHeight };
-            return { x: 340, y: 0, w: Math.max(1, innerWidth - 340), h: innerHeight };
+            return { x: 0, y: 0, w: innerWidth, h: innerHeight };
         }
         const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
         camera.position.set(0, 4, 10);
@@ -594,118 +704,131 @@
         const starPos = [];
         for(let i=0;i<2000;i++) starPos.push((Math.random()-0.5)*500,(Math.random()-0.5)*500,(Math.random()-0.5)*500);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos,3));
-        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.55, sizeAttenuation: true });
+        const starMat = new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.28, transparent: true, opacity: 0.5, sizeAttenuation: true });
         scene.add(new THREE.Points(starGeo, starMat));
 
-        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R,64,64), new THREE.MeshPhongMaterial({color:0x2266aa,emissive:0x112244}));
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS_R,64,64), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.78, metalness: 0.04, emissive: 0x1a1814, emissiveIntensity: 0.15 }));
         scene.add(planet);
-        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R*1.06,32,32), new THREE.MeshBasicMaterial({color:0x4488ff,transparent:true,opacity:0.12,side:THREE.BackSide}));
+        const glow = new THREE.Mesh(new THREE.SphereGeometry(VIS_R*1.06,32,32), new THREE.MeshBasicMaterial({color:0xf3ecdf,transparent:true,opacity:0.06,side:THREE.BackSide}));
         scene.add(glow);
 
-        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color:0x44ffaa,dashSize:0.4,gapSize:0.2,transparent:true,opacity:0.6}));
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({color:0xf3ecdf,dashSize:0.4,gapSize:0.2,transparent:true,opacity:0.45}));
         scene.add(orbitLine);
 
         const sat = new THREE.Group();
         scene.add(sat);
 
         function phMat(color, emissive, shine, side) {
-            return new THREE.MeshPhongMaterial({
-                color, emissive: emissive || 0x111111, shininess: shine || 35, side: side || THREE.FrontSide
+            const s = shine || 35;
+            return new THREE.MeshStandardMaterial({
+                color, emissive: emissive || 0x000000, emissiveIntensity: emissive ? 0.22 : 0,
+                roughness: Math.min(0.92, Math.max(0.28, 1 - s / 120)),
+                metalness: s > 40 ? 0.42 : 0.14,
+                side: side || THREE.FrontSide
             });
         }
-        function addPanels(g, span, thick, depth, y, color) {
-            const mat = new THREE.MeshPhongMaterial({ color: color || 0x1a4cff, emissive: 0x061133, shininess: 20 });
-            const geo = new THREE.BoxGeometry(span, thick, depth);
-            const left = new THREE.Mesh(geo, mat);
-            left.position.set(-(span * 0.5 + 0.012), y || 0, 0);
-            const right = left.clone();
-            right.position.x *= -1;
-            g.add(left, right);
+        const hull = phMat(0xe8e2d4, 0x2a2824, 32);
+        const brass = phMat(0xd4b15e, 0x3a2a0c, 58);
+        const ink = phMat(0x2a2e34, 0x080808, 16);
+        const sage = phMat(0x8ea090, 0x1c2820, 40);
+        const cream = phMat(0xf6f1e6, 0x2a3038, 24);
+        const warm = new THREE.MeshBasicMaterial({ color: 0xfff1c2 });
+        function addLeg(g, x, z) {
+            const grp = new THREE.Group();
+            const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0055, 0.16, 10), brass);
+            strut.position.y = -0.08;
+            const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.02, 0.007, 16), ink);
+            foot.position.y = -0.16;
+            grp.add(strut, foot);
+            grp.position.set(x, -0.012, z);
+            const dir = new THREE.Vector3(x * 1.2, -0.17, z * 1.2).normalize();
+            grp.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), dir);
+            g.add(grp);
         }
-        const gold = () => phMat(0xe4c56a, 0x3a2808, 48);
-        const foil = () => phMat(0xf2f4f8, 0x2a3344, 28);
-        const dark = () => phMat(0x2a2e34, 0x050505, 12);
-        function leg(g, x, z) {
-            const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.11, 6), foil());
-            strut.position.set(x, -0.07, z);
-            strut.rotation.z = x > 0 ? -0.45 : 0.45;
-            strut.rotation.x = z > 0 ? 0.28 : -0.28;
-            const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.024, 0.006, 8), dark());
-            foot.position.set(x * 1.7, -0.12, z * 1.7);
-            g.add(strut, foot);
+        function addDish(g, x, y, z, r) {
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0035, 0.045, 8), cream);
+            stem.position.set(x, y, z);
+            const bowl = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 10, 0, Math.PI * 2, 0, Math.PI * 0.42), cream);
+            bowl.position.set(x, y + 0.028, z);
+            bowl.rotation.x = 0.45;
+            g.add(stem, bowl);
         }
-        function dish(g, x, y, z, r) {
-            const d = new THREE.Mesh(new THREE.CircleGeometry(r, 18), phMat(0xf4f7ff, 0x334, 40, THREE.DoubleSide));
-            d.position.set(x, y, z);
-            d.rotation.x = -0.6;
-            g.add(d);
-            return d;
-        }
-        function flag(g, x, y, z) {
-            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.08, 5), foil());
-            pole.position.set(x, y, z);
-            const cloth = new THREE.Mesh(new THREE.PlaneGeometry(0.045, 0.028), phMat(0xde1c24, 0x3a0000, 8, THREE.DoubleSide));
-            cloth.position.set(x + 0.024, y + 0.02, z);
-            g.add(pole, cloth);
-        }
-        function wheels(g, y) {
-            const geo = new THREE.CylinderGeometry(0.028, 0.028, 0.012, 12);
-            const mat = dark();
-            [[-0.07, 0.06], [0, 0.06], [0.07, 0.06], [-0.07, -0.06], [0, -0.06], [0.07, -0.06]].forEach(p => {
-                const w = new THREE.Mesh(geo, mat);
-                w.rotation.x = Math.PI / 2;
-                w.position.set(p[0], y, p[1]);
-                g.add(w);
-            });
+        function sidePanel(g, x, y) {
+            const grp = new THREE.Group();
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.046, 0.005), brass);
+            const cell = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.034, 0.003), sage);
+            cell.position.z = 0.003;
+            grp.add(frame, cell);
+            grp.position.set(x, y, 0);
+            g.add(grp);
         }
         function makeLander(withAscent) {
             const g = new THREE.Group();
-            const bus = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.06, 8), gold());
+            const bus = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.064, 0.062, 24), hull);
             bus.position.y = 0.02;
-            const deck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.012, 8), foil());
-            deck.position.y = -0.02;
-            const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.028, 0.04, 10), dark());
-            engine.position.y = -0.05;
-            const glowM = new THREE.Mesh(new THREE.SphereGeometry(0.02, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1a8 }));
-            glowM.position.y = -0.08;
-            g.add(bus, deck, engine, glowM);
-            leg(g, 0.06, 0.06); leg(g, -0.06, 0.06); leg(g, 0.06, -0.06); leg(g, -0.06, -0.06);
-            dish(g, 0.05, 0.08, -0.02, 0.028);
-            flag(g, -0.04, 0.08, 0.02);
+            const band = new THREE.Mesh(new THREE.CylinderGeometry(0.068, 0.068, 0.014, 24), brass);
+            band.position.y = -0.008;
+            const cap = new THREE.Mesh(new THREE.SphereGeometry(0.05, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2), cream);
+            cap.position.y = 0.05;
+            const engine = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.022, 0.032, 16), ink);
+            engine.position.y = -0.04;
+            const glowM = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 8), warm);
+            glowM.position.y = -0.062;
+            g.add(bus, band, cap, engine, glowM);
+            [[0.046, 0.046], [-0.046, 0.046], [0.046, -0.046], [-0.046, -0.046]].forEach(p => addLeg(g, p[0], p[1]));
+            sidePanel(g, 0.1, 0.03);
+            sidePanel(g, -0.1, 0.03);
+            addDish(g, 0, 0.09, 0, 0.026);
             if (withAscent) {
-                const stage = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.09, 10), foil());
-                stage.position.y = 0.1;
-                const cap = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), gold());
-                cap.position.y = 0.15;
-                g.add(stage, cap);
+                const stage = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.07, 20), cream);
+                stage.position.y = 0.11;
+                const nose = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.036, 20), brass);
+                nose.position.y = 0.16;
+                g.add(stage, nose);
             }
             g.userData.glow = glowM;
             return g;
         }
         function makeRover(withArm) {
             const g = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.045, 0.11), gold());
-            body.position.y = 0.02;
-            const panel = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.006, 0.09), phMat(0x163a88, 0x061433, 40));
-            panel.position.y = 0.05;
-            const mast = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.07, 0.012), foil());
-            mast.position.set(-0.04, 0.08, 0);
-            const cam = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.018, 0.018), dark());
-            cam.position.set(-0.04, 0.12, 0);
-            g.add(body, panel, mast, cam);
-            wheels(g, -0.01);
-            flag(g, 0.05, 0.08, 0);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.036, 0.09), hull);
+            body.position.y = 0.034;
+            const skirt = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.01, 0.1), brass);
+            skirt.position.y = 0.016;
+            const panel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.004, 0.07), sage);
+            panel.position.set(0.01, 0.058, 0);
+            panel.rotation.z = -0.08;
+            const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.006, 0.07, 12), cream);
+            mast.position.set(-0.04, 0.085, 0);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.014, 0.014), ink);
+            head.position.set(-0.028, 0.122, 0);
+            const eye = new THREE.Mesh(new THREE.SphereGeometry(0.005, 10, 8), warm);
+            eye.position.set(-0.014, 0.122, 0);
+            g.add(body, skirt, panel, mast, head, eye);
+            const tire = new THREE.CylinderGeometry(0.024, 0.024, 0.012, 18);
+            const hub = new THREE.CylinderGeometry(0.009, 0.009, 0.014, 12);
+            [[-0.05, 0.04], [0.012, 0.04], [0.055, 0.04], [-0.05, -0.04], [0.012, -0.04], [0.055, -0.04]].forEach(p => {
+                const w = new THREE.Mesh(tire, ink);
+                w.rotation.x = Math.PI / 2;
+                w.position.set(p[0], 0.012, p[1]);
+                const h = new THREE.Mesh(hub, brass);
+                h.rotation.x = Math.PI / 2;
+                h.position.copy(w.position);
+                g.add(w, h);
+            });
             if (withArm) {
                 const arm = new THREE.Group();
                 arm.position.set(0.08, 0.04, 0.02);
-                const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.012, 0.012), foil());
+                const a1 = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 10), cream);
+                a1.rotation.z = Math.PI / 2;
                 a1.position.x = 0.04;
                 const joint = new THREE.Group();
-                joint.position.x = 0.085;
-                const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.01, 0.01), gold());
+                joint.position.x = 0.08;
+                const a2 = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.06, 10), brass);
+                a2.rotation.z = Math.PI / 2;
                 a2.position.x = 0.03;
-                const claw = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.018, 0.018), dark());
-                claw.position.x = 0.07;
+                const claw = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.012, 0.012), ink);
+                claw.position.x = 0.064;
                 joint.add(a2, claw);
                 arm.add(a1, joint);
                 g.add(arm);
@@ -716,23 +839,22 @@
         }
         function makeCrane() {
             const g = new THREE.Group();
-            const rover = makeRover(false);
-            g.add(rover);
+            g.add(makeRover(false));
             const crane = new THREE.Group();
-            crane.position.y = 0.28;
-            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.08), foil());
-            crane.add(frame);
-            [-0.04, 0.04].forEach(x => [-0.025, 0.025].forEach(z => {
-                const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.016, 0.02, 8), dark());
-                bell.position.set(x, -0.02, z);
-                const flame = new THREE.Mesh(new THREE.SphereGeometry(0.01, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffe7a0 }));
-                flame.position.set(x, -0.038, z);
+            crane.position.y = 0.26;
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.016, 0.08), cream);
+            crane.add(deck);
+            [[-0.04, -0.024], [0.04, -0.024], [-0.04, 0.024], [0.04, 0.024]].forEach(p => {
+                const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.012, 0.016, 14), ink);
+                bell.position.set(p[0], -0.014, p[1]);
+                const flame = new THREE.Mesh(new THREE.SphereGeometry(0.007, 10, 8), warm);
+                flame.position.set(p[0], -0.026, p[1]);
                 crane.add(bell, flame);
-            }));
+            });
             g.add(crane);
-            [[-0.03, 0], [0.03, 0], [0, 0.02]].forEach(p => {
-                const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.0016, 0.0016, 0.22, 4), phMat(0xdddddd, 0x222));
-                cable.position.set(p[0], 0.16, p[1]);
+            [[-0.028, 0], [0.028, 0]].forEach(p => {
+                const cable = new THREE.Mesh(new THREE.CylinderGeometry(0.0014, 0.0014, 0.22, 6), cream);
+                cable.position.set(p[0], 0.15, p[1]);
                 g.add(cable);
             });
             g.userData.crane = crane;
@@ -740,21 +862,27 @@
         }
         function makeStation() {
             const g = new THREE.Group();
-            const core = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.34, 16), foil());
+            const core = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.34, 24), cream);
             core.rotation.z = Math.PI / 2;
-            const node = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), phMat(0xd5dbe4, 0x223));
-            node.position.x = 0.16;
-            const aft = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.038, 0.08, 12), gold());
+            const node = new THREE.Mesh(new THREE.SphereGeometry(0.05, 24, 16), hull);
+            node.position.x = 0.19;
+            const collar = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.005, 8, 24), brass);
+            collar.rotation.y = Math.PI / 2;
+            collar.position.x = 0.19;
+            const aft = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.032, 0.06, 16), brass);
             aft.rotation.z = Math.PI / 2;
             aft.position.x = -0.2;
-            g.add(core, node, aft);
-            const wingMat = phMat(0x1a3fbe, 0x061022, 50);
+            g.add(core, node, collar, aft);
             [-1, 1].forEach(s => {
-                const wing = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.004, 0.09), wingMat);
-                wing.position.set(0, 0, s * 0.16);
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.005, 0.072), brass);
+                const cell = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.003, 0.056), sage);
+                cell.position.y = 0.003;
+                const wing = new THREE.Group();
+                wing.add(frame, cell);
+                wing.position.set(-0.01, 0, s * 0.13);
                 g.add(wing);
             });
-            dish(g, 0.02, 0.07, 0, 0.04);
+            addDish(g, 0.04, 0.07, 0, 0.03);
             return g;
         }
         function makeCraft(look) {
@@ -774,7 +902,7 @@
             const upright = look !== 'tianhe';
             pivot.rotation.z = upright ? -Math.PI / 2 : 0.35;
             if (upright) model.position.y = look === 'zhurong' ? 0.1 : 0.14;
-            pivot.scale.setScalar(look === 'tianhe' ? 2.35 : 2.15);
+            pivot.scale.setScalar(look === 'tianhe' ? 4.1 : 3.6);
             pivot.add(model);
             sat.add(pivot);
             sat.userData.model = model;
@@ -785,7 +913,7 @@
         const trailGeo = new THREE.BufferGeometry();
         trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
         trailGeo.setDrawRange(0, 0);
-        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xffff66, transparent: true, opacity: 0.78 }));
+        const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xf3ecdf, transparent: true, opacity: 0.55 }));
         scene.add(trail);
         let trailCount = 0;
         function clearTrail() {
@@ -810,12 +938,12 @@
 
         let particles, debris=[], shake=0;
 
-        const ambient = new THREE.AmbientLight(0x334466, 0.55);
+        const ambient = new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85);
         scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffee, 1.35);
+        const sun = new THREE.DirectionalLight(0xfff3e2, 2.1);
         sun.position.set(25, 15, 20);
         scene.add(sun);
-        const fill = new THREE.DirectionalLight(0x6688cc, 0.4);
+        const fill = new THREE.DirectionalLight(0xc5d6ee, 0.55);
         fill.position.set(-16, 4, -12);
         scene.add(fill);
         const props = new THREE.Group();
@@ -854,9 +982,9 @@
         function marsTex() {
             return paintTex((ctx, w) => {
                 const g = ctx.createLinearGradient(0, 0, w, w);
-                g.addColorStop(0, '#c4552a');
-                g.addColorStop(0.5, '#a33b22');
-                g.addColorStop(1, '#6e2418');
+                g.addColorStop(0, '#c4896a');
+                g.addColorStop(0.5, '#a86a48');
+                g.addColorStop(1, '#6e4030');
                 ctx.fillStyle = g;
                 ctx.fillRect(0, 0, w, w);
                 ctx.fillStyle = 'rgba(90,30,18,0.45)';
@@ -872,9 +1000,9 @@
         }
         function earthTex() {
             return paintTex((ctx, w) => {
-                ctx.fillStyle = '#1d6eb5';
+                ctx.fillStyle = '#3d6d78';
                 ctx.fillRect(0, 0, w, w);
-                ctx.fillStyle = '#2f8a45';
+                ctx.fillStyle = '#6d8f6a';
                 [[0.22, 0.4, 70, 48], [0.55, 0.38, 90, 40], [0.72, 0.58, 50, 36], [0.4, 0.7, 60, 30]].forEach(b => {
                     ctx.beginPath();
                     ctx.ellipse(b[0] * w, b[1] * w, b[2], b[3], 0.4, 0, Math.PI * 2);
@@ -915,10 +1043,10 @@
             }
         }
         function distantEarth() {
-            const e = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 18), new THREE.MeshPhongMaterial({ map: earthTex(), emissive: 0x112244, shininess: 18 }));
+            const e = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 18), new THREE.MeshStandardMaterial({ map: earthTex(), roughness: 0.72, metalness: 0.04, emissive: 0x1a2420, emissiveIntensity: 0.12 }));
             e.position.set(-11, 4.2, -7);
             props.add(e);
-            const haze = new THREE.Mesh(new THREE.SphereGeometry(0.78, 20, 16), new THREE.MeshBasicMaterial({ color: 0x7ec8ff, transparent: true, opacity: 0.18, side: THREE.BackSide }));
+            const haze = new THREE.Mesh(new THREE.SphereGeometry(0.78, 20, 16), new THREE.MeshBasicMaterial({ color: 0xd7e4ea, transparent: true, opacity: 0.12, side: THREE.BackSide }));
             haze.position.copy(e.position);
             props.add(haze);
         }
@@ -934,66 +1062,66 @@
             planet.material.color.setHex(0xffffff);
             planet.material.needsUpdate = true;
             if (look === 'yutu' || look === 'arm') {
-                scene.background.set(0x01010a);
-                scene.fog = new THREE.FogExp2(0x01010a, 0.012);
-                starMat.color.setHex(0xdde7ff);
-                ambient.color.setHex(0x22283a);
-                ambient.intensity = 0.42;
-                sun.color.setHex(0xfff4dd);
-                sun.intensity = 1.55;
-                planet.material.emissive.setHex(0x1a1a1c);
-                glow.material.color.setHex(0x888899);
-                glow.material.opacity = 0.08;
-                orbitLine.material.color.setHex(0xc9b27a);
+                scene.background.set(0x07080c);
+                scene.fog = new THREE.FogExp2(0x10141a, 0.01);
+                starMat.color.setHex(0xf3ecdf);
+                ambient.color.setHex(0xd5e2f4);
+                ambient.intensity = 0.75;
+                sun.color.setHex(0xfff3e2);
+                sun.intensity = 1.9;
+                planet.material.emissive.setHex(0x1a1814);
+                glow.material.color.setHex(0xf3ecdf);
+                glow.material.opacity = 0.06;
+                orbitLine.material.color.setHex(0xf3ecdf);
             } else if (mars) {
-                scene.background.set(0x1a0a0c);
-                scene.fog = new THREE.FogExp2(0x3a1410, 0.02);
-                starMat.color.setHex(0xffd0b0);
-                ambient.color.setHex(0x5a3028);
-                ambient.intensity = 0.7;
-                sun.color.setHex(0xffe0c0);
-                sun.intensity = 1.45;
-                planet.material.emissive.setHex(0x3a140c);
-                glow.material.color.setHex(0xff7744);
-                glow.material.opacity = 0.22;
-                orbitLine.material.color.setHex(0xff8855);
+                scene.background.set(0x120e0c);
+                scene.fog = new THREE.FogExp2(0x2a1814, 0.016);
+                starMat.color.setHex(0xf3e6d4);
+                ambient.color.setHex(0xe8d0c0);
+                ambient.intensity = 0.8;
+                sun.color.setHex(0xfff0e0);
+                sun.intensity = 1.9;
+                planet.material.emissive.setHex(0x3a2418);
+                glow.material.color.setHex(0xc4a090);
+                glow.material.opacity = 0.1;
+                orbitLine.material.color.setHex(0xf3e6c8);
             } else if (look === 'tianhe') {
-                scene.background.set(0x020414);
-                scene.fog = new THREE.FogExp2(0x020414, 0.008);
-                starMat.color.setHex(0xffffff);
-                ambient.color.setHex(0x224466);
-                ambient.intensity = 0.6;
-                sun.color.setHex(0xfffaf0);
-                sun.intensity = 1.5;
-                planet.material.emissive.setHex(0x0a2244);
-                glow.material.color.setHex(0x4db4ff);
-                glow.material.opacity = 0.28;
-                orbitLine.material.color.setHex(0x66e0ff);
+                scene.background.set(0x07080c);
+                scene.fog = new THREE.FogExp2(0x101820, 0.006);
+                starMat.color.setHex(0xf3ecdf);
+                ambient.color.setHex(0xd5e2f4);
+                ambient.intensity = 0.8;
+                sun.color.setHex(0xfff3e2);
+                sun.intensity = 2.0;
+                planet.material.emissive.setHex(0x102028);
+                glow.material.color.setHex(0xd7e4ea);
+                glow.material.opacity = 0.08;
+                orbitLine.material.color.setHex(0xf3ecdf);
                 sceneAnim.push(() => { planet.rotation.y += 0.0008; });
             } else if (look === 'home') {
-                scene.background.set(0x071428);
-                scene.fog = new THREE.FogExp2(0x0a1c38, 0.012);
-                starMat.color.setHex(0xffffff);
-                ambient.color.setHex(0x335577);
-                ambient.intensity = 0.65;
-                sun.color.setHex(0xfffaf0);
-                sun.intensity = 1.5;
-                planet.material.emissive.setHex(0x0a2244);
-                glow.material.color.setHex(0x4db4ff);
-                glow.material.opacity = 0.28;
-                orbitLine.material.color.setHex(0x66e0ff);
+                scene.background.set(0x07080c);
+                scene.fog = new THREE.FogExp2(0x101820, 0.008);
+                starMat.color.setHex(0xf3ecdf);
+                ambient.color.setHex(0xd5e2f4);
+                ambient.intensity = 0.8;
+                sun.color.setHex(0xfff3e2);
+                sun.intensity = 2.0;
+                planet.material.emissive.setHex(0x102028);
+                glow.material.color.setHex(0xd7e4ea);
+                glow.material.opacity = 0.08;
+                orbitLine.material.color.setHex(0xf3ecdf);
             } else {
-                scene.background.set(0x020318);
-                scene.fog = new THREE.FogExp2(0x020318, 0.01);
-                starMat.color.setHex(0xf2f6ff);
-                ambient.color.setHex(0x2a3348);
-                ambient.intensity = 0.5;
-                sun.color.setHex(0xfff6e4);
-                sun.intensity = 1.4;
-                planet.material.emissive.setHex(0x222226);
-                glow.material.color.setHex(0xb9c0d0);
-                glow.material.opacity = 0.1;
-                orbitLine.material.color.setHex(0xe6d7a2);
+                scene.background.set(0x07080c);
+                scene.fog = new THREE.FogExp2(0x10141a, 0.01);
+                starMat.color.setHex(0xf3ecdf);
+                ambient.color.setHex(0xd5e2f4);
+                ambient.intensity = 0.75;
+                sun.color.setHex(0xfff3e2);
+                sun.intensity = 1.9;
+                planet.material.emissive.setHex(0x1a1814);
+                glow.material.color.setHex(0xf3ecdf);
+                glow.material.opacity = 0.06;
+                orbitLine.material.color.setHex(0xf3ecdf);
                 distantEarth();
             }
             if (look !== 'tianhe') {
@@ -1204,36 +1332,20 @@
                 if (valueDragSkipClick) { valueDragSkipClick = false; return; }
                 if (e.target.closest('input')) return;
                 const extra = stat.querySelector('.extra');
+                if (!extra || !extra.textContent.trim()) return;
                 extra.style.display = extra.style.display === 'block' ? 'none' : 'block';
             });
         });
 
         document.querySelectorAll('#eqPanel .eq').forEach(el => {
+            el.title = 'Open this equation';
             el.addEventListener('click', () => {
                 if (quizOpen || el.classList.contains('is-hidden')) return;
-                let expl = '';
-                const type = el.dataset.eq;
-                if (type === 'circ') {
-                    expl = 'How strong gravity is\n\ng = GM / r²\n\ng is in N/kg. That is the same as m/s².';
-                } else if (type === 'rad') {
-                    expl = 'Distance from the centre\n\nr = R + h\n\nR is the radius. h is the height above the surface.';
-                } else if (type === 'inv') {
-                    expl = 'Finding the distance from g\n\nr = √(GM / g)\n\nThis is g = GM / r² turned around.';
-                } else if (type === 'w') {
-                    expl = 'Weight\n\nW = m g\n\nMass stays the same. g can change, so the weight can change. Work out W yourself.';
-                } else if (type === 'load') {
-                    expl = 'A safe mass\n\nm = L / g\n\nL is the limit in newtons.';
-                } else if (type === 'count') {
-                    expl = 'How many items\n\nm = n × mass of one\n\nn is how many you take.';
-                }
-                hideQuiz();
-                afterBrief = null;
-                popupBox.classList.remove('wide', 'ending');
-                popupOk.textContent = 'Understood';
-                setPopupReady(false);
-                popupText.innerHTML = '<p id="briefTalk" class="brief-body"></p>';
-                introPopup.classList.add('show');
-                showCopyOnce('eq-' + type, document.getElementById('briefTalk'), expl);
+                const which = {
+                    circ: 'field', rad: 'radius', inv: 'field',
+                    w: 'weight', fromw: 'weight', load: 'weight', count: 'weight'
+                }[el.dataset.eq] || 'field';
+                window.open('gravity-sandbox.html?eq=' + which, '_blank', 'noopener');
             });
         });
 
@@ -1253,7 +1365,7 @@
         const calcPad = document.getElementById('calcPad');
         const calcScreen = document.getElementById('calcScreen');
         const calcToggle = document.getElementById('calcToggle');
-        const calcState = { acc: null, op: null, buf: '0', fresh: true };
+        const calcState = { acc: null, op: null, buf: '0', fresh: true, ans: null };
 
         function calcFormat(n) {
             if (!Number.isFinite(n)) return 'Error';
@@ -1308,14 +1420,29 @@
             calcState.fresh = true;
             calcRender();
         }
+        function calcRemember(n) {
+            if (Number.isFinite(n)) calcState.ans = n;
+        }
         function calcEquals() {
             if (calcState.op && calcState.acc != null) {
-                calcState.acc = calcApply(calcState.acc, calcNum(), calcState.op);
-                calcState.buf = calcFormat(calcState.acc);
+                const result = calcApply(calcState.acc, calcNum(), calcState.op);
+                calcState.acc = result;
+                calcState.buf = calcFormat(result);
+                calcRemember(result);
                 calcState.op = null;
                 calcState.fresh = true;
                 calcRender();
             }
+        }
+        function calcAns() {
+            if (calcState.ans == null) return;
+            if (calcState.buf === 'Error') {
+                calcState.acc = null;
+                calcState.op = null;
+            }
+            calcState.buf = calcFormat(calcState.ans);
+            calcState.fresh = true;
+            calcRender();
         }
         function calcBack() {
             if (calcState.fresh || calcState.buf === 'Error') { calcClear(); return; }
@@ -1331,18 +1458,23 @@
             else if (code === '+' || code === '-' || code === '*' || code === '/') calcOperator(code);
             else if (code === '=' || code === 'Enter') calcEquals();
             else if (code === 'C' || code === 'c') calcClear();
+            else if (code === 'ans') calcAns();
             else if (code === 'sqrt') {
-                calcState.buf = calcFormat(Math.sqrt(calcNum()));
+                const n = Math.sqrt(calcNum());
+                calcState.buf = calcFormat(n);
                 calcState.fresh = true;
                 calcState.acc = null;
                 calcState.op = null;
+                calcRemember(n);
                 calcRender();
             } else if (code === 'sq') {
                 const n = calcNum();
-                calcState.buf = calcFormat(n * n);
+                const sq = n * n;
+                calcState.buf = calcFormat(sq);
                 calcState.fresh = true;
                 calcState.acc = null;
                 calcState.op = null;
+                calcRemember(sq);
                 calcRender();
             } else if (code === 'bs' || code === 'Backspace') calcBack();
         }
@@ -1413,12 +1545,20 @@
         let valueDrag = null;
         let calcTap = { t: 0, x: 0, y: 0 };
         let copiedFlash = 0;
-        function lockedValueEl(target) {
-            const v = target && target.closest ? target.closest('.value') : null;
+        function boardDragFrom(target) {
+            if (!target || !target.closest) return null;
+            if (target.closest('input, button')) return null;
+            const stat = target.closest('.stat');
+            if (!stat || stat.classList.contains('is-hidden')) return null;
+            const v = stat.querySelector('.value');
             if (!v) return null;
-            const stat = v.closest('.stat');
-            if (!stat || stat.classList.contains('adjust') || stat.classList.contains('is-hidden')) return null;
-            return v;
+            const input = stat.querySelector('.inline-num');
+            let n = parseFloat(v.dataset.num);
+            if (!Number.isFinite(n) && input) n = parseFloat(input.value);
+            if (!Number.isFinite(n)) n = parseFloat(String(v.textContent).replace(/[^\d.eE+-]/g, ''));
+            if (!Number.isFinite(n)) return null;
+            const label = stat.classList.contains('adjust') && input ? input.value.trim() : v.textContent.trim();
+            return { n, label: label || String(n) };
         }
         function calcEnsureOpen() {
             if (!calcPad.classList.contains('open')) {
@@ -1547,11 +1687,10 @@
         }
         document.getElementById('ui').addEventListener('pointerdown', e => {
             if (e.button != null && e.button !== 0) return;
-            const v = lockedValueEl(e.target);
-            if (!v) return;
-            const n = parseFloat(v.dataset.num);
-            if (!Number.isFinite(n)) return;
-            valueDrag = { n, x0: e.clientX, y0: e.clientY, started: false, label: v.textContent.trim(), from: 'board' };
+            const picked = boardDragFrom(e.target);
+            if (!picked) return;
+            e.preventDefault();
+            valueDrag = { n: picked.n, x0: e.clientX, y0: e.clientY, started: false, label: picked.label, from: 'board' };
         });
         calcScreen.addEventListener('pointerdown', e => {
             if (e.button != null && e.button !== 0) return;
@@ -1594,7 +1733,8 @@
             const map = { Enter: 'Enter', Backspace: 'Backspace', Delete: 'C', ',': '.' };
             let code = map[e.key] || e.key;
             if (e.key === 'x' || e.key === 'X') code = '*';
-            if ('0123456789.+-*/'.includes(code) || code === 'Enter' || code === 'Backspace' || code === 'C') {
+            if (e.key === 'a' || e.key === 'A') code = 'ans';
+            if ('0123456789.+-*/'.includes(code) || code === 'Enter' || code === 'Backspace' || code === 'C' || code === 'ans') {
                 e.preventDefault();
                 calcKey(code);
             }
@@ -1824,13 +1964,10 @@
             document.querySelector('[data-eq="load"]').classList.add('is-hidden');
             document.querySelector('[data-eq="count"]').classList.toggle('is-hidden', !count);
             gHint.textContent = earth ? 'g on the Moon' : 'how strong gravity is';
-            gStat.querySelector('.extra').textContent = earth ? 'g on the Moon.' : 'How strong gravity is.';
-            mStat.querySelector('.extra').textContent = 'Mass of the load.';
             if (count) {
                 const word = m.item + (m.item.endsWith('s') ? '' : 's');
                 nUnit.textContent = word;
                 nHint.textContent = 'how many ' + word;
-                nStat.querySelector('.extra').textContent = 'How many to take.';
                 eachHint.textContent = 'mass of one ' + m.item;
                 eachDisp.textContent = String(m.each);
                 eachDisp.dataset.num = String(m.each);
@@ -1841,8 +1978,6 @@
                 earthGDisp.textContent = String(m.earthG);
                 earthGDisp.dataset.num = String(m.earthG);
             }
-            gmStat.querySelector('.extra').textContent = 'GM for this world.';
-            limitStat.querySelector('.extra').textContent = 'Most weight this part can hold.';
         }
 
         function comment(txt) {
@@ -1941,16 +2076,17 @@
             popupOk.textContent = 'I am ready';
             setPopupReady(false);
             popupText.innerHTML =
+                `<img class="intro-art" src="gravity-art/intro.webp" alt="A lander standing on the Moon, with Earth in the sky">` +
                 `<div class="brief-date">April 2016 — Beijing</div>` +
                 `<div class="brief-head"><span class="brief-face">🧪</span><div class="brief-name">Gravity researcher</div></div>` +
                 `<p id="briefTalk" class="brief-body"></p>`;
             introPopup.classList.add('show');
             afterBrief = () => loadMission();
             typeInto(document.getElementById('briefTalk'),
-                'The space agency in Beijing needs a gravity researcher.\n\n' +
-                'Craft are going to the Moon, to Mars, and into orbit around Earth. You work out the gravity so each load stays safe. If the weight is too high, a landing or a lift can fail.\n\n' +
-                'While you work out an answer, a research cost comes out of your team\'s budget. Every second, ¥1,000 is taken. If that budget is already zero, the cost goes on the debt.\n\n' +
-                'The first flight is Chang\'e-3.',
+                'You work out how strong gravity is, so each landing stays safe.\n\n' +
+                'The craft go to the Moon, to Mars, and into orbit around Earth. If the weight is too big, the legs or the arm can fail.\n\n' +
+                'Thinking costs money. Every second, ¥1,000 leaves the task budget. If that budget is already zero, the cost becomes debt.\n\n' +
+                'First: Chang\'e-3 landing on the Moon.',
                 () => setPopupReady(true)
             );
         }
@@ -2050,7 +2186,7 @@
         }
         function beginSuccessFx() {
             clearSuccessReveal();
-            const rings = [0xffe7a0, 0x8fd4ff].map((color, i) => {
+            const rings = [0xffe7a0, 0xf3ecdf].map((color, i) => {
                 const ring = new THREE.Mesh(
                     new THREE.RingGeometry(0.18 + i * 0.08, 0.28 + i * 0.08, 64),
                     new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
@@ -2079,8 +2215,9 @@
             velocity.set(0, 0, 0);
             clearTrail();
             launchBtn.disabled = false;
-            launchBtn.style.background = 'linear-gradient(45deg, #09f, #06d)';
-            resetBtn.style.background = '#444';
+            launchBtn.style.background = '';
+            resetBtn.style.background = '';
+            resetBtn.classList.remove('ready');
             updateDisplays();
         }
 
@@ -2332,7 +2469,7 @@
             particles.userData.vel = [];
             for(let i=0;i<300;i++) particles.userData.vel.push(new THREE.Vector3((Math.random()-0.5)*8,(Math.random()-0.5)*8,(Math.random()-0.5)*8));
             for(let i=0;i<12;i++){
-                const d = new THREE.Mesh(new THREE.BoxGeometry(0.035,0.035,0.035), new THREE.MeshPhongMaterial({color:0xffaa00}));
+                const d = new THREE.Mesh(new THREE.BoxGeometry(0.035,0.035,0.035), new THREE.MeshStandardMaterial({ color: 0xe7c48a, roughness: 0.55, metalness: 0.12 }));
                 d.position.copy(sat.position);
                 d.userData.vel = new THREE.Vector3((Math.random()-0.5)*6,(Math.random()-0.5)*6,(Math.random()-0.5)*6);
                 d.userData.rot = new THREE.Vector3(Math.random(),Math.random(),Math.random());
@@ -2347,8 +2484,9 @@
             if(simulating) return;
             spend(m.cost, true);
             simulating = true; launchBtn.disabled = true;
-            launchBtn.style.background = '#555';
-            resetBtn.style.background = 'linear-gradient(45deg, #09f, #06d)';
+            launchBtn.style.background = '';
+            resetBtn.style.background = '';
+            resetBtn.classList.add('ready');
             launchR = rVis;
             flightT = 0; rMin = Infinity; rMax = 0; judged = false;
             velocity.set(0, 0, 0);
@@ -2532,7 +2670,7 @@
                 setTimeout(() => URL.revokeObjectURL(a.href), 1500);
             };
             try {
-                canvas.toBlob(finish, 'image/png');
+                canvas.toBlob(finish, 'image/webp');
             } catch (err) {
                 comment('😐 The picture could not be saved from this page.');
             }
@@ -2560,7 +2698,7 @@
             const accTalk = `Average accuracy: ${avg.toFixed(0)}%. ${getEndRank(avg)}`;
             endingSnap = {
                 title: 'End of the tasks',
-                file: 'gravity-ending.png',
+                file: 'gravity-ending.webp',
                 cards: [
                     { head: 'Debt', text: debtTalk },
                     { head: 'Lives lost', text: crewTalk },
@@ -2570,9 +2708,9 @@
             popupText.innerHTML =
                 `<div class="brief-date">End of the tasks</div>` +
                 `<div class="end-grid">` +
-                `<div class="end-card"><img src="gravity-art/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.png" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
-                `<div class="end-card"><img src="gravity-art/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.png" alt="Lives lost"><h3>Lives lost</h3><p class="end-talk" id="endTalk1"></p></div>` +
-                `<div class="end-card"><img src="gravity-art/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.png" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
+                `<div class="end-card"><img src="gravity-art/${debtOk ? 'end-debt-ok' : 'end-debt-bad'}.webp" alt="Debt"><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
+                `<div class="end-card"><img src="gravity-art/${crewOk ? 'end-crew-ok' : 'end-crew-bad'}.webp" alt="Lives lost"><h3>Lives lost</h3><p class="end-talk" id="endTalk1"></p></div>` +
+                `<div class="end-card"><img src="gravity-art/${accOk ? 'end-acc-ok' : 'end-acc-bad'}.webp" alt="Accuracy"><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
                 `</div>`;
             introPopup.classList.remove('arrive');
             introPopup.classList.add('show');
@@ -2651,6 +2789,8 @@
             const raw = clock.getDelta();
             const dt = Math.min(raw,0.04)*0.9;
             const step = Math.min(raw, 0.25);
+            const craft = sat.userData.model;
+            if (craft && !exploding) craft.rotation.y += dt * (simulating ? 0.9 : 0.35);
             if (!simulating && !succeeded && !introPopup.classList.contains('show')) {
                 researchAcc += step;
                 if (researchAcc >= 1) {
