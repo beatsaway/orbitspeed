@@ -321,9 +321,56 @@
         }
         #ui {
             top: 14px; left: 14px; right: auto; bottom: auto;
-            width: 268px; height: auto; max-height: min(520px, calc(100vh - 28px));
+            width: 268px; height: auto; max-height: none;
             border-radius: 16px; border: 1px solid var(--line);
-            background: rgba(8, 9, 12, 0.86); color: var(--ink); overflow: auto;
+            background: rgba(8, 9, 12, 0.86); color: var(--ink); overflow: visible;
+        }
+        #coach, #calcGuideShow {
+            position: fixed; top: 52px; left: 50%; transform: translateX(-50%);
+            z-index: 50;
+        }
+        #coach {
+            width: min(340px, calc(100vw - 24px));
+            padding: 12px 14px 10px;
+            border: 1px solid #ffe9a8; border-radius: 14px;
+            background: rgba(8, 9, 12, 0.94); color: #f3ecdf;
+            text-align: center; box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+            font-size: 0.95rem; line-height: 1.4;
+        }
+        #coach::before {
+            content: ""; position: absolute; top: -7px; left: 50%;
+            width: 12px; height: 12px; margin-left: -6px;
+            background: rgba(8, 9, 12, 0.94);
+            border-left: 1px solid #ffe9a8; border-top: 1px solid #ffe9a8;
+            transform: rotate(45deg);
+        }
+        #coachFormula { margin: 0 0 6px; color: #ffe9a8; font-size: 0.85rem; }
+        #coachText { margin: 0 0 10px; }
+        #coachNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        #coachBack, #coachNext, #calcGuideShow {
+            border: 1px solid #2a6a88; background: transparent; color: #e8f4ff;
+            border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer;
+        }
+        #coachNext { background: #f3ecdf; color: #16140f; border-color: transparent; font-weight: 500; }
+        #coachBack:disabled { opacity: 0.35; cursor: default; }
+        #coachCount { font-size: 0.78rem; color: rgba(243, 236, 223, 0.62); }
+        #calcGuideHide {
+            margin-top: 8px; padding: 2px 8px; border: 0; background: transparent;
+            color: rgba(243, 236, 223, 0.62); font: inherit; cursor: pointer;
+        }
+        #calcGuideShow {
+            width: auto; border-radius: 999px; background: rgba(8, 9, 12, 0.94);
+            border-color: #ffe9a8; color: #ffe9a8; font-size: 0.85rem;
+        }
+        #coachSpots { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
+        .coach-spot {
+            position: fixed; pointer-events: none;
+            border: 2px solid #ffe9a8; border-radius: 10px;
+            box-shadow: 0 0 0 4px rgba(255, 233, 168, 0.28), 0 0 18px rgba(255, 233, 168, 0.65);
+            animation: coachPulse 1.4s ease-in-out infinite;
+        }
+        @keyframes coachPulse {
+            50% { box-shadow: 0 0 0 7px rgba(255, 233, 168, 0.12), 0 0 26px rgba(255, 233, 168, 0.85); }
         }
         #detailBtn, #endBtn { left: 50%; }
         .popup-box { max-width: 340px; padding: 16px; font-size: 0.95rem; line-height: 1.4; }
@@ -412,6 +459,12 @@
         .brief-name { font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 24px; color: var(--ink); }
         #introPopup { background: rgba(7, 8, 12, 0.72); }
         .popup-box { box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45); }
+        #ui > .act-row { display: flex; gap: 8px; margin-top: 6px; }
+        #ui > .act-row > #launchBtn,
+        #ui > .act-row > #resetBtn {
+            flex: 1 1 0; width: auto; min-width: 0; margin: 0; float: none;
+            padding: 4px 8px;
+        }
         #ui > #launchBtn { background: #f3ecdf; color: #16140f; }
         #ui > #launchBtn:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); }
         #ui > #resetBtn { background: transparent; color: var(--ink); border: 1px solid rgba(243, 236, 223, 0.28); }
@@ -470,11 +523,25 @@
             <div class="extra">Height above the surface. r = R + h.</div>
         </div>
 
-        <button id="launchBtn">LAUNCH</button>
-        <button id="resetBtn">RETRY</button>
+        <div class="act-row">
+            <button id="launchBtn">LAUNCH</button>
+            <button id="resetBtn">RETRY</button>
+        </div>
     </div>
 
     <button type="button" id="detailBtn">Mission 1</button>
+    <div id="coach" hidden>
+        <p id="coachFormula">V = √(GM / r)</p>
+        <p id="coachText"></p>
+        <div id="coachNav">
+            <button type="button" id="coachBack">Back</button>
+            <span id="coachCount">1 / 7</span>
+            <button type="button" id="coachNext">Next</button>
+        </div>
+        <button type="button" id="calcGuideHide">Hide</button>
+    </div>
+    <button type="button" id="calcGuideShow" hidden>Show steps</button>
+    <div id="coachSpots"></div>
     <button type="button" id="endBtn">See ending</button>
     <div id="nextPopup">
         <button type="button" id="nextBtn">NEXT MISSION</button>
@@ -1704,9 +1771,108 @@
             setCameraDist();
             resetSim();
             applyScaffold();
+            syncCalcGuide();
             afterBrief = () => updateMoneyTalk(true);
             showMissionBrief(false);
         }
+        const coachSteps = [
+            { text: 'Drag GM onto the calculator.', spots: ['#gmStat', '#calcPad'], openCalc: true },
+            { text: 'Press ÷.', spots: ['[data-calc="/"]'], openCalc: true },
+            { text: 'Drag r onto the calculator.', spots: ['#rStat', '#calcPad'], openCalc: true },
+            { text: 'Press =.', spots: ['[data-calc="="]'], openCalc: true },
+            { text: 'Press √.', spots: ['[data-calc="sqrt"]'], openCalc: true },
+            { text: 'Drag that answer onto V.', spots: ['#calcScreen', '#velStat'], openCalc: true },
+            { text: 'Press LAUNCH.', spots: ['#launchBtn'] }
+        ];
+        let coachIndex = 0;
+        const coachEl = document.getElementById('coach');
+        const coachText = document.getElementById('coachText');
+        const coachCount = document.getElementById('coachCount');
+        const coachBack = document.getElementById('coachBack');
+        const coachNext = document.getElementById('coachNext');
+        const coachShow = document.getElementById('calcGuideShow');
+        const coachSpots = document.getElementById('coachSpots');
+        function coachLive() {
+            return current === 0 && coachEl.dataset.shut !== '1' && !introPopup.classList.contains('show');
+        }
+        function bringIntoPanel(el) {
+            const ui = document.getElementById('ui');
+            if (!ui.contains(el)) return;
+            const er = el.getBoundingClientRect();
+            const ur = ui.getBoundingClientRect();
+            if (er.bottom > ur.bottom - 8) ui.scrollTop += er.bottom - ur.bottom + 12;
+            else if (er.top < ur.top + 8) ui.scrollTop -= ur.top - er.top + 12;
+        }
+        function showCoachStep() {
+            const step = coachSteps[coachIndex];
+            coachText.textContent = step.text;
+            coachCount.textContent = (coachIndex + 1) + ' / ' + coachSteps.length;
+            coachBack.disabled = coachIndex === 0;
+            coachNext.textContent = coachIndex === coachSteps.length - 1 ? 'Done' : 'Next';
+            if (step.openCalc && !calcPad.classList.contains('open')) {
+                calcPad.classList.add('open');
+                calcPad.setAttribute('aria-hidden', 'false');
+            }
+            step.spots.forEach(sel => {
+                const el = document.querySelector(sel);
+                if (el) bringIntoPanel(el);
+            });
+            placeCoachSpots();
+        }
+        function placeCoachSpots() {
+            const live = coachLive();
+            coachEl.hidden = !live;
+            coachShow.hidden = !(current === 0 && coachEl.dataset.shut === '1' && !introPopup.classList.contains('show'));
+            if (!live) {
+                coachSpots.replaceChildren();
+                return;
+            }
+            const step = coachSteps[coachIndex];
+            while (coachSpots.childElementCount < step.spots.length) {
+                const spot = document.createElement('div');
+                spot.className = 'coach-spot';
+                coachSpots.appendChild(spot);
+            }
+            while (coachSpots.childElementCount > step.spots.length) coachSpots.lastChild.remove();
+            step.spots.forEach((sel, i) => {
+                const el = document.querySelector(sel);
+                const spot = coachSpots.children[i];
+                if (!el) { spot.style.display = 'none'; return; }
+                const r = el.getBoundingClientRect();
+                if (r.width < 2 || r.height < 2) { spot.style.display = 'none'; return; }
+                const pad = 4;
+                spot.style.display = 'block';
+                spot.style.left = (r.left - pad) + 'px';
+                spot.style.top = (r.top - pad) + 'px';
+                spot.style.width = (r.width + pad * 2) + 'px';
+                spot.style.height = (r.height + pad * 2) + 'px';
+            });
+        }
+        function syncCalcGuide() {
+            if (current !== 0) coachIndex = 0;
+            showCoachStep();
+        }
+        coachBack.addEventListener('click', () => {
+            if (coachIndex > 0) coachIndex--;
+            showCoachStep();
+        });
+        coachNext.addEventListener('click', () => {
+            if (coachIndex < coachSteps.length - 1) coachIndex++;
+            else coachEl.dataset.shut = '1';
+            showCoachStep();
+        });
+        document.getElementById('calcGuideHide').addEventListener('click', () => {
+            coachEl.dataset.shut = '1';
+            showCoachStep();
+        });
+        coachShow.addEventListener('click', () => {
+            coachEl.dataset.shut = '0';
+            showCoachStep();
+        });
+        (function coachFrame() {
+            placeCoachSpots();
+            requestAnimationFrame(coachFrame);
+        })();
 
         function updateOrbitPath(r){
             const pts=[]; for(let i=0;i<=80;i++){ const a=i/80*Math.PI*2; pts.push(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)); }

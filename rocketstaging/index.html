@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stage Drop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #f3ecdf;
+      --dim: rgba(243, 236, 223, 0.62);
+      --line: rgba(243, 236, 223, 0.16);
+      --card: rgba(8, 9, 12, 0.86);
+      --gold: #ffe9a8;
+      --bad: #f0c2b2;
+      --ok: #d7eccf;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+    body { overflow: hidden; user-select: none; -webkit-user-select: none; }
+    input { user-select: text; -webkit-user-select: text; }
+    #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    aside {
+      position: absolute; top: 14px; left: 14px; z-index: 6;
+      width: 280px; height: auto; max-height: none; overflow: visible;
+      padding: 14px 14px 12px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .kicker {
+      margin: 0; font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500; font-size: 28px; line-height: 1;
+    }
+    #goalLine, #costLine, #tanks { margin: 0; font-size: 0.92rem; }
+    #tanks { color: var(--gold); }
+    #hint { margin: 0; color: var(--dim); font-size: 0.82rem; line-height: 1.35; }
+    label.ctrl { display: block; }
+    label.ctrl span { display: flex; justify-content: space-between; gap: 8px; font-size: 0.92rem; margin-bottom: 4px; }
+    label.ctrl b { font-weight: 500; color: var(--gold); }
+    input[type="range"] { width: 100%; accent-color: #f3ecdf; }
+    .ends { display: flex; justify-content: space-between; color: var(--dim); font-size: 0.75rem; margin-top: 2px; }
+    .actions { display: flex; gap: 8px; }
+    .actions button { flex: 1 1 0; min-width: 0; }
+    button {
+      font-family: Outfit, system-ui, sans-serif; font-weight: 500;
+      color: #16140f; background: #f3ecdf; border: 0; border-radius: 999px;
+      padding: 8px 12px; cursor: pointer;
+    }
+    button.ghost {
+      background: transparent; color: var(--ink);
+      border: 1px solid rgba(243, 236, 223, 0.28);
+    }
+    button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); cursor: default; }
+    #flightBtn {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 6;
+    }
+    #quipbox {
+      position: absolute; right: 14px; bottom: 14px; z-index: 5;
+      max-width: min(300px, calc(100% - 320px));
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    #face { font-size: 1.6rem; line-height: 1; }
+    #quip { margin: 0; font-size: 0.92rem; line-height: 1.35; }
+    #hud {
+      position: absolute; top: 14px; right: 14px; z-index: 6;
+      min-width: 210px; padding: 10px 12px;
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      font-size: 0.82rem; line-height: 1.35; backdrop-filter: blur(10px);
+    }
+    #hud .row { display: flex; justify-content: space-between; gap: 16px; }
+    #hud .row + .row { margin-top: 3px; }
+    #hud .row span { color: var(--dim); }
+    #hud b { font-variant-numeric: tabular-nums; font-weight: 500; }
+    #hud b.ok { color: var(--ok); }
+    #hud b.bad { color: var(--bad); }
+    #pop {
+      position: absolute; inset: 0; z-index: 8;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(7, 8, 12, 0.72); padding: 18px;
+    }
+    #pop[hidden] { display: none; }
+    .card {
+      width: min(360px, 100%);
+      background: rgba(8, 9, 12, 0.94); border: 1px solid var(--line);
+      border-radius: 16px; padding: 16px;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+    }
+    .card h2 {
+      margin: 4px 0 8px; font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500; font-size: 28px; line-height: 1;
+    }
+    .card p { margin: 0 0 8px; line-height: 1.45; color: var(--dim); }
+    .card button { width: 100%; margin-top: 6px; }
+    #popKicker { margin: 0 0 4px; font-size: 0.85rem; color: var(--gold); }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <aside>
+    <p class="kicker" id="kicker">Flight 1 of 8</p>
+    <p id="goalLine">Reach the line.</p>
+    <div id="controls"></div>
+    <p id="tanks"></p>
+    <p id="hint"></p>
+    <p id="costLine">This launch costs ¥0</p>
+    <div class="actions">
+      <button class="ghost" id="retry" type="button">Retry</button>
+      <button id="launch" type="button">Launch</button>
+    </div>
+  </aside>
+  <button class="ghost" id="flightBtn" type="button">Flight 1</button>
+  <div id="quipbox"><span id="face">🙂</span><p id="quip">Set the sliders, then launch.</p></div>
+  <div id="hud">
+    <div class="row"><span>Height</span><b id="hudHeight">0 km</b></div>
+    <div class="row"><span>Budget</span><b id="hudBudget">¥0</b></div>
+    <div class="row"><span>Savings</span><b id="hudSavings" class="ok">¥0</b></div>
+    <div class="row"><span>Debt</span><b id="hudDebt" class="ok">¥0</b></div>
+  </div>
+  <div id="pop">
+    <div class="card">
+      <p id="popKicker"></p>
+      <h2 id="popTitle"></h2>
+      <div id="popBody"></div>
+      <button id="popBtn" type="button">I am ready</button>
+    </div>
+  </div>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="music/ctx.js"></script>
+  <script src="music/music-voices.js"></script>
+  <script src="music/ship-music.js"></script>
+  <script src="sfx.js"></script>
+  <script>
+
+    const G = 9.81;
+    const ISP = 115;
+    const BASE = [240000, 150000, 10000];
+    const PER = [14000, 11000, 8000];
+    const TIME_SCALE = 12;
+    function altY(metres) {
+      const km = Math.max(0, metres) / 1000;
+      return Math.sqrt(km) * 14;
+    }
+    const NZ = 0.32;
+    const LEG = 0.9;
+    const PAD_TOP = 0.52;
+    const PAD_CLEAR = PAD_TOP + NZ + LEG;
+    const BODY_R = 0.46;
+
+    const flights = [
+      {
+        title: "Add a second stage",
+        goal: 185,
+        budget: 36,
+        hint: "One tank runs out. A second stage, dropped when it is empty, goes further.",
+        brief: "One stage cannot reach the line. Add a second stage. When the first tank is empty, it drops, and the next engine lights.",
+        n: 1,
+        fuels: [14, 11, 6],
+        drop: 0,
+        controls: [{ key: "n", label: "How many stages?", min: 1, max: 3, step: 1, ends: ["1", "3"] }]
+      },
+      {
+        title: "Fuel the bottom stage",
+        goal: 220,
+        budget: 36,
+        hint: "The first stage lifts the whole rocket. Give it more of the fuel.",
+        brief: "The fuel is split across two stages. The total stays the same. Put more of it in the first stage, so the rocket can lift off.",
+        n: 2,
+        pool: 26,
+        bottom: 6,
+        drop: 0,
+        controls: [{ key: "bottom", label: "Fuel in the first stage", min: 4, max: 22, step: 1, ends: ["Mostly on top", "Mostly at the bottom"] }]
+      },
+      {
+        title: "Drop the empty tank",
+        goal: 203,
+        budget: 34,
+        hint: "Drop the stage as soon as its tank is empty. Do not carry it.",
+        brief: "This rocket already has two stages and enough fuel. If you wait, the next engine starts late and you fall short.",
+        n: 2,
+        fuels: [14, 11],
+        drop: 8,
+        controls: [{ key: "drop", label: "Wait before you drop", min: 0, max: 10, step: 1, ends: ["Right away", "Hold on"] }]
+      },
+      {
+        title: "Keep the second tank small",
+        goal: 230,
+        budget: 32,
+        hint: "A huge second tank is heavy at lift-off. Leave it smaller.",
+        brief: "The first tank stays full. If you fill the second tank as well, the rocket is heavy before it even drops a stage.",
+        n: 2,
+        fuels: [14, 14],
+        top: 14,
+        drop: 0,
+        controls: [{ key: "top", label: "Fuel in the second stage", min: 2, max: 14, step: 1, ends: ["Small", "Full"] }]
+      },
+      {
+        title: "Fill the one tank",
+        goal: 150,
+        budget: 24,
+        hint: "This line is low. One tank can reach it if you fill it.",
+        brief: "There is only one stage. A little fuel falls short. More fuel reaches the line, but after that, extra fuel barely helps.",
+        n: 1,
+        bottom: 8,
+        drop: 0,
+        controls: [{ key: "bottom", label: "Fuel in the tank", min: 6, max: 24, step: 1, ends: ["Low", "Full"] }]
+      },
+      {
+        title: "Do not hold the empty tank",
+        goal: 247,
+        budget: 36,
+        hint: "This rocket is strong, and it still misses if you wait.",
+        brief: "Two stages, with plenty of fuel. Drop the first stage as soon as its tank is empty. Holding on makes the next engine late.",
+        n: 2,
+        fuels: [18, 8],
+        drop: 10,
+        controls: [{ key: "drop", label: "Wait before you drop", min: 0, max: 10, step: 1, ends: ["Right away", "Hold on"] }]
+      },
+      {
+        title: "Lift with the first stage",
+        goal: 232,
+        budget: 40,
+        hint: "Use two stages. Put most of the fuel in the first one, and drop it when it is empty.",
+        brief: "The line is higher. One stage will not reach it. Three small stages are heavy at lift-off. Two stages, with a strong first stage, can.",
+        n: 1,
+        bottom: 10,
+        upper: [8, 5],
+        drop: 0,
+        controls: [
+          { key: "n", label: "How many stages?", min: 1, max: 3, step: 1, ends: ["1", "3"] },
+          { key: "bottom", label: "Fuel in the first stage", min: 8, max: 24, step: 1, ends: ["Small", "Large"] }
+        ]
+      },
+      {
+        title: "Two stages are enough",
+        goal: 200,
+        budget: 16,
+        hint: "Two stages reach the line. A third stage costs more and flies lower.",
+        brief: "The budget is small. One stage misses. Three stages are heavy and can put you in debt. Two stages, dropped on time, are enough.",
+        n: 1,
+        bottom: 8,
+        upper: [6, 4],
+        drop: 0,
+        controls: [
+          { key: "n", label: "How many stages?", min: 1, max: 3, step: 1, ends: ["1", "3"] },
+          { key: "bottom", label: "Fuel in the first stage", min: 8, max: 22, step: 1, ends: ["Small", "Large"] }
+        ]
+      }
+    ];
+
+    const music = new ShipMusic();
+    const sfx = createSfx();
+    let heard = false;
+    function armAudio() {
+      if (heard) return;
+      heard = true;
+      music.start();
+      music.setMood("scene1");
+    }
+    addEventListener("pointerdown", armAudio);
+
+    const canvas = document.getElementById("view");
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x07080c);
+    scene.fog = new THREE.Fog(0x07080c, 22, 70);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1600);
+    scene.add(new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85));
+    const sun = new THREE.DirectionalLight(0xfff3e2, 1.55);
+    sun.position.set(6, 14, 8);
+    scene.add(sun);
+    scene.add(new THREE.AmbientLight(0xf3ecdf, 0.14));
+
+    const site = new THREE.Group();
+    scene.add(site);
+    const sea = new THREE.Mesh(
+      new THREE.CircleGeometry(90, 48),
+      new THREE.MeshStandardMaterial({ color: 0x1a2428, roughness: 0.42, metalness: 0.18 })
+    );
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.set(0, -0.12, 22);
+    site.add(sea);
+    function terrainHeight(x, z) {
+      const roll = Math.sin(x * 0.16) * Math.cos(z * 0.13)
+        + Math.sin(x * 0.05 + z * 0.07) * 1.35
+        + Math.sin(x * 0.37 + 1.7) * Math.sin(z * 0.31) * 0.55;
+      const d = Math.hypot(x, z);
+      const away = Math.min(1, Math.max(0, (d - 7) / 8));
+      let h = roll * 1.2 * away;
+      if (z > 12) h -= (z - 12) * 0.055 * away;
+      return h;
+    }
+    const groundGeo = new THREE.PlaneGeometry(96, 96, 72, 72);
+    groundGeo.rotateX(-Math.PI / 2);
+    const gPos = groundGeo.attributes.position;
+    const gCol = new Float32Array(gPos.count * 3);
+    for (let i = 0; i < gPos.count; i++) {
+      const x = gPos.getX(i);
+      const z = gPos.getZ(i);
+      const h = terrainHeight(x, z);
+      gPos.setY(i, h);
+      const mix = Math.sin(x * 0.21 + 0.4) * Math.cos(z * 0.18);
+      let r = 0.24, g = 0.22, b = 0.16;
+      if (h < -0.15) { r = 0.1; g = 0.18; b = 0.22; }
+      else if (mix > 0.45) { r = 0.38; g = 0.36; b = 0.32; }
+      else if (mix < -0.25) { r = 0.2; g = 0.34; b = 0.16; }
+      else if (mix > 0.1) { r = 0.42; g = 0.36; b = 0.22; }
+      gCol[i * 3] = r;
+      gCol[i * 3 + 1] = g;
+      gCol[i * 3 + 2] = b;
+    }
+    groundGeo.setAttribute("color", new THREE.BufferAttribute(gCol, 3));
+    groundGeo.computeVertexNormals();
+    site.add(new THREE.Mesh(
+      groundGeo,
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0.02 })
+    ));
+    const pad = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.1, 3.45, 0.46, 40),
+      new THREE.MeshStandardMaterial({ color: 0x2c3848, metalness: 0.4, roughness: 0.5 })
+    );
+    pad.position.y = 0.23;
+    site.add(pad);
+    const deck = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.15, 2.15, 0.08, 32),
+      new THREE.MeshStandardMaterial({ color: 0x465366, metalness: 0.55, roughness: 0.35 })
+    );
+    deck.position.y = 0.48;
+    site.add(deck);
+    function groundRing(inner, outer, y, color) {
+      const mark = new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, 48),
+        new THREE.MeshBasicMaterial({ color: color, side: THREE.DoubleSide })
+      );
+      mark.rotation.x = -Math.PI / 2;
+      mark.position.y = y;
+      site.add(mark);
+    }
+    groundRing(1.5, 1.68, 0.53, 0xf3ecdf);
+    groundRing(2.55, 2.72, 0.47, 0xf3e6c0);
+    const trench = new THREE.Mesh(
+      new THREE.BoxGeometry(1.15, 0.18, 8),
+      new THREE.MeshStandardMaterial({ color: 0x070b10, roughness: 0.85 })
+    );
+    trench.position.set(0, 0.02, 3.6);
+    site.add(trench);
+
+    const starArr = new Float32Array(420 * 3);
+    for (let i = 0; i < 420; i++) {
+      const r = 30 + Math.random() * 70;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(Math.random() * 2 - 1);
+      starArr[i * 3] = Math.sin(ph) * Math.cos(th) * r;
+      starArr[i * 3 + 1] = Math.abs(Math.cos(ph)) * 40 + 6;
+      starArr[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * r;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starArr, 3));
+    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.08, fog: false })));
+
+    const goalRing = new THREE.Mesh(
+      new THREE.TorusGeometry(3.4, 0.035, 8, 64),
+      new THREE.MeshBasicMaterial({ color: 0xffe9a8 })
+    );
+    goalRing.rotation.x = Math.PI / 2;
+    scene.add(goalRing);
+
+    const shellMat = new THREE.MeshStandardMaterial({
+      color: 0xe7f2fb, transparent: true, opacity: 0.22, roughness: 0.05,
+      metalness: 0.2, depthWrite: false
+    });
+    const fuelMat = new THREE.MeshStandardMaterial({
+      color: 0x39e4ff, emissive: 0x0c6f92, emissiveIntensity: 0.85,
+      roughness: 0.18, metalness: 0.15, transparent: true, opacity: 0.5, depthWrite: false
+    });
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xd8fbff, transparent: true, opacity: 0.28, depthWrite: false });
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0xd24b3c, transparent: true, opacity: 0.5, roughness: 0.45, depthWrite: false });
+    const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.7, roughness: 0.28 });
+    const finMat = new THREE.MeshStandardMaterial({ color: 0x2c6bed, roughness: 0.5, side: THREE.DoubleSide });
+    const collarMat = new THREE.MeshStandardMaterial({ color: 0x1c2836, metalness: 0.4, roughness: 0.45 });
+
+    const finShape = new THREE.Shape();
+    finShape.moveTo(BODY_R * 0.92, 0);
+    finShape.lineTo(BODY_R * 0.92 + 0.72, 0.16);
+    finShape.lineTo(BODY_R * 0.92 + 0.6, 0.62);
+    finShape.lineTo(BODY_R * 0.92, 0.78);
+
+    const rocket = new THREE.Group();
+    scene.add(rocket);
+    let units = [];
+    let stackTop = 1;
+
+    function clearGeos(obj) {
+      obj.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+    }
+    function clearScraps() {
+      scraps.forEach(sc => {
+        if (!sc.mesh) return;
+        scene.remove(sc.mesh);
+        clearGeos(sc.mesh);
+      });
+      scraps = [];
+    }
+    const flameOuterMat = new THREE.MeshBasicMaterial({ color: 0xff5a12, transparent: true, opacity: 0.55, depthWrite: false });
+    const flameMidMat = new THREE.MeshBasicMaterial({ color: 0xffc14a, transparent: true, opacity: 0.8, depthWrite: false });
+    const flameHeartMat = new THREE.MeshBasicMaterial({ color: 0xfff6d0, depthWrite: false });
+    const emberMat = new THREE.PointsMaterial({ color: 0xffe08a, size: 0.08, transparent: true, opacity: 0.9, depthWrite: false });
+    function resetEmber(arr, i, scatter) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * 0.22;
+      arr[i * 3] = Math.cos(a) * r;
+      arr[i * 3 + 1] = scatter ? -Math.random() * 2.4 : -0.05;
+      arr[i * 3 + 2] = Math.sin(a) * r;
+    }
+    function makePlume() {
+      const plume = new THREE.Group();
+      const outer = new THREE.Mesh(new THREE.ConeGeometry(0.55, 2.4, 16), flameOuterMat);
+      outer.rotation.x = Math.PI;
+      outer.position.y = -1.2;
+      const mid = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.7, 14), flameMidMat);
+      mid.rotation.x = Math.PI;
+      mid.position.y = -0.85;
+      const heart = new THREE.Mesh(new THREE.ConeGeometry(0.14, 1.05, 12), flameHeartMat);
+      heart.rotation.x = Math.PI;
+      heart.position.y = -0.5;
+      const emberGeo = new THREE.BufferGeometry();
+      const emberArr = new Float32Array(70 * 3);
+      for (let i = 0; i < 70; i++) resetEmber(emberArr, i, true);
+      emberGeo.setAttribute("position", new THREE.BufferAttribute(emberArr, 3));
+      const embers = new THREE.Points(emberGeo, emberMat);
+      const light = new THREE.PointLight(0xff7a22, 0, 8);
+      light.position.y = -0.4;
+      plume.add(outer, mid, heart, embers, light);
+      plume.position.y = -NZ - 0.05;
+      plume.visible = false;
+      plume.userData = { outer, mid, heart, embers, emberArr, light };
+      return plume;
+    }
+    function makeUnit(fuelT, kind) {
+      const g = new THREE.Group();
+      const shellH = 0.62 + fuelT * 0.09;
+      const shell = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R, BODY_R, shellH, 28), shellMat);
+      shell.position.y = shellH / 2;
+      shell.renderOrder = 2;
+      g.add(shell);
+      const fullH = Math.max(0.08, shellH * 0.9);
+      const fuel = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R * 0.62, BODY_R * 0.62, fullH, 20), fuelMat);
+      fuel.position.y = fullH / 2;
+      fuel.renderOrder = 1;
+      g.add(fuel);
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R * 0.28, BODY_R * 0.28, fullH * 0.92, 12), coreMat);
+      core.position.y = fullH / 2;
+      g.add(core);
+      const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R * 0.34, BODY_R * 0.62, NZ, 20), nozzleMat);
+      nozzle.position.y = -NZ / 2;
+      g.add(nozzle);
+      const collar = new THREE.Mesh(new THREE.CylinderGeometry(BODY_R * 1.04, BODY_R * 1.04, 0.07, 24), collarMat);
+      collar.position.y = shellH;
+      g.add(collar);
+      const noseOn = kind === "top" || kind === "only";
+      const finsOn = kind === "bottom" || kind === "only";
+      let noseH = 0;
+      if (noseOn) {
+        noseH = 0.72;
+        const nose = new THREE.Mesh(new THREE.ConeGeometry(BODY_R * 0.98, noseH, 24), noseMat);
+        nose.position.y = shellH + noseH / 2;
+        g.add(nose);
+      }
+      if (finsOn) {
+        for (let i = 0; i < 4; i++) {
+          const fin = new THREE.Mesh(new THREE.ShapeGeometry(finShape), finMat);
+          fin.position.y = 0.08;
+          fin.rotation.y = i * Math.PI / 2;
+          g.add(fin);
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, NZ + LEG, 6), collarMat);
+          const a = i * Math.PI / 2 + Math.PI / 4;
+          leg.position.set(Math.cos(a) * 0.72, -(NZ + LEG) / 2, Math.sin(a) * 0.72);
+          g.add(leg);
+        }
+      }
+      const plume = makePlume();
+      g.add(plume);
+      g.userData = { shellH, fullH, fuel, core, plume, fuelKg0: fuelT * 1000, top: shellH + noseH };
+      return g;
+    }
+    function buildRocket(d) {
+      clearScraps();
+      units.forEach(u => { rocket.remove(u); clearGeos(u); });
+      units = [];
+      let y = 0;
+      for (let i = 0; i < d.n; i++) {
+        const kind = d.n === 1 ? "only" : i === 0 ? "bottom" : i === d.n - 1 ? "top" : "mid";
+        const unit = makeUnit(d.fuels[i], kind);
+        unit.position.y = y;
+        rocket.add(unit);
+        units.push(unit);
+        y += unit.userData.shellH + (i < d.n - 1 ? NZ + 0.06 : 0);
+      }
+      const last = units[units.length - 1];
+      stackTop = last.position.y + last.userData.top;
+      rocket.position.set(0, PAD_CLEAR, 0);
+      rocket.rotation.set(0, 0, 0);
+      goalRing.position.y = PAD_CLEAR + altY(flights[index].goal * 1000) + stackTop;
+      visualIdx = 0;
+    }
+
+    let index = 0;
+    let budget = 0, savings = 0, debt = 0;
+    let setup = null;
+    let flying = null;
+    let scraps = [];
+    let visualIdx = 0;
+    let mode = "intro";
+
+    function yen(mil) {
+      const n = Math.round(mil * 1000000);
+      return (n < 0 ? "−" : "") + "¥" + Math.abs(n).toLocaleString();
+    }
+    function design() {
+      const f = flights[index];
+      const n = setup.n;
+      let fuels;
+      if (f.pool != null) fuels = [setup.bottom, f.pool - setup.bottom, 5];
+      else if (f.fuels) fuels = f.fuels.slice();
+      else fuels = [setup.bottom].concat(f.upper || [8, 5]);
+      if (f.controls.some(c => c.key === "bottom")) fuels[0] = setup.bottom;
+      if (f.controls.some(c => c.key === "top")) fuels[1] = setup.top;
+      return { n, fuels: fuels.slice(0, n), drop: setup.drop };
+    }
+    function launchCost(d) {
+      const fuel = d.fuels.reduce((a, b) => a + b, 0);
+      return Math.round((4 * d.n + 0.28 * fuel) * 10) / 10;
+    }
+    function paintHud(heightKm) {
+      document.getElementById("hudHeight").textContent = heightKm.toFixed(1) + " km";
+      document.getElementById("hudBudget").textContent = yen(budget);
+      document.getElementById("hudBudget").className = budget <= 0 ? "bad" : "";
+      document.getElementById("hudSavings").textContent = yen(savings);
+      document.getElementById("hudSavings").className = savings > 0 ? "ok" : "";
+      document.getElementById("hudDebt").textContent = yen(debt);
+      document.getElementById("hudDebt").className = debt > 0 ? "bad" : "ok";
+    }
+    function spend(amount) {
+      let left = amount;
+      if (budget >= left) { budget -= left; left = 0; }
+      else { left -= budget; budget = 0; }
+      if (left > 0) {
+        if (savings >= left) { savings -= left; left = 0; }
+        else { left -= savings; savings = 0; debt += left; }
+      }
+      paintHud(flying ? flying.h / 1000 : 0);
+    }
+    function bank() {
+      if (debt > 0) {
+        const pay = Math.min(debt, budget);
+        debt -= pay;
+        budget -= pay;
+      }
+      savings += budget;
+      budget = 0;
+      paintHud(0);
+    }
+    function makeStages(d) {
+      return d.fuels.map((fuelT, i) => {
+        const fuel = fuelT * 1000;
+        const dry = 500 + fuel * 0.16;
+        const thrust = BASE[i] + fuelT * PER[i];
+        return { fuel, dry, thrust, burn: thrust / (ISP * G) };
+      });
+    }
+    function readControls() {
+      const f = flights[index];
+      setup = {
+        n: f.n,
+        bottom: f.bottom != null ? f.bottom : (f.fuels ? f.fuels[0] : 14),
+        top: f.top != null ? f.top : (f.fuels && f.fuels[1] != null ? f.fuels[1] : 8),
+        drop: f.drop,
+        fuels: f.fuels ? f.fuels.slice() : null
+      };
+      f.controls.forEach(c => {
+        const el = document.getElementById("sl-" + c.key);
+        if (!el) return;
+        setup[c.key] = Number(el.value);
+      });
+    }
+    function sliderText(c) {
+      if (c.key === "n") return String(setup.n);
+      if (c.key === "bottom" || c.key === "top") return setup[c.key] + " t";
+      if (c.key === "drop") return setup.drop === 0 ? "Right away" : setup.drop + " s";
+      return "";
+    }
+    function tankLine(d) {
+      const names = ["Bottom tank", "Second tank", "Third tank"];
+      return d.fuels.map((t, i) => names[i] + " " + t + " t").join(" · ");
+    }
+    function paintControls() {
+      const f = flights[index];
+      const box = document.getElementById("controls");
+      box.innerHTML = f.controls.map(c => {
+        const val = c.key === "n" ? setup.n : c.key === "bottom" ? setup.bottom : c.key === "top" ? setup.top : setup.drop;
+        return `<label class="ctrl"><span>${c.label}<b id="vl-${c.key}">${sliderText(c)}</b></span>
+          <input id="sl-${c.key}" type="range" min="${c.min}" max="${c.max}" step="${c.step}" value="${val}">
+          <div class="ends"><span>${c.ends[0]}</span><span>${c.ends[1]}</span></div></label>`;
+      }).join("");
+      box.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", () => {
+          if (mode === "fly") return;
+          readControls();
+          const key = input.id.slice(3);
+          document.getElementById("vl-" + key).textContent = sliderText(f.controls.find(c => c.key === key));
+          const d = design();
+          document.getElementById("tanks").textContent = tankLine(d);
+          document.getElementById("costLine").textContent = "This launch costs " + yen(launchCost(d));
+          buildRocket(d);
+        });
+      });
+      const d = design();
+      document.getElementById("tanks").textContent = tankLine(d);
+      document.getElementById("costLine").textContent = "This launch costs " + yen(launchCost(d));
+      buildRocket(d);
+    }
+    function loadFlight(i) {
+      index = i;
+      const f = flights[i];
+      budget = f.budget;
+      setup = {
+        n: f.n,
+        bottom: f.bottom != null ? f.bottom : (f.fuels ? f.fuels[0] : 14),
+        top: f.top != null ? f.top : (f.fuels && f.fuels[1] != null ? f.fuels[1] : 8),
+        drop: f.drop,
+        fuels: f.fuels ? f.fuels.slice() : null
+      };
+      flying = null;
+      mode = "pad";
+      sfx.quiet();
+      if (heard) music.setMood("scene1");
+      document.getElementById("kicker").textContent = "Flight " + (i + 1) + " of " + flights.length;
+      document.getElementById("flightBtn").textContent = "Flight " + (i + 1);
+      document.getElementById("goalLine").textContent = "Reach " + f.goal + " km.";
+      document.getElementById("hint").textContent = f.hint;
+      document.getElementById("launch").disabled = false;
+      document.getElementById("retry").disabled = true;
+      paintControls();
+      paintHud(0);
+      say("🙂", "Set the sliders, then launch.");
+    }
+    function say(face, text) {
+      document.getElementById("face").textContent = face;
+      document.getElementById("quip").textContent = text;
+    }
+    let popNext = null;
+    function openPop(kicker, title, paragraphs, button, next) {
+      document.getElementById("popKicker").textContent = kicker;
+      document.getElementById("popTitle").textContent = title;
+      document.getElementById("popBody").innerHTML = paragraphs.map(p => "<p>" + p + "</p>").join("");
+      document.getElementById("popBtn").textContent = button;
+      document.getElementById("pop").hidden = false;
+      popNext = next;
+    }
+    document.getElementById("popBtn").addEventListener("click", () => {
+      document.getElementById("pop").hidden = true;
+      const fn = popNext;
+      popNext = null;
+      if (fn) fn();
+    });
+    document.getElementById("flightBtn").addEventListener("click", () => {
+      if (mode === "fly") return;
+      const f = flights[index];
+      openPop("Flight " + (index + 1), f.title, [f.brief], "Close", null);
+    });
+    function startLaunch() {
+      if (mode === "fly") return;
+      readControls();
+      const d = design();
+      spend(launchCost(d));
+      buildRocket(d);
+      const stages = makeStages(d);
+      flying = {
+        stages, n: d.n, dropWait: d.drop, idx: 0, wait: null,
+        h: 0, v: 0, t: 0, maxH: 0, goal: flights[index].goal * 1000,
+        done: false, won: false, falling: false, thrusting: false
+      };
+      mode = "fly";
+      document.getElementById("launch").disabled = true;
+      document.getElementById("retry").disabled = true;
+      document.querySelectorAll("#controls input").forEach(el => { el.disabled = true; });
+      say("😐", "Launch. Watch for the empty stage to drop.");
+      sfx.ignite();
+      if (heard) music.setMood("ok");
+    }
+    document.getElementById("launch").addEventListener("click", startLaunch);
+    document.getElementById("retry").addEventListener("click", () => {
+      flying = null;
+      mode = "pad";
+      sfx.quiet();
+      if (heard) music.setMood("scene1");
+      document.getElementById("launch").disabled = false;
+      document.getElementById("retry").disabled = true;
+      document.querySelectorAll("#controls input").forEach(el => { el.disabled = false; });
+      buildRocket(design());
+      paintHud(0);
+      say("🙂", "Change a slider if you need to, then launch again.");
+    });
+    function finishFlight() {
+      mode = "done";
+      sfx.quiet();
+      document.getElementById("retry").disabled = false;
+      const f = flights[index];
+      const km = flying.maxH / 1000;
+      paintHud(km);
+      if (flying.won) {
+        say("🙂", "You reached " + f.goal + " km.");
+        sfx.win();
+        if (heard) {
+          music.sting("upgrade");
+          music.setMood("victory");
+        }
+        const last = index === flights.length - 1;
+        openPop(
+          "Reached the line",
+          f.title,
+          [winLine(), "Money left over pays any debt first. The rest goes into savings."],
+          last ? "See the money" : "Next flight",
+          () => {
+            bank();
+            if (last) {
+              say(debt > 0 ? "😟" : "🙂", debt > 0
+                ? "You finished, and there is still debt of " + yen(debt) + "."
+                : "You finished. Savings " + yen(savings) + ".");
+            } else loadFlight(index + 1);
+          }
+        );
+      } else {
+        say("😐", loseLine(km));
+        sfx.miss();
+        if (heard) {
+          music.sting("fall");
+          music.setMood("sos");
+        }
+      }
+    }
+    function winLine() {
+      if (index === 0) return "The empty stage dropped, and the next engine reached the line.";
+      if (index === 1) return "The first stage was strong enough to lift the rest.";
+      if (index === 2 || index === 5) return "You dropped the empty tank straight away, so the next engine had time.";
+      if (index === 3) return "The second tank stayed small, so the first stage could lift the rocket.";
+      if (index === 4) return "One full enough tank reached this low line.";
+      if (index === 7) return "Two stages reached the line, and the launch stayed inside the budget.";
+      return "Two stages, with the fuel in the first one, reached the higher line.";
+    }
+    function loseLine(km) {
+      const f = flights[index];
+      const d = design();
+      if ((index === 0 || index === 7) && d.n === 1) return "One tank ran out. Add a second stage.";
+      if (index === 0 && d.n === 3) return "Three stages were heavy at lift-off. Try two.";
+      if (index === 1 || index === 4) return "The first tank did not have enough fuel.";
+      if (index === 2 || index === 5) return "The empty tank stayed on too long. Drop it sooner.";
+      if (index === 3) return "The second tank is too full. Make it smaller.";
+      if (d.n === 1) return "One stage cannot reach " + f.goal + " km.";
+      if (d.n === 3) return "Three stages were too heavy at the start. Two stages are enough.";
+      return "You reached " + km.toFixed(0) + " km. The line is " + f.goal + " km. Put more fuel in the first stage.";
+    }
+    function dropStage() {
+      const fly = flying;
+      scraps.push({ h: fly.h, v: fly.v * 0.4, spin: 0, mesh: null, localY: 0 });
+      fly.idx++;
+      fly.wait = null;
+      say("🙂", "Empty stage dropped.");
+    }
+    function stepPhysics(dt) {
+      const fly = flying;
+      if (!fly || fly.done) return;
+      let mass = 180;
+      for (let i = fly.idx; i < fly.stages.length; i++) {
+        mass += fly.stages[i].dry + Math.max(0, fly.stages[i].fuel);
+      }
+      const s = fly.stages[fly.idx];
+      let thrust = 0;
+      if (s && s.fuel > 0) {
+        const cap = s.burn * dt;
+        const burn = Math.min(s.fuel, cap);
+        s.fuel -= burn;
+        thrust = s.thrust * (burn / (cap || 1));
+        if (s.fuel <= 0.05) {
+          s.fuel = 0;
+          if (fly.idx < fly.stages.length - 1) {
+            if (fly.dropWait <= 0) dropStage();
+            else fly.wait = fly.dropWait;
+          }
+        }
+      } else if (fly.wait != null && fly.wait > 0) {
+        fly.wait -= dt;
+        if (fly.wait <= 0) dropStage();
+      }
+      fly.v += (thrust / mass - G) * dt;
+      fly.h += fly.v * dt;
+      fly.thrusting = thrust > 1000;
+      if (fly.h > fly.maxH) fly.maxH = fly.h;
+      if (fly.h >= fly.goal && !fly.won) {
+        fly.won = true;
+        fly.done = true;
+        finishFlight();
+        return;
+      }
+      if (!fly.won && !fly.falling && fly.v < -1 && fly.t > 1 && fly.h < fly.goal) {
+        fly.falling = true;
+        say("😐", "Coming back down.");
+      }
+      scraps.forEach(sc => {
+        sc.v -= G * dt;
+        sc.h += sc.v * dt;
+        sc.spin += dt * 1.4;
+      });
+      if (fly.h <= 0 && fly.t > 0.6) {
+        fly.h = 0;
+        fly.v = 0;
+        fly.done = true;
+        finishFlight();
+      }
+      fly.t += dt;
+    }
+    function detachSpent() {
+      while (visualIdx < (flying ? flying.idx : 0) && units[visualIdx]) {
+        const unit = units[visualIdx];
+        const localY = unit.position.y;
+        if (unit.userData.plume) unit.userData.plume.visible = false;
+        rocket.remove(unit);
+        scene.add(unit);
+        const sc = scraps[visualIdx];
+        if (sc) {
+          sc.mesh = unit;
+          sc.localY = localY;
+          unit.position.set(0.85, PAD_CLEAR + altY(sc.h) + localY, 0.2);
+        }
+        visualIdx++;
+        sfx.drop();
+      }
+    }
+    function paintFuel() {
+      if (!flying) return;
+      for (let i = flying.idx; i < units.length; i++) {
+        const u = units[i];
+        if (!u || u.parent !== rocket) continue;
+        const frac = flying.stages[i].fuel / u.userData.fuelKg0;
+        const f = Math.max(0, Math.min(1, frac));
+        const show = f > 0.03;
+        u.userData.fuel.visible = show;
+        u.userData.core.visible = show;
+        const sy = Math.max(0.02, f);
+        u.userData.fuel.scale.y = sy;
+        u.userData.fuel.position.y = u.userData.fullH * sy / 2;
+        u.userData.core.scale.y = sy;
+        u.userData.core.position.y = u.userData.fuel.position.y;
+        const plume = u.userData.plume;
+        const parts = plume.userData;
+        plume.visible = i === flying.idx && flying.thrusting;
+        if (plume.visible) {
+          const t = performance.now() * 0.001;
+          const flick = 0.82 + Math.sin(t * 46) * 0.18;
+          parts.outer.scale.set(flick, 0.75 + Math.sin(t * 31) * 0.2, flick);
+          parts.mid.scale.y = 0.85 + Math.sin(t * 52) * 0.2;
+          parts.heart.scale.y = 0.9 + Math.sin(t * 60) * 0.15;
+          parts.light.intensity = 3.2 + Math.sin(t * 40) * 1.4;
+          const arr = parts.emberArr;
+          for (let k = 0; k < 70; k++) {
+            arr[k * 3 + 1] -= (5 + (k % 5)) * frameDt;
+            if (arr[k * 3 + 1] < -2.6) resetEmber(arr, k, false);
+          }
+          parts.embers.geometry.attributes.position.needsUpdate = true;
+        } else {
+          parts.light.intensity = 0;
+        }
+      }
+      scraps.forEach(sc => {
+        if (!sc.mesh) return;
+        sc.mesh.position.y = PAD_CLEAR + altY(sc.h) + sc.localY;
+        sc.mesh.rotation.z = sc.spin;
+      });
+    }
+
+    function fit() {
+      const w = innerWidth, h = innerHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    fit();
+    addEventListener("resize", fit);
+
+    const DOT = Math.PI / 4;
+    let yaw = DOT;
+    let pitch = 0.32;
+    let zoom = 1;
+    let dragging = false;
+    let lastX = 0;
+    let lastY = 0;
+    canvas.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener("pointerup", () => { dragging = false; });
+    canvas.addEventListener("pointercancel", () => { dragging = false; });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      yaw -= (e.clientX - lastX) * 0.008;
+      pitch = Math.max(-0.2, Math.min(1.05, pitch + (e.clientY - lastY) * 0.006));
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      zoom = Math.max(0.65, Math.min(1.85, zoom + e.deltaY * 0.001));
+    }, { passive: false });
+    function frameCamera() {
+      const base = flying ? PAD_CLEAR + altY(Math.max(0, flying.h)) : PAD_CLEAR;
+      const live = flying && units[flying.idx] ? units[flying.idx].position.y : 0;
+      const remain = Math.max(1.6, stackTop - live);
+      const y = base + live + remain * 0.42;
+      const dist = Math.max(8.6, remain * 2.15) * zoom;
+      const cp = Math.cos(pitch);
+      const x = rocket.position.x || 0;
+      camera.position.set(
+        x + dist * Math.sin(yaw) * cp,
+        y + dist * Math.sin(pitch),
+        dist * Math.cos(yaw) * cp
+      );
+      camera.lookAt(x, y, 0);
+      if (!dragging && mode !== "fly") yaw += 0.002;
+    }
+
+    let last = performance.now();
+    let acc = 0;
+    let frameDt = 0.016;
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      frameDt = dt;
+      if (mode === "fly" && flying && !flying.done) {
+        acc += dt * TIME_SCALE * (flying.falling ? 4 : 1);
+        while (acc >= 0.04) {
+          stepPhysics(0.04);
+          acc -= 0.04;
+          if (!flying || flying.done) break;
+        }
+        if (flying) {
+          rocket.position.y = PAD_CLEAR + altY(flying.h);
+          if (flying.thrusting) {
+            const t = now * 0.001;
+            rocket.rotation.z = Math.sin(t * 18) * 0.045;
+            rocket.position.x = Math.sin(t * 22) * 0.06;
+          } else {
+            rocket.rotation.z *= 0.8;
+            rocket.position.x *= 0.8;
+          }
+          detachSpent();
+          paintFuel();
+          paintHud(flying.h / 1000);
+        }
+      } else if (mode === "pad") {
+        rocket.rotation.y += dt * 0.25;
+      }
+      if (flying && flying.done) {
+        detachSpent();
+        paintFuel();
+      }
+      music.update();
+      frameCamera();
+      renderer.render(scene, camera);
+      requestAnimationFrame(frame);
+    }
+
+    buildRocket({ n: 2, fuels: [14, 11], drop: 0 });
+    frameCamera();
+    openPop(
+      "Rocket stages",
+      "Stage Drop",
+      [
+        "A stage is a fuel tank and an engine.",
+        "The blue in each tank is the fuel. Some flights let you change how full a tank is.",
+        "Light the bottom stage first. When its tank is empty, drop it, and light the next one.",
+        "Each launch costs money. If the budget runs out, the extra becomes debt."
+      ],
+      "I am ready",
+      () => loadFlight(0)
+    );
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
