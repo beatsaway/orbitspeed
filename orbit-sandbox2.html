@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Period sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+        canvas { display: block; }
+        #panel {
+            position: fixed; top: 22px; left: 22px; z-index: 6;
+            width: min(320px, calc(100vw - 44px));
+            padding: 18px 18px 16px;
+            background: rgba(8, 9, 12, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            margin: 0 0 6px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 40px; letter-spacing: 0.04em; line-height: 1;
+        }
+        #lapNote { margin: 0 0 4px; color: var(--dim); font-size: 15px; font-variant-numeric: tabular-nums; }
+        #eqNav { display: flex; gap: 16px; margin: 10px 0 14px; }
+        #eqNav button {
+            background: none; border: 0; padding: 0; cursor: pointer;
+            color: var(--dim); font-family: Outfit, system-ui, sans-serif; font-size: 15px;
+        }
+        #eqNav button.on { color: var(--ink); }
+        #controls { display: flex; flex-direction: column; gap: 14px; }
+        #controls[hidden] { display: none; }
+        .slide label { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+        .slide .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 28px; line-height: 1; }
+        .slide .num { font-variant-numeric: tabular-nums; color: var(--dim); }
+        input[type=range] { width: 100%; margin-top: 8px; accent-color: #f3ecdf; }
+        #formula {
+            position: fixed; z-index: 4; left: 50%; top: 46%;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 18px;
+            user-select: none; pointer-events: none;
+        }
+        #formula .row { display: none; flex-direction: column; align-items: flex-start; gap: 18px; }
+        #formula .row.show { display: flex; }
+        .eqline { display: flex; align-items: center; gap: 0.28em; }
+        .mean {
+            margin: 0; max-width: 380px;
+            display: flex; flex-direction: column; gap: 6px;
+            font-family: Outfit, system-ui, sans-serif;
+            font-size: 17px; font-weight: 400; line-height: 1.35; color: var(--dim);
+        }
+        .mean p { margin: 0; }
+        .op { font-family: "Cormorant Garamond", Georgia, serif; font-size: 56px; color: var(--dim); }
+        .const {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 500; font-size: 48px;
+            color: rgba(243, 236, 223, 0.38); cursor: default;
+        }
+        sup { font-size: 0.45em; font-style: normal; }
+        button.var {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 600; line-height: 0.85;
+            font-size: 64px; color: var(--ink);
+            background: transparent; border: 0; padding: 0.04em 0.08em;
+            border-radius: 10px; cursor: pointer; pointer-events: auto;
+            transition: text-shadow 0.2s ease, color 0.2s ease;
+        }
+        button.var:not(.on) { color: rgba(243, 236, 223, 0.42); }
+        button.var:hover { color: var(--ink); }
+        button.var.on {
+            color: #fff8ee; background: transparent; border: 0; box-shadow: none;
+            text-shadow: 0 0 10px rgba(243, 236, 223, 0.95), 0 0 24px rgba(243, 236, 223, 0.55);
+        }
+        button.var.pulse { animation: swell 0.7s ease 2; }
+        @keyframes swell {
+            0%, 100% { transform: scale(1); }
+            45% { transform: scale(1.18); }
+        }
+        .frac { display: flex; flex-direction: column; align-items: center; }
+        .top { display: flex; align-items: flex-end; }
+        .bar { align-self: stretch; height: 3px; margin: 0.12em 0; background: var(--ink); border-radius: 2px; }
+        #qCard {
+            position: fixed; top: 22px; right: 22px; z-index: 6;
+            width: min(300px, calc(100vw - 44px));
+            padding: 16px 16px 14px;
+            background: rgba(8, 9, 12, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .qstep { color: var(--dim); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .qtext { font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; line-height: 1.15; margin-bottom: 14px; }
+        .qbtns { display: flex; gap: 8px; }
+        .qbtns button, #nextQ {
+            flex: 1; padding: 10px 12px; border-radius: 999px; cursor: pointer;
+            font-family: Outfit, system-ui, sans-serif; font-size: 14px;
+        }
+        #trueBtn, #falseBtn {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28);
+        }
+        #nextQ { border: 0; background: #f3ecdf; color: #16140f; }
+        #qAfter { display: none; }
+        #qAfter.show { display: block; }
+        #qAsk.hide { display: none; }
+        #qAfter .verdict { font-weight: 500; margin-bottom: 6px; }
+        #qAfter .verdict.ok { color: #d7eccf; }
+        #qAfter .verdict.no { color: #f0c2b2; }
+        #tryText { color: var(--dim); line-height: 1.4; }
+        #nextQ, #playLink { width: 100%; margin-top: 12px; box-sizing: border-box; text-align: center; }
+        #playLink {
+            display: none; text-decoration: none; padding: 10px 12px; border-radius: 999px;
+            background: #f3ecdf; color: #16140f; font-family: Outfit, system-ui, sans-serif; font-size: 14px;
+        }
+        #playLink.show { display: block; }
+        @media (max-width: 1100px) {
+            #qCard { top: auto; bottom: 16px; right: 16px; width: min(300px, calc(100vw - 32px)); }
+        }
+    </style>
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+    <div id="panel">
+        <h1>Period</h1>
+        <p id="lapNote">One lap takes 93.2 min.</p>
+        <div id="eqNav">
+            <button type="button" data-eq="0" data-name="kepler">Kepler</button>
+            <button type="button" data-eq="1" data-name="lap">Lap</button>
+        </div>
+        <div id="controls" hidden></div>
+    </div>
+
+    <div id="formula" aria-label="Period equations">
+        <div class="row show">
+            <div class="eqline">
+                <button type="button" class="var" data-id="T">T<sup>2</sup></button>
+                <span class="op">=</span>
+                <span class="const" title="4π² is a constant">4π<sup>2</sup></span>
+                <span class="frac">
+                    <span class="top"><button type="button" class="var" data-id="r">r<sup>3</sup></button></span>
+                    <span class="bar"></span>
+                    <span class="top"><span class="const" title="G is a constant">G</span><button type="button" class="var" data-id="M">M</button></span>
+                </span>
+            </div>
+            <div class="mean">
+                <p>T is how long one lap takes.</p>
+                <p>r is the distance from the centre.</p>
+                <p>G is a constant, the same number everywhere.</p>
+                <p>M is the planet’s mass.</p>
+                <p>T² follows r³. A bigger orbit means a longer lap.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="eqline">
+                <button type="button" class="var" data-id="T">T</button>
+                <span class="op">=</span>
+                <span class="frac">
+                    <span class="top"><span class="const" title="2π is a constant">2π</span><button type="button" class="var" data-id="r">r</button></span>
+                    <span class="bar"></span>
+                    <button type="button" class="var" data-id="V">V</button>
+                </span>
+            </div>
+            <div class="mean">
+                <p>T is how long one lap takes.</p>
+                <p>2πr is the length of the circle.</p>
+                <p>V is the speed along that circle.</p>
+                <p>One lap is that length divided by the speed.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="qCard">
+        <div id="qAsk">
+            <div class="qstep" id="qStep">Question 1 of 6</div>
+            <div class="qtext" id="qText"></div>
+            <div class="qbtns">
+                <button type="button" id="trueBtn">True</button>
+                <button type="button" id="falseBtn">False</button>
+            </div>
+        </div>
+        <div id="qAfter">
+            <div class="verdict" id="verdict"></div>
+            <div id="tryText"></div>
+            <button type="button" id="nextQ">Next question</button>
+            <a id="playLink" href="orbit-commander2.html">Play Period Commander</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        const G = 6.6743e-20;
+        const TAU = 2 * Math.PI;
+        const SPEC = {
+            T: { lo: 40, hi: 1600, step: 0.1, digits: 1, unit: "min", name: "period", scale: 60 },
+            M: { lo: 0.05, hi: 20, step: 0.01, digits: 2, unit: "×10²⁴ kg", name: "planet mass", scale: 1e24 },
+            r: { lo: 1800, hi: 50000, step: 1, digits: 0, unit: "km", name: "orbital radius" },
+            V: { lo: 0.5, hi: 16, step: 0.01, digits: 2, unit: "km/s", name: "speed" }
+        };
+        const state = { r: 6811, M: 5.972e24, V: 7.65, T: 5594 };
+        state.V = Math.sqrt(G * state.M / state.r);
+        state.T = TAU * state.r / state.V;
+        const picked = [];
+        const baseline = {};
+        let eqIndex = 0;
+        let angle = 0;
+        let orbitR = 3;
+
+        const questions = [
+            { text: "A bigger distance from the centre makes a longer period.", answer: true, vars: ["T", "r"], try: "On Kepler, pick T and r. Raise r. T gets bigger, because T² follows r³." },
+            { text: "If the distance doubles and the planet stays the same, the period doubles too.", answer: false, vars: ["T", "r"], try: "On Kepler, pick T and r. Raise r. T grows, but not in step with r. T² follows r³." },
+            { text: "A heavier planet, at the same distance, means a shorter period.", answer: true, vars: ["T", "M"], try: "On Kepler, pick T and M. Raise M. T gets smaller." },
+            { text: "The satellite's own mass is in this period formula.", answer: false, vars: ["T", "M"], try: "On Kepler, look at the letters. They are T, r, G and M. M is the planet. There is no mass for the satellite." },
+            { text: "A faster speed, at the same distance, means a shorter period.", answer: true, vars: ["T", "V"], try: "On Lap, pick T and V. Raise V. T gets smaller." },
+            { text: "One lap is the length of the circle divided by the speed.", answer: true, vars: ["T", "V"], try: "On Lap, pick T and V. The top of the fraction is 2πr, the length of the circle. T is that length divided by V." }
+        ];
+        let qIndex = 0;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x07080c);
+        const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(0, 4.2, 11);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+        renderer.setSize(innerWidth, innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.target.set(0, 0, 0);
+        let camDist = camera.position.length();
+
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for (let i = 0; i < 900; i++) starPos.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400);
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.35, transparent: true, opacity: 0.55 })));
+
+        const VIS = 3;
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.72 }));
+        scene.add(planet);
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0xf3ecdf, dashSize: 0.28, gapSize: 0.18, transparent: true, opacity: 0.45 }));
+        scene.add(orbitLine);
+        const sat = new THREE.Mesh(new THREE.SphereGeometry(0.08, 16, 12), new THREE.MeshStandardMaterial({ color: 0xf3ecdf, roughness: 0.4 }));
+        scene.add(sat);
+        scene.add(new THREE.AmbientLight(0xf3ecdf, 0.35));
+        const sun = new THREE.DirectionalLight(0xfff6ea, 1.4);
+        sun.position.set(18, 12, 10);
+        scene.add(sun);
+
+        function bounds(id) {
+            return { lo: SPEC[id].lo, hi: SPEC[id].hi };
+        }
+        function fit(id, actual) {
+            const s = SPEC[id];
+            const b = bounds(id);
+            const shownV = s.scale ? actual / s.scale : actual;
+            const c = Math.min(b.hi, Math.max(b.lo, shownV));
+            return s.scale ? c * s.scale : c;
+        }
+        function shown(id) { return SPEC[id].scale ? state[id] / SPEC[id].scale : state[id]; }
+        function format(id) {
+            const s = SPEC[id];
+            const v = shown(id);
+            return (s.digits ? v.toFixed(s.digits) : String(Math.round(v))) + " " + s.unit;
+        }
+        function has(src, dst, a, b) { return (src === a && dst === b) || (src === b && dst === a); }
+        function keplerT() {
+            return TAU * Math.sqrt(Math.pow(Math.max(state.r, 1), 3) / (G * Math.max(state.M, 1)));
+        }
+        function keplerR() {
+            return Math.cbrt(G * state.M * state.T * state.T / (4 * Math.PI * Math.PI));
+        }
+        function keplerM() {
+            return (4 * Math.PI * Math.PI * Math.pow(state.r, 3)) / (G * state.T * state.T);
+        }
+        function syncOther(src, dst) {
+            const pair = new Set([src, dst]);
+            if (eqIndex === 0) {
+                if (state.T > 1) state.V = TAU * state.r / state.T;
+            } else if (!pair.has("M") && state.T > 1) {
+                state.M = keplerM();
+            }
+        }
+        function link(src, dst) {
+            if (eqIndex === 0) {
+                if (has(src, dst, "T", "r")) {
+                    if (src === "T") state.r = keplerR();
+                    else state.T = keplerT();
+                } else if (has(src, dst, "T", "M")) {
+                    if (src === "T") state.M = keplerM();
+                    else state.T = keplerT();
+                } else if (has(src, dst, "M", "r")) {
+                    if (src === "M") state.r = keplerR();
+                    else state.M = keplerM();
+                }
+            } else if (has(src, dst, "T", "r")) {
+                if (src === "T") state.r = state.V * state.T / TAU;
+                else state.T = TAU * state.r / state.V;
+            } else if (has(src, dst, "T", "V")) {
+                if (src === "T") state.V = TAU * state.r / state.T;
+                else state.T = TAU * state.r / state.V;
+            } else if (has(src, dst, "r", "V")) {
+                if (src === "r") state.V = TAU * state.r / state.T;
+                else state.r = state.V * state.T / TAU;
+            }
+            syncOther(src, dst);
+        }
+        function solve(src) {
+            const dst = picked.find((id) => id !== src);
+            if (!dst) return;
+            link(src, dst);
+            const c = fit(dst, state[dst]);
+            if (Math.abs(c - state[dst]) > 1e-6 * Math.max(1, Math.abs(state[dst]))) {
+                state[dst] = c;
+                link(dst, src);
+                state[src] = fit(src, state[src]);
+            } else state[dst] = c;
+            state[src] = fit(src, state[src]);
+            state[dst] = fit(dst, state[dst]);
+        }
+        function takeBaseline() {
+            Object.keys(baseline).forEach((id) => delete baseline[id]);
+            picked.forEach((id) => { baseline[id] = state[id]; });
+        }
+        function px(id) {
+            const rest = 64;
+            if (!picked.includes(id)) return rest;
+            const base = baseline[id];
+            if (!base) return rest;
+            const scaled = Math.pow(Math.max(state[id] / base, 0.05), 0.9);
+            return rest * Math.min(2.05, Math.max(0.7, scaled));
+        }
+        function placeFormula() {
+            const el = document.getElementById("formula");
+            const panel = document.getElementById("panel").getBoundingClientRect();
+            const q = document.getElementById("qCard");
+            const qOn = q && getComputedStyle(q).display !== "none";
+            const qb = qOn ? q.getBoundingClientRect() : null;
+            let left = 20, right = innerWidth - 20, top = 24, bottom = innerHeight - 24;
+            if (innerWidth >= 1100) {
+                left = Math.max(left, panel.right + 36);
+                if (qb) right = Math.min(right, qb.left - 28);
+            } else {
+                top = Math.max(top, panel.bottom + 16);
+                if (qb) bottom = Math.min(bottom, qb.top - 16);
+            }
+            const roomW = Math.max(40, right - left);
+            const roomH = Math.max(40, bottom - top);
+            el.style.left = ((left + right) / 2) + "px";
+            el.style.top = ((top + bottom) / 2) + "px";
+            el.style.transform = "translate(-50%, -50%)";
+            const rect = el.getBoundingClientRect();
+            const fitScale = Math.min(roomW / Math.max(rect.width, 1), roomH / Math.max(rect.height, 1));
+            const s = Math.min(1.22, fitScale);
+            el.style.transform = "translate(-50%, -50%) scale(" + s.toFixed(3) + ")";
+        }
+        const drawn = {};
+        function easeLetters(dt) {
+            const glide = 1 - Math.exp(-Math.max(dt, 0.001) * 8);
+            let layout = false;
+            document.querySelectorAll("button.var").forEach((el) => {
+                const id = el.dataset.id;
+                const target = px(id);
+                if (drawn[id] == null) drawn[id] = target;
+                const next = Math.abs(target - drawn[id]) < 0.2 ? target : drawn[id] + (target - drawn[id]) * glide;
+                if (Math.abs(next - drawn[id]) > 0.04) layout = true;
+                drawn[id] = next;
+                el.style.fontSize = next.toFixed(2) + "px";
+                el.classList.toggle("on", picked.includes(id));
+            });
+            if (layout) placeFormula();
+        }
+        function sizeSymbols() {
+            document.querySelectorAll("button.var").forEach((el) => {
+                el.classList.toggle("on", picked.includes(el.dataset.id));
+            });
+            placeFormula();
+        }
+        function renderControls() {
+            const box = document.getElementById("controls");
+            if (picked.length < 2) {
+                box.hidden = true;
+                box.innerHTML = "";
+                return;
+            }
+            box.hidden = false;
+            box.innerHTML = picked.map((id) => {
+                const s = SPEC[id];
+                const b = bounds(id);
+                return `<div class="slide"><label><span class="sym">${id}</span><span class="num">${format(id)}</span></label><input type="range" data-id="${id}" min="${b.lo}" max="${b.hi}" step="${s.step}" value="${shown(id)}" aria-label="${s.name}"></div>`;
+            }).join("");
+            box.querySelectorAll("input").forEach((input) => {
+                input.addEventListener("input", () => {
+                    const id = input.dataset.id;
+                    state[id] = fromSlider(id, parseFloat(input.value));
+                    solve(id);
+                    paint();
+                });
+            });
+        }
+        function fromSlider(id, v) { return SPEC[id].scale ? v * SPEC[id].scale : v; }
+        function paint() {
+            document.getElementById("lapNote").textContent = "One lap takes " + format("T") + ".";
+            document.querySelectorAll("#controls input").forEach((input) => {
+                const id = input.dataset.id;
+                const b = bounds(id);
+                input.min = String(b.lo);
+                input.max = String(b.hi);
+                input.value = String(Math.min(b.hi, Math.max(b.lo, shown(id))));
+                input.parentElement.querySelector(".num").textContent = format(id);
+            });
+            sizeSymbols();
+            placeScene();
+        }
+        function placeScene() {
+            orbitR = VIS * state.r / 6371;
+            sat.position.set(Math.cos(angle) * orbitR, 0, Math.sin(angle) * orbitR);
+            const pts = [];
+            for (let i = 0; i <= 96; i++) {
+                const a = i / 96 * Math.PI * 2;
+                pts.push(new THREE.Vector3(Math.cos(a) * orbitR, 0, Math.sin(a) * orbitR));
+            }
+            orbitLine.geometry.setFromPoints(pts);
+            orbitLine.computeLineDistances();
+        }
+        function wantedDist() { return Math.max(8, Math.min(56, 4 + VIS * state.r / 6371 * 2.4)); }
+
+        document.querySelectorAll("button.var").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                const i = picked.indexOf(id);
+                if (i >= 0) picked.splice(i, 1);
+                else {
+                    if (picked.length >= 2) picked.shift();
+                    picked.push(id);
+                }
+                renderControls();
+                takeBaseline();
+                sizeSymbols();
+            });
+        });
+
+        const qAsk = document.getElementById("qAsk");
+        const qAfter = document.getElementById("qAfter");
+        function showQuestion() {
+            const q = questions[qIndex];
+            document.getElementById("qStep").textContent = "Question " + (qIndex + 1) + " of " + questions.length;
+            document.getElementById("qText").textContent = q.text;
+            qAsk.classList.remove("hide");
+            qAfter.classList.remove("show");
+        }
+        function eqFor(ids) {
+            const rows = [...document.querySelectorAll("#formula .row")];
+            let best = 0, score = -1;
+            rows.forEach((row, i) => {
+                const have = new Set([...row.querySelectorAll("button.var")].map((b) => b.dataset.id));
+                const s = ids.filter((id) => have.has(id)).length;
+                if (s > score) { score = s; best = i; }
+            });
+            return best;
+        }
+        function showEq(i) {
+            eqIndex = i;
+            document.querySelectorAll("#formula .row").forEach((row, n) => row.classList.toggle("show", n === i));
+            document.querySelectorAll("#eqNav button").forEach((btn, n) => btn.classList.toggle("on", n === i));
+            const name = document.querySelector("#eqNav button.on");
+            if (name) {
+                const url = new URL(location.href);
+                url.searchParams.set("eq", name.dataset.name);
+                history.replaceState(null, "", url);
+            }
+            const ids = new Set([...document.querySelectorAll("#formula .row.show button.var")].map((b) => b.dataset.id));
+            for (let k = picked.length - 1; k >= 0; k--) if (!ids.has(picked[k])) picked.splice(k, 1);
+            renderControls();
+            takeBaseline();
+            sizeSymbols();
+        }
+        document.querySelectorAll("#eqNav button").forEach((btn) => {
+            btn.addEventListener("click", () => showEq(Number(btn.dataset.eq)));
+        });
+        function pulse(ids) {
+            showEq(eqFor(ids));
+            document.querySelectorAll("button.var.pulse").forEach((el) => el.classList.remove("pulse"));
+            ids.forEach((id) => {
+                document.querySelectorAll('button.var[data-id="' + id + '"]').forEach((el) => {
+                    void el.offsetWidth;
+                    el.classList.add("pulse");
+                });
+            });
+        }
+        function answer(choice) {
+            const q = questions[qIndex];
+            const ok = choice === q.answer;
+            const verdict = document.getElementById("verdict");
+            verdict.textContent = ok ? "That's right." : "Not quite.";
+            verdict.className = "verdict " + (ok ? "ok" : "no");
+            document.getElementById("tryText").textContent = q.try;
+            const last = qIndex >= questions.length - 1;
+            document.getElementById("nextQ").hidden = last;
+            document.getElementById("playLink").classList.toggle("show", last);
+            qAsk.classList.add("hide");
+            qAfter.classList.add("show");
+            pulse(q.vars);
+        }
+        document.getElementById("trueBtn").onclick = () => answer(true);
+        document.getElementById("falseBtn").onclick = () => answer(false);
+        document.getElementById("nextQ").onclick = () => {
+            qIndex++;
+            showQuestion();
+        };
+
+        let lastT = 0;
+        function frame(now) {
+            requestAnimationFrame(frame);
+            const t = now || performance.now();
+            const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016;
+            lastT = t;
+            const secPerLap = 8 * Math.sqrt(Math.max(state.T, 1) / 5594);
+            angle += dt * Math.PI * 2 / secPerLap;
+            sat.position.set(Math.cos(angle) * orbitR, 0, Math.sin(angle) * orbitR);
+            easeLetters(dt);
+            const want = wantedDist();
+            camDist += (want - camDist) * 0.08;
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-6) dir.set(0, 0.35, 1);
+            dir.setLength(camDist);
+            camera.position.copy(controls.target).add(dir);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        window.addEventListener("resize", () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+            placeFormula();
+        });
+        const asked = new URLSearchParams(location.search).get("eq");
+        const startEq = [...document.querySelectorAll("#eqNav button")].findIndex((b) => b.dataset.name === asked);
+        showEq(startEq >= 0 ? startEq : 0);
+        placeScene();
+        showQuestion();
+        paint();
+        frame();
+    </script>
+</body>
+</html>

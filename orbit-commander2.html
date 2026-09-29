@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Period Commander</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+            --card: rgba(8, 9, 12, 0.78);
+        }
+        body { overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; user-select: none; }
+        input { user-select: text; }
+        #hud {
+            position: absolute; top: 14px; right: 14px; min-width: 220px; padding: 10px 12px;
+            background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+            z-index: 10; font-size: 0.82rem; line-height: 1.4; backdrop-filter: blur(10px);
+        }
+        #hud .hud-row { display: flex; justify-content: space-between; gap: 16px; }
+        #hud .hud-row + .hud-row { margin-top: 3px; }
+        #hud .hud-row span { color: var(--dim); }
+        #hud .hud-row b { font-variant-numeric: tabular-nums; color: #ffd700; }
+        #hud .hud-row b.ok { color: #86efac; }
+        #hud .hud-row b.bad { color: #ff6b6b; }
+        #ui {
+            position: absolute; top: 14px; left: 14px; width: 280px; max-height: calc(100vh - 150px);
+            overflow: auto; padding: 16px; border-radius: 16px; z-index: 10;
+            background: rgba(8, 9, 12, 0.86); border: 1px solid var(--line); backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 28px;
+            letter-spacing: 0.02em; line-height: 1; margin: 0 0 10px;
+        }
+        .stat { margin: 4px 0; padding: 6px 8px; background: rgba(243, 236, 223, 0.04); border-radius: 8px; }
+        .sym { color: #9fd7ff; font-weight: 700; font-style: italic; min-width: 1.4em; display: inline-block; }
+        .value { color: #7dffa8; font-weight: 700; font-variant-numeric: tabular-nums; cursor: grab; border-bottom: 1px dashed rgba(125, 255, 168, 0.45); }
+        .value:active { cursor: grabbing; }
+        .stat-hint { font-size: 0.68rem; color: var(--dim); margin-top: 2px; }
+        .adjust-label { display: none; font-size: 0.65rem; color: #ffd700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 2px; }
+        .stat.adjust .adjust-label { display: block; }
+        .tune-controls { display: none; }
+        .stat.adjust .tune-controls { display: block; }
+        .stat.adjust .value { display: none; }
+        input[type=range] { width: 100%; margin-top: 6px; accent-color: #f3ecdf; }
+        input.inline-num {
+            width: 7.2em; margin: 0 4px; padding: 2px 6px; border-radius: 6px;
+            border: 1px solid var(--line); background: #12141a; color: #7dffa8;
+            font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums;
+        }
+        .stat.is-hidden, .eq.is-hidden { display: none !important; }
+        .act-row { display: flex; gap: 8px; margin-top: 12px; }
+        .act-row button {
+            flex: 1; padding: 10px; border-radius: 10px; font-weight: 700; cursor: pointer; font: inherit;
+        }
+        #launchBtn { border: 0; background: #6df; color: #041018; }
+        #resetBtn { background: transparent; color: var(--ink); border: 1px solid #2a6a88; }
+        #launchBtn:disabled, #resetBtn:disabled { background: #102033; color: #9eb4c9; border: 1px solid #1d3c56; cursor: not-allowed; }
+        #detailBtn, #endBtn {
+            position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 40;
+            padding: 4px 12px; border: 1px solid #2a6a88; border-radius: 999px;
+            background: rgba(8, 9, 12, 0.9); color: var(--ink); font: inherit; font-size: 0.78rem; cursor: pointer;
+        }
+        #endBtn { display: none; top: 46px; }
+        #endBtn.show { display: block; }
+        #nextPopup { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 80; }
+        #nextPopup.show { display: block; }
+        #nextBtn {
+            min-width: 220px; padding: 16px 28px; border: 0; border-radius: 14px;
+            background: #6df; color: #041018; font-weight: 800; font-size: 1.15rem; cursor: pointer;
+        }
+        #eqBar { position: absolute; bottom: 14px; left: 14px; display: flex; align-items: flex-end; gap: 8px; z-index: 10; }
+        #eqPanel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 6px; backdrop-filter: blur(10px); }
+        .eq {
+            margin: 0; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+            font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 20px;
+        }
+        .eq + .eq { margin-top: 2px; }
+        .eq:hover { background: rgba(243, 236, 223, 0.06); }
+        #calcToggle {
+            width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 10px;
+            background: var(--card); color: var(--ink); font-size: 1.3rem; cursor: pointer;
+        }
+        #calcPad {
+            display: none; position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            width: 210px; padding: 10px; background: #16324c; border: 1px solid #4af; border-radius: 12px;
+            z-index: 20; touch-action: none; cursor: grab;
+        }
+        #calcPad.open { display: block; }
+        #calcPad.drop-target { box-shadow: 0 0 28px rgba(0, 255, 136, 0.4); border-color: #0f8; }
+        .calc-body { background: rgba(0, 12, 30, 0.98); border-radius: 8px; padding: 6px; cursor: default; }
+        .calc-top { display: flex; gap: 4px; margin-bottom: 5px; }
+        #calcScreen {
+            flex: 1; min-height: 28px; padding: 5px 7px; background: #061018; border: 1px solid #245;
+            border-radius: 6px; color: #0f8; font-weight: 700; text-align: right; cursor: grab;
+            font-variant-numeric: tabular-nums; overflow: hidden;
+        }
+        #calcScreen.copied { color: #86efac; border-color: #0f8; }
+        #calcClose { width: 28px; border: 0; border-radius: 6px; background: #334; color: #fff; cursor: pointer; }
+        .calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .calc-keys button {
+            padding: 7px 0; border: 0; border-radius: 6px; background: #123; color: #fff;
+            font-weight: 700; cursor: pointer; font-size: 0.78rem;
+        }
+        .calc-keys button.op { background: #164a7a; }
+        .calc-keys button.go { background: #0a6; }
+        .calc-keys button.warn { background: #533; }
+        .calc-keys button.pressed { transform: scale(0.92); filter: brightness(1.4); }
+        #dragGhost {
+            position: fixed; pointer-events: none; z-index: 250; display: none;
+            padding: 5px 9px; background: #061018; border: 1px solid #0f8; color: #0f8;
+            font-weight: 700; border-radius: 6px; transform: translate(-40%, -120%);
+        }
+        #control {
+            position: absolute; right: 14px; bottom: 14px; max-width: min(320px, calc(100% - 380px));
+            padding: 10px 12px; background: rgba(0, 12, 30, 0.92); border: 1px solid #4af;
+            border-radius: 12px; z-index: 10; line-height: 1.4; font-size: 0.92rem;
+        }
+        #introPopup {
+            display: none; position: fixed; inset: 0; background: rgba(7, 17, 28, 0.72);
+            z-index: 100; align-items: center; justify-content: center;
+        }
+        #introPopup.show { display: flex; }
+        .popup-box {
+            background: #071018; border: 1px solid #2a6a88; border-radius: 16px;
+            padding: 16px; max-width: 380px; width: calc(100% - 28px); line-height: 1.45;
+        }
+        .popup-box.wide { max-width: min(920px, 96vw); }
+        .brief-date { color: #6df; font-size: 0.88rem; letter-spacing: 0.04em; margin-bottom: 4px; }
+        .brief-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .brief-face { font-size: 1.6rem; }
+        .brief-name { font-size: 1.15rem; margin: 0; }
+        .brief-art, .intro-art {
+            display: block; width: 100%; object-fit: cover; border-radius: 10px; margin: 0 0 10px; background: #061018;
+        }
+        .brief-art { max-height: 140px; }
+        .intro-art { height: 112px; object-position: center 62%; }
+        .brief-crew { color: #fbbf24; font-size: 0.85rem; margin: 0 0 8px; }
+        .brief-body { min-height: 3.2em; white-space: pre-wrap; margin: 0; }
+        .caret { color: #6df; animation: caretBlink 0.7s step-end infinite; }
+        @keyframes caretBlink { 50% { opacity: 0; } }
+        #popupOk, #saveEndBtn {
+            display: none; width: 100%; margin-top: 12px; padding: 12px; border: 0; border-radius: 12px;
+            background: #6df; color: #041018; font-weight: 800; cursor: pointer; font-size: 1rem;
+        }
+        #popupOk.ready, .popup-box.ending #saveEndBtn { display: block; }
+        #quiz { display: none; margin-top: 12px; }
+        #quiz p { margin: 0 0 8px; }
+        #quizNote { min-height: 2.4em; color: #9cf; font-size: 0.92rem; }
+        #quiz.quiz-wrong #quizNote { color: #ffb4b4; }
+        #quiz button {
+            display: block; width: 100%; margin-top: 8px; padding: 10px; border: 0; border-radius: 10px;
+            background: #246; color: white; font-weight: 700; cursor: pointer; font: inherit;
+        }
+        #quiz button.wrong { background: #c0392b; animation: quizShake 0.32s ease; }
+        #quiz button.right { background: #1a8a4a; }
+        @keyframes quizShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        #introPopup.quiz-lock #popupOk { display: none !important; }
+        .end-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 760px) { .end-grid { grid-template-columns: 1fr 1fr 1fr; } }
+        .end-card { background: #061018; border: 1px solid #245; border-radius: 12px; padding: 8px; }
+        .end-card img { display: block; width: 100%; height: 120px; object-fit: cover; border-radius: 8px; }
+        .end-card h3 { color: #6df; font-size: 0.78rem; margin: 8px 0 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+        .end-talk { font-size: 0.88rem; line-height: 1.4; min-height: 4em; margin: 0; }
+        #coach, #calcGuideShow { position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 50; }
+        #coach {
+            width: min(360px, calc(100vw - 24px)); padding: 12px 14px 10px; text-align: center;
+            border: 1px solid #ffe9a8; border-radius: 14px; background: rgba(8, 9, 12, 0.94);
+            box-shadow: 0 16px 40px rgba(0,0,0,0.5); font-size: 0.95rem; line-height: 1.4;
+        }
+        #coach::before {
+            content: ""; position: absolute; top: -7px; left: 50%; width: 12px; height: 12px; margin-left: -6px;
+            background: rgba(8, 9, 12, 0.94); border-left: 1px solid #ffe9a8; border-top: 1px solid #ffe9a8;
+            transform: rotate(45deg);
+        }
+        #coachFormula { margin: 0 0 6px; color: #ffe9a8; font-size: 0.95rem; }
+        #coachText { margin: 0 0 10px; }
+        #coachNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        #coachBack, #coachNext, #calcGuideShow {
+            border: 1px solid #2a6a88; background: transparent; color: #e8f4ff;
+            border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer;
+        }
+        #coachNext { background: #f3ecdf; color: #16140f; border-color: transparent; }
+        #coachBack:disabled { opacity: 0.35; cursor: default; }
+        #coachCount { font-size: 0.78rem; color: var(--dim); }
+        #calcGuideHide { margin-top: 8px; border: 0; background: transparent; color: var(--dim); font: inherit; cursor: pointer; }
+        #calcGuideShow { border-radius: 999px; background: rgba(8, 9, 12, 0.94); border-color: #ffe9a8; color: #ffe9a8; }
+        #coachSpots { position: fixed; inset: 0; pointer-events: none; z-index: 45; }
+        .coach-spot {
+            position: fixed; border: 2px solid #ffe9a8; border-radius: 10px; pointer-events: none;
+            box-shadow: 0 0 0 4px rgba(255, 233, 168, 0.28); animation: coachPulse 1.4s ease-in-out infinite;
+        }
+        @keyframes coachPulse { 50% { box-shadow: 0 0 0 7px rgba(255, 233, 168, 0.12), 0 0 22px rgba(255, 233, 168, 0.7); } }
+        .stat.adjust.drop-target { box-shadow: 0 0 0 1px #0f8; }
+    </style>
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+    <div id="hud">
+        <div class="hud-row"><span>Your number</span><b id="hudPlan">—</b></div>
+        <div class="hud-row"><span>Lap clock</span><b id="hudClock">—</b></div>
+        <div class="hud-row"><span>Mission budget</span><b id="hudMission">¥0</b></div>
+        <div class="hud-row"><span>Savings</span><b id="hudSavings">¥0</b></div>
+        <div class="hud-row"><span>Debt</span><b id="hudDebt">¥0</b></div>
+        <div class="hud-row"><span>Failed launches</span><b id="hudFails">0</b></div>
+        <div class="hud-row"><span>Casualties</span><b id="hudCasualties">0</b></div>
+        <div class="hud-row"><span>Last accuracy</span><b id="hudLastAcc">—</b></div>
+        <div class="hud-row"><span>Avg accuracy</span><b id="hudAvgAcc">—</b></div>
+    </div>
+
+    <div id="ui">
+        <h1>Period Commander</h1>
+        <div class="stat adjust" id="answerStat">
+            <div class="adjust-label">What should this be?</div>
+            <span class="sym" id="ansSym">T</span> = <input id="ansInput" class="inline-num" type="text" inputmode="decimal" autocomplete="off" value="60"> <span id="ansUnit">min</span>
+            <div class="tune-controls"><input type="range" id="ansSlider" min="10" max="400" step="0.1" value="60"></div>
+            <div class="stat-hint" id="ansHint">period, in minutes</div>
+        </div>
+        <div class="stat" id="gmStat">
+            <span class="sym">GM</span> = <span id="gmDisp" class="value">0</span> km³/s²
+            <div class="stat-hint">from the planet’s mass</div>
+        </div>
+        <div class="stat" id="bodyRStat">
+            <span class="sym">R</span> = <span id="bodyRDisp" class="value">0</span> km
+            <div class="stat-hint">planet radius</div>
+        </div>
+        <div class="stat" id="hStat">
+            <span class="sym">h</span> = <span id="hDisp" class="value">0</span> km
+            <div class="stat-hint">height above the ground</div>
+        </div>
+        <div class="stat" id="rStat">
+            <span class="sym">r</span> = <span id="rDisp" class="value">0</span> km
+            <div class="stat-hint">distance from the centre, R + h</div>
+        </div>
+        <div class="stat is-hidden" id="vStat">
+            <span class="sym">V</span> = <span id="vDisp" class="value">0</span> km/s
+            <div class="stat-hint">speed along the circle</div>
+        </div>
+        <div class="stat is-hidden" id="tStat">
+            <span class="sym">T</span> = <span id="tDisp" class="value">0</span> s
+            <div class="stat-hint" id="tHint">period in seconds</div>
+        </div>
+        <div class="act-row">
+            <button id="launchBtn" type="button">LAUNCH</button>
+            <button id="resetBtn" type="button">RETRY</button>
+        </div>
+    </div>
+
+    <button type="button" id="detailBtn">Mission 1</button>
+    <div id="coach" hidden>
+        <p id="coachFormula">T² = 4π² r³ / GM</p>
+        <p id="coachText"></p>
+        <div id="coachNav">
+            <button type="button" id="coachBack">Back</button>
+            <span id="coachCount">1 / 9</span>
+            <button type="button" id="coachNext">Next</button>
+        </div>
+        <button type="button" id="calcGuideHide">Hide</button>
+    </div>
+    <button type="button" id="calcGuideShow" hidden>Show steps</button>
+    <div id="coachSpots"></div>
+    <button type="button" id="endBtn">See ending</button>
+    <div id="nextPopup"><button type="button" id="nextBtn">NEXT MISSION</button></div>
+
+    <div id="control">😐 Stand by for the brief.</div>
+
+    <div id="eqBar">
+        <div id="eqPanel">
+            <div class="eq" data-eq="kepler" title="Open this equation">T² = 4π² r³ / GM</div>
+            <div class="eq">r = R + h</div>
+            <div class="eq is-hidden" id="eqLap" data-eq="lap" title="Open this equation">T = 2π r / V</div>
+        </div>
+        <button type="button" id="calcToggle" title="Calculator">🧮</button>
+    </div>
+    <div id="dragGhost" aria-hidden="true"></div>
+    <div id="calcPad" aria-hidden="true">
+        <div class="calc-body">
+            <div class="calc-top">
+                <div id="calcScreen" tabindex="0">0</div>
+                <button type="button" id="calcClose" title="Close">×</button>
+            </div>
+            <div class="calc-keys">
+                <button type="button" data-calc="C" class="warn">C</button>
+                <button type="button" data-calc="bs">⌫</button>
+                <button type="button" data-calc="sqrt">√</button>
+                <button type="button" data-calc="cbrt">∛</button>
+                <button type="button" data-calc="pi" class="op">π</button>
+                <button type="button" data-calc="sq">x²</button>
+                <button type="button" data-calc="cu">x³</button>
+                <button type="button" data-calc="/" class="op">÷</button>
+                <button type="button" data-calc="7">7</button>
+                <button type="button" data-calc="8">8</button>
+                <button type="button" data-calc="9">9</button>
+                <button type="button" data-calc="*" class="op">×</button>
+                <button type="button" data-calc="4">4</button>
+                <button type="button" data-calc="5">5</button>
+                <button type="button" data-calc="6">6</button>
+                <button type="button" data-calc="-" class="op">−</button>
+                <button type="button" data-calc="1">1</button>
+                <button type="button" data-calc="2">2</button>
+                <button type="button" data-calc="3">3</button>
+                <button type="button" data-calc="+" class="op">+</button>
+                <button type="button" data-calc="0">0</button>
+                <button type="button" data-calc=".">.</button>
+                <button type="button" data-calc="ans">Ans</button>
+                <button type="button" data-calc="=" class="go">=</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="introPopup">
+        <div class="popup-box" id="popupBox">
+            <div id="popupText"></div>
+            <div id="quiz">
+                <p>How long is one orbit?</p>
+                <p id="quizNote"></p>
+                <button type="button" id="q90">About 90 minutes</button>
+                <button type="button" id="q13">About 13 hours</button>
+                <button type="button" id="q24">About 24 hours</button>
+            </div>
+            <button type="button" id="saveEndBtn">Save as image</button>
+            <button type="button" id="popupOk">Understood</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        const G = 6.6743e-20;
+        const bodies = {
+            Earth: { R: 6371, M: 5.972e24, color: 0x6d8f86 },
+            Moon: { R: 1737.4, M: 7.346e22, color: 0xb7b2a4 }
+        };
+        const missions = [
+            { date: "April 1970", name: "Dongfanghong-1", body: "Earth", alt: 440, find: "T", cost: 10, crew: 0, craft: "ball", face: "🙂", art: "missions/01-dongfanghong-1.webp", quiz: "90", showV: false, start: 60, brief: "Dongfanghong-1 has to keep circling Earth. The height is 440 km. Work out how long one lap takes, in minutes.\n\nUse T² = 4π² r³ / GM. Inside that equation, T is in seconds. Divide by 60 before you set the box." },
+            { date: "October 2003", name: "Shenzhou-5", body: "Earth", alt: 343, find: "T", cost: 12, crew: 1, craft: "capsule", face: "🚀", art: "missions/02-shenzhou-5.webp", quiz: "90", showV: true, start: 60, brief: "Yang Liwei needs the length of one lap at 343 km, in minutes.\n\nUse T² = 4π² r³ / GM. V is on the board too, so T = 2π r / V should give the same minutes." },
+            { date: "September 2011", name: "Tiangong-1", body: "Earth", alt: 350, find: "h", cost: 12, crew: 0, craft: "station", face: "😐", art: "missions/03-tiangong-1.webp", quiz: "90", showV: false, start: 2000, brief: "A ship is coming to meet Tiangong-1. The period is on the board, in seconds. Work out the height.\n\nFind r from T² = 4π² r³ / GM, then h = r − R." },
+            { date: "December 2015", name: "Gaofen-4", body: "Earth", alt: 35786, find: "h", cost: 14, crew: 0, craft: "geo", face: "🧐", art: "missions/04-gaofen-4.webp", quiz: "24", showV: false, start: 10000, brief: "Gaofen-4 has to stay above one place, so one lap matches one turn of the Earth. The period is on the board, in seconds. Work out the height for that long, slow circle." },
+            { date: "July 2018", name: "BeiDou-3 MEO", body: "Earth", alt: 21528, find: "h", cost: 12, crew: 0, craft: "nav", face: "🙂", art: "missions/05-beidou-3.webp", quiz: "13", showV: false, start: 8000, brief: "BeiDou-3 has to cover a wide part of Earth. The period is on the board, in seconds. Work out the height.\n\nT² follows r³, so this middle orbit is much higher than a 90 minute lap." },
+            { date: "October 2007", name: "Chang'e-1", body: "Moon", alt: 200, find: "T", cost: 15, crew: 0, craft: "lunar", face: "🌙", art: "missions/06-change-1.webp", quiz: null, showV: false, start: 60, brief: "Chang'e-1 has to circle the Moon to map the ground. The Moon’s GM is much smaller than Earth’s. Work out how long one lap takes, in minutes." }
+        ];
+
+        let current = 0, missionBudget = 20, savings = 0, debt = 0, failedLaunches = 0;
+        let missionsCompleted = 0, totalCasualties = 0, totalAccuracy = 0, accuracySamples = 0, lastAccuracy = null;
+        let flying = false, judged = false, succeeded = false, crashed = false;
+        let ang = 0, ghostAng = 0, clockMin = 0, lapTrueMin = 1, committed = 60;
+        let body = bodies.Earth, rVis = 3.2, finalAvg = 0, endingSnap = null;
+        const VIS = 3;
+        const LAP_SEC = 7;
+
+        function periodSec(rKm, mass) {
+            return 2 * Math.PI * Math.sqrt(Math.pow(rKm, 3) / (G * mass));
+        }
+        function gmOf(mass) { return G * mass; }
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x07080c);
+        const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(0, 4.2, 11);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+        renderer.setSize(innerWidth, innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+
+        const starPos = [];
+        for (let i = 0; i < 900; i++) starPos.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400);
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.32, transparent: true, opacity: 0.5 })));
+
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIS, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.75 }));
+        scene.add(planet);
+        const orbitLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineDashedMaterial({ color: 0xf3ecdf, dashSize: 0.22, gapSize: 0.16, transparent: true, opacity: 0.55 }));
+        scene.add(orbitLine);
+        const startLine = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xe7c36a, transparent: true, opacity: 0.85 }));
+        scene.add(startLine);
+        const sat = new THREE.Group();
+        scene.add(sat);
+        const ghost = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.025, 8, 24), new THREE.MeshBasicMaterial({ color: 0xe7c36a }));
+        ghost.visible = false;
+        scene.add(ghost);
+        scene.add(new THREE.AmbientLight(0xf3ecdf, 0.4));
+        const sun = new THREE.DirectionalLight(0xfff6ea, 1.35);
+        sun.position.set(16, 10, 12);
+        scene.add(sun);
+
+        let boom = null;
+        function clearBoom() {
+            if (!boom) return;
+            scene.remove(boom);
+            boom = null;
+        }
+        function spawnBoom() {
+            clearBoom();
+            const n = 36;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(n * 3);
+            const vel = [];
+            for (let i = 0; i < n; i++) {
+                pos[i * 3] = sat.position.x;
+                pos[i * 3 + 1] = sat.position.y;
+                pos[i * 3 + 2] = sat.position.z;
+                vel.push(new THREE.Vector3((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4));
+            }
+            geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+            boom = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffb060, size: 0.12, transparent: true, opacity: 1 }));
+            boom.userData.vel = vel;
+            boom.userData.age = 0;
+            scene.add(boom);
+        }
+
+        function phMat(color) {
+            return new THREE.MeshStandardMaterial({ color, roughness: 0.45, metalness: 0.28 });
+        }
+        function makeCraft(kind) {
+            const g = new THREE.Group();
+            if (kind === "capsule") {
+                const cabin = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 12), phMat(0xd8dee8));
+                cabin.rotation.z = Math.PI / 2;
+                const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.07, 12), phMat(0xc45c2a));
+                nose.rotation.z = -Math.PI / 2;
+                nose.position.x = 0.08;
+                g.add(cabin, nose);
+            } else if (kind === "station") {
+                const core = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.22, 12), phMat(0xcfd6de));
+                core.rotation.z = Math.PI / 2;
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.16, 0.05), phMat(0x9aa89a));
+                panel.position.y = 0.1;
+                const panel2 = panel.clone();
+                panel2.position.y = -0.1;
+                g.add(core, panel, panel2);
+            } else if (kind === "geo" || kind === "nav" || kind === "lunar") {
+                const bus = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.07), phMat(kind === "lunar" ? 0xcccfdd : 0xc8d0da));
+                const dish = new THREE.Mesh(new THREE.CircleGeometry(0.045, 16), phMat(0xeeeeee));
+                dish.position.set(0.02, 0.05, 0);
+                g.add(bus, dish);
+                const panel = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.012, 0.05), phMat(0x9aa89a));
+                panel.position.x = 0.12;
+                const panel2 = panel.clone();
+                panel2.position.x = -0.12;
+                g.add(panel, panel2);
+            } else {
+                g.add(new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 12), phMat(0xd4b24a)));
+                const ant = phMat(0x99aabb);
+                for (let i = 0; i < 4; i++) {
+                    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.16, 5), ant);
+                    rod.rotation.z = i * Math.PI / 2;
+                    g.add(rod);
+                }
+            }
+            g.scale.setScalar(2.6);
+            return g;
+        }
+        function setCraft(kind) {
+            while (sat.children.length) sat.remove(sat.children[0]);
+            sat.add(makeCraft(kind));
+        }
+
+        const hudMission = document.getElementById("hudMission");
+        const hudSavings = document.getElementById("hudSavings");
+        const hudDebt = document.getElementById("hudDebt");
+        const hudFails = document.getElementById("hudFails");
+        const hudCasualties = document.getElementById("hudCasualties");
+        const hudLastAcc = document.getElementById("hudLastAcc");
+        const hudAvgAcc = document.getElementById("hudAvgAcc");
+        const hudClock = document.getElementById("hudClock");
+        const hudPlan = document.getElementById("hudPlan");
+        const control = document.getElementById("control");
+        const launchBtn = document.getElementById("launchBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const ansInput = document.getElementById("ansInput");
+        const ansSlider = document.getElementById("ansSlider");
+        const introPopup = document.getElementById("introPopup");
+        const popupBox = document.getElementById("popupBox");
+        const popupText = document.getElementById("popupText");
+        const popupOk = document.getElementById("popupOk");
+        const quiz = document.getElementById("quiz");
+        const quizNote = document.getElementById("quizNote");
+        const nextPopup = document.getElementById("nextPopup");
+        const detailBtn = document.getElementById("detailBtn");
+        const endBtn = document.getElementById("endBtn");
+
+        function formatMoney(mil) {
+            const n = Math.round(mil * 1000000);
+            const abs = "¥" + Math.abs(n).toLocaleString();
+            return n < 0 ? "−" + abs : abs;
+        }
+        function refreshHud() {
+            hudMission.textContent = formatMoney(missionBudget);
+            hudMission.className = missionBudget <= 0 ? "bad" : "";
+            hudSavings.textContent = formatMoney(savings);
+            hudSavings.className = savings > 0 ? "ok" : "";
+            hudDebt.textContent = formatMoney(debt);
+            hudDebt.className = debt > 0 ? "bad" : "ok";
+            hudFails.textContent = String(failedLaunches);
+            hudFails.className = failedLaunches > 0 ? "bad" : "ok";
+            hudCasualties.textContent = String(totalCasualties);
+            hudCasualties.className = totalCasualties > 0 ? "bad" : "ok";
+            hudLastAcc.textContent = lastAccuracy == null ? "—" : Math.round(lastAccuracy) + "%";
+            hudLastAcc.className = lastAccuracy == null ? "" : lastAccuracy >= 85 ? "ok" : lastAccuracy < 70 ? "bad" : "";
+            if (accuracySamples <= 0) {
+                hudAvgAcc.textContent = "—";
+                hudAvgAcc.className = "";
+            } else {
+                const avg = totalAccuracy / accuracySamples;
+                hudAvgAcc.textContent = Math.round(avg) + "%";
+                hudAvgAcc.className = avg >= 85 ? "ok" : avg < 70 ? "bad" : "";
+            }
+            const m = missions[current];
+            if (!m) return;
+            const n = readAnswer();
+            hudPlan.textContent = m.find === "T" ? (Math.round(n * 10) / 10) + " min" : Math.round(n).toLocaleString() + " km";
+            hudClock.textContent = flying || clockMin > 0 ? clockMin.toFixed(1) + " min" : "—";
+        }
+        function spend(amount) {
+            let left = amount;
+            if (missionBudget >= left) { missionBudget -= left; left = 0; }
+            else { left -= missionBudget; missionBudget = 0; }
+            if (left > 0) {
+                if (savings >= left) { savings -= left; left = 0; }
+                else { left -= savings; savings = 0; }
+            }
+            if (left > 0) debt += left;
+            refreshHud();
+        }
+        function bankLeftover() {
+            if (missionBudget <= 0) return;
+            if (debt > 0) {
+                const pay = Math.min(debt, missionBudget);
+                debt -= pay;
+                missionBudget -= pay;
+            }
+            savings += missionBudget;
+            missionBudget = 0;
+            refreshHud();
+        }
+        function comment(text) { control.textContent = text; }
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+        function readAnswer() {
+            const v = parseFloat(String(ansInput.value).trim().replace(",", "."));
+            return Number.isFinite(v) ? v : (missions[current].find === "T" ? 60 : 2000);
+        }
+        function setAnswer(n) {
+            const m = missions[current];
+            const text = m.find === "T" ? String(Math.round(n * 100) / 100) : String(Math.round(n * 10) / 10);
+            ansInput.value = text;
+            const lo = parseFloat(ansSlider.min), hi = parseFloat(ansSlider.max);
+            ansSlider.value = String(Math.min(hi, Math.max(lo, n)));
+            if (!flying) drawOrbit(false);
+            refreshHud();
+        }
+        function recordAccuracy(acc) {
+            lastAccuracy = acc;
+            totalAccuracy += acc;
+            accuracySamples++;
+            refreshHud();
+        }
+
+        let audioCtx = null;
+        function sfx(kind) {
+            try {
+                audioCtx = audioCtx || new AudioContext();
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                g.gain.setValueAtTime(0.04, now);
+                g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                if (kind === "ok") o.frequency.setValueAtTime(520, now);
+                else if (kind === "bad") { o.frequency.setValueAtTime(160, now); o.frequency.exponentialRampToValueAtTime(70, now + 0.16); }
+                else o.frequency.setValueAtTime(280, now);
+                o.start(now); o.stop(now + 0.18);
+            } catch (err) { /* sound is optional */ }
+        }
+
+        function drawOrbit(moveCam) {
+            const m = missions[current];
+            const h = m.find === "h" ? readAnswer() : m.alt;
+            const rKm = Math.max(body.R * 0.2, body.R + h);
+            const extra = Math.max(0, (rKm - body.R) / body.R);
+            rVis = VIS * (1.45 + extra * 0.85);
+            const pts = [];
+            for (let i = 0; i <= 96; i++) {
+                const a = (i / 96) * Math.PI * 2;
+                pts.push(new THREE.Vector3(Math.cos(a) * rVis, 0, Math.sin(a) * rVis));
+            }
+            orbitLine.geometry.setFromPoints(pts);
+            orbitLine.computeLineDistances();
+            startLine.geometry.setFromPoints([
+                new THREE.Vector3(VIS * 1.02, 0, 0),
+                new THREE.Vector3(rVis, 0, 0)
+            ]);
+            if (!flying) {
+                sat.position.set(rVis, 0, 0);
+                ghost.position.set(rVis, 0, 0);
+                const dist = Math.max(12, rVis * 2.65);
+                camera.position.set(0, dist * 0.42, dist);
+                controls.target.set(0, 0, 0);
+            }
+        }
+        function placeOnOrbit(obj, a, radius) {
+            obj.position.set(Math.cos(a) * radius, 0, Math.sin(a) * radius);
+        }
+
+        function numEl(id, n, digits) {
+            const el = document.getElementById(id);
+            el.dataset.num = String(n);
+            const v = digits == null ? Math.round(n) : Number(n.toFixed(digits));
+            el.textContent = v.toLocaleString(undefined, { maximumFractionDigits: digits == null ? 0 : digits });
+        }
+        function fillBoard() {
+            const m = missions[current];
+            body = bodies[m.body];
+            planet.material.color.setHex(body.color);
+            const r = body.R + m.alt;
+            const gm = gmOf(body.M);
+            const tSec = periodSec(r, body.M);
+            numEl("gmDisp", gm, gm > 20000 ? 0 : 1);
+            numEl("bodyRDisp", body.R, body.R % 1 ? 1 : 0);
+            numEl("hDisp", m.alt, 0);
+            numEl("rDisp", r, r % 1 ? 1 : 0);
+            numEl("vDisp", Math.sqrt(gm / r), 3);
+            numEl("tDisp", tSec, 1);
+            document.getElementById("tHint").textContent = "period in seconds · " + (tSec / 60).toFixed(1) + " min";
+            document.getElementById("hStat").classList.toggle("is-hidden", m.find !== "T");
+            document.getElementById("rStat").classList.toggle("is-hidden", m.find !== "T");
+            document.getElementById("vStat").classList.toggle("is-hidden", !m.showV);
+            document.getElementById("tStat").classList.toggle("is-hidden", m.find !== "h");
+            document.getElementById("eqLap").classList.toggle("is-hidden", !m.showV);
+            document.getElementById("ansSym").textContent = m.find === "T" ? "T" : "h";
+            document.getElementById("ansUnit").textContent = m.find === "T" ? "min" : "km";
+            document.getElementById("ansHint").textContent = m.find === "T" ? "period, in minutes" : "height above the ground";
+            if (m.find === "T") {
+                ansSlider.min = "10"; ansSlider.max = "400"; ansSlider.step = "0.1";
+            } else {
+                ansSlider.min = "50"; ansSlider.max = "45000"; ansSlider.step = "1";
+            }
+            ansInput.value = String(m.start);
+            ansSlider.value = String(m.start);
+            setCraft(m.craft);
+            ghost.visible = false;
+            drawOrbit(true);
+            refreshHud();
+        }
+
+        const TYPE_MS = 16;
+        let typeJob = { id: 0, timer: 0, i: 0, text: "", el: null };
+        let afterBrief = null;
+        let quizOpen = false;
+        const seenCopy = new Set();
+        function setPopupReady(on) { popupOk.classList.toggle("ready", !!on); }
+        function finishType() {
+            if (!typeJob.el || typeJob.i >= typeJob.text.length) return false;
+            clearTimeout(typeJob.timer);
+            typeJob.i = typeJob.text.length;
+            typeJob.el.textContent = typeJob.text;
+            typeJob.el = null;
+            typeJob.id++;
+            setPopupReady(true);
+            return true;
+        }
+        function typeInto(el, text, done) {
+            clearTimeout(typeJob.timer);
+            typeJob.id++;
+            const id = typeJob.id;
+            typeJob.text = text;
+            typeJob.el = el;
+            typeJob.i = 0;
+            el.textContent = "";
+            setPopupReady(false);
+            function tick() {
+                if (id !== typeJob.id) return;
+                typeJob.i++;
+                el.textContent = text.slice(0, typeJob.i);
+                if (typeJob.i < text.length) typeJob.timer = setTimeout(tick, TYPE_MS);
+                else { typeJob.el = null; if (done) done(); }
+            }
+            tick();
+        }
+        function showCopyOnce(key, el, text) {
+            if (seenCopy.has(key)) { el.textContent = text; setPopupReady(true); return; }
+            seenCopy.add(key);
+            typeInto(el, text, () => setPopupReady(true));
+        }
+        function hideQuiz() {
+            quizOpen = false;
+            introPopup.classList.remove("quiz-lock");
+            quiz.style.display = "none";
+            quiz.classList.remove("quiz-wrong");
+            quiz.querySelectorAll("button").forEach((b) => { b.classList.remove("wrong", "right"); b.disabled = false; });
+            quizNote.textContent = "";
+        }
+        function showNext(on) { nextPopup.classList.toggle("show", !!on); }
+        function showMissionBrief() {
+            const m = missions[current];
+            if (!m || quizOpen) return;
+            hideQuiz();
+            popupBox.classList.remove("wide", "ending");
+            popupOk.textContent = "Understood";
+            const crew = m.crew > 0 ? `<p class="brief-crew">${m.crew} person is on board. A bad height can hurt them. A wrong clock does not.</p>` : "";
+            popupText.innerHTML =
+                `<div class="brief-date">${escapeHtml(m.date)}</div>` +
+                `<div class="brief-head"><span class="brief-face">${m.face}</span><h2 class="brief-name">${escapeHtml(m.name)}</h2></div>` +
+                `<img class="brief-art" src="${m.art}" alt="">` +
+                crew +
+                `<p id="briefTalk" class="brief-body"></p>`;
+            introPopup.classList.add("show");
+            showCopyOnce("m" + current, document.getElementById("briefTalk"), m.brief);
+        }
+        function showPreIntro() {
+            popupBox.classList.remove("wide", "ending");
+            popupOk.textContent = "I am ready";
+            popupText.innerHTML =
+                `<img class="intro-art" src="missions/intro.webp" alt="">` +
+                `<div class="brief-date">March 1970 — Beijing</div>` +
+                `<div class="brief-head"><span class="brief-face">🛰️</span><h2 class="brief-name">Period</h2></div>` +
+                `<p id="briefTalk" class="brief-body"></p>`;
+            introPopup.classList.add("show");
+            afterBrief = () => loadMission();
+            typeInto(document.getElementById("briefTalk"),
+                "You work out the period of a satellite, or the height that gives a period you were given.\n\nThe equation is T² = 4π² r³ / GM.\n\nInside that equation, T is in seconds. When the box asks for a period, answer in minutes.",
+                () => setPopupReady(true));
+        }
+        function showQuiz() {
+            quizOpen = true;
+            afterBrief = null;
+            popupBox.classList.remove("wide", "ending");
+            setPopupReady(false);
+            popupText.innerHTML = `<div class="brief-date">Check the lap</div>`;
+            quiz.style.display = "block";
+            quiz.classList.remove("quiz-wrong");
+            quiz.querySelectorAll("button").forEach((b) => { b.classList.remove("wrong", "right"); b.disabled = false; });
+            quizNote.textContent = "";
+            introPopup.classList.add("show", "quiz-lock");
+            showNext(false);
+        }
+        function checkAnswer(choice) {
+            const m = missions[current];
+            const btn = document.getElementById("q" + choice);
+            if (choice !== m.quiz) {
+                sfx("bad");
+                spend(12);
+                quiz.classList.add("quiz-wrong");
+                if (btn) { btn.classList.remove("wrong"); void btn.offsetWidth; btn.classList.add("wrong"); }
+                quizNote.textContent = "Not that lap. A low orbit is about 90 minutes. A middle orbit is about 13 hours. A geostationary orbit is about 24 hours.";
+                return;
+            }
+            sfx("ok");
+            quiz.classList.remove("quiz-wrong");
+            quiz.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+            if (btn) btn.classList.add("right");
+            quizNote.textContent = "Correct.";
+            setTimeout(() => {
+                hideQuiz();
+                introPopup.classList.remove("show");
+                comment("🙂 Correct. That is the length of one lap.");
+                showNext(true);
+            }, 700);
+        }
+
+        function loadMission() {
+            const m = missions[current];
+            flying = false; judged = false; succeeded = false; crashed = false;
+            ang = 0; ghostAng = 0; clockMin = 0;
+            sat.visible = true;
+            clearBoom();
+            missionBudget = 2 * m.cost;
+            detailBtn.textContent = "Mission " + (current + 1);
+            launchBtn.disabled = false;
+            resetBtn.disabled = false;
+            launchBtn.textContent = "LAUNCH";
+            hideQuiz();
+            showNext(false);
+            endBtn.classList.remove("show");
+            fillBoard();
+            hudClock.textContent = "—";
+            afterBrief = () => {
+                const launches = m.cost > 0 ? Math.floor(missionBudget / m.cost) : 0;
+                comment("😐 Mission money covers about " + launches + " launches. Set the number, then launch.");
+            };
+            showMissionBrief();
+            syncCalcGuide();
+        }
+
+        function missText(gotMin, truthMin) {
+            const m = missions[current];
+            const got = gotMin.toFixed(1);
+            const truth = truthMin.toFixed(1);
+            if (m.find === "T") {
+                let line = "One lap is " + truth + " min. You set " + got + " min. ";
+                if (committed > 400) line += "That looks like seconds. Divide by 60. ";
+                else if (gotMin < truthMin) line += "Your period was too short. ";
+                else line += "Your period was too long. ";
+                if (m.crew) line += "The crew is safe. The clock was wrong.";
+                else line += "Use T² = 4π² r³ / GM.";
+                return "😐 " + line;
+            }
+            const h = committed;
+            const rTrue = body.R + m.alt;
+            let line = "That orbit’s lap is " + got + " min. The plan was " + truth + " min. ";
+            if (Math.abs(h - rTrue) / rTrue < 0.04) line += "That number is r, the distance from the centre. Subtract R. ";
+            else if (gotMin < truthMin) line += "Too low. A smaller r means a shorter period, because T² follows r³. ";
+            else line += "Too high. A bigger r means a longer period. ";
+            if (gotMin < truthMin * 0.25) line += "T in the equation is in seconds.";
+            return "😐 " + line;
+        }
+        function finishLap() {
+            if (judged) return;
+            judged = true;
+            flying = false;
+            const m = missions[current];
+            const truthMin = periodSec(body.R + m.alt, body.M) / 60;
+            const gotMin = m.find === "T" ? committed : lapTrueMin;
+            const rel = Math.abs(gotMin - truthMin) / truthMin;
+            const acc = Math.max(0, Math.min(100, 100 * (1 - rel)));
+            recordAccuracy(acc);
+            if (rel <= 0.02) {
+                succeeded = true;
+                sfx("ok");
+                bankLeftover();
+                const nice = truthMin >= 90 ? truthMin.toFixed(1) + " min" : truthMin.toFixed(1) + " min";
+                comment("🙂 That matches. One lap is " + nice + ". (" + Math.round(acc) + "% accuracy)");
+                launchBtn.disabled = true;
+                if (m.quiz) showQuiz();
+                else showNext(true);
+            } else {
+                failedLaunches++;
+                sfx("bad");
+                refreshHud();
+                comment(missText(gotMin, truthMin));
+                launchBtn.disabled = false;
+            }
+        }
+        function crashOut() {
+            judged = true;
+            flying = false;
+            crashed = true;
+            failedLaunches++;
+            sat.visible = false;
+            spawnBoom();
+            sfx("bad");
+            let extra = "";
+            const m = missions[current];
+            if (m.crew) {
+                totalCasualties += m.crew;
+                extra = " One person was hurt.";
+            }
+            recordAccuracy(0);
+            comment("😐 Too low. It meets the air before it can circle. T in the equation is in seconds, and h = r − R." + extra);
+            launchBtn.disabled = false;
+        }
+
+        launchBtn.onclick = () => {
+            if (flying || succeeded) return;
+            const m = missions[current];
+            const h = m.find === "h" ? readAnswer() : m.alt;
+            spend(m.cost);
+            committed = readAnswer();
+            judged = false;
+            crashed = false;
+            ang = 0;
+            ghostAng = 0;
+            clockMin = 0;
+            sat.visible = true;
+            clearBoom();
+            if (m.find === "h" && h < 80) {
+                drawOrbit(false);
+                crashOut();
+                return;
+            }
+            lapTrueMin = periodSec(body.R + h, body.M) / 60;
+            flying = true;
+            ghost.visible = m.find === "T";
+            launchBtn.disabled = true;
+            sfx("click");
+            comment(m.find === "T"
+                ? "😐 Launching. The craft flies the real lap. The gold ring is the period you set."
+                : "😐 Launching. Watch the lap clock. The plan is " + (periodSec(body.R + m.alt, body.M) / 60).toFixed(1) + " min.");
+            refreshHud();
+        };
+        resetBtn.onclick = () => {
+            if (succeeded) return;
+            flying = false;
+            judged = false;
+            crashed = false;
+            ang = 0;
+            ghostAng = 0;
+            clockMin = 0;
+            sat.visible = true;
+            ghost.visible = false;
+            clearBoom();
+            launchBtn.disabled = false;
+            drawOrbit(false);
+            hudClock.textContent = "—";
+            comment("😐 Reset. Work out the numbers, then launch.");
+            sfx("click");
+        };
+        ansInput.addEventListener("input", () => {
+            const n = parseFloat(ansInput.value);
+            if (Number.isFinite(n)) {
+                const lo = parseFloat(ansSlider.min), hi = parseFloat(ansSlider.max);
+                ansSlider.value = String(Math.min(hi, Math.max(lo, n)));
+            }
+            if (!flying) drawOrbit(false);
+            refreshHud();
+        });
+        ansSlider.addEventListener("input", () => {
+            ansInput.value = ansSlider.value;
+            if (!flying) drawOrbit(false);
+            refreshHud();
+        });
+
+        document.getElementById("q90").onclick = () => checkAnswer("90");
+        document.getElementById("q13").onclick = () => checkAnswer("13");
+        document.getElementById("q24").onclick = () => checkAnswer("24");
+        document.getElementById("nextBtn").onclick = () => nextMission();
+        detailBtn.onclick = () => showMissionBrief();
+        popupOk.onclick = () => {
+            if (quizOpen) return;
+            if (finishType()) return;
+            sfx("ok");
+            introPopup.classList.remove("show");
+            popupBox.classList.remove("ending");
+            setPopupReady(false);
+            const follow = afterBrief;
+            afterBrief = null;
+            if (follow) follow();
+        };
+        popupText.addEventListener("click", () => finishType());
+
+        function nextMission() {
+            if (succeeded) missionsCompleted++;
+            current++;
+            if (current >= missions.length) {
+                launchBtn.disabled = true;
+                resetBtn.disabled = true;
+                showNext(false);
+                finalAvg = accuracySamples > 0 ? totalAccuracy / accuracySamples : 0;
+                endBtn.classList.add("show");
+                showEnding(finalAvg);
+                comment("🙂 Campaign complete. " + missionsCompleted + " of 6 periods. Average accuracy " + Math.round(finalAvg) + "%.");
+                return;
+            }
+            loadMission();
+        }
+
+        function rankLine(avg) {
+            if (avg >= 95) return "Elite work. The periods match.";
+            if (avg >= 85) return "Good precision. Keep that standard.";
+            if (avg >= 70) return "Acceptable. Tighten the numbers next time.";
+            return "The laps were a little off. Recalculate, then practise.";
+        }
+        function showEnding(avg) {
+            afterBrief = null;
+            hideQuiz();
+            popupBox.classList.add("wide", "ending");
+            popupOk.textContent = "Stand down";
+            const debtOk = debt <= 0;
+            const crewOk = totalCasualties <= 0;
+            const accOk = avg >= 85;
+            const debtTalk = debtOk
+                ? (savings > 0 ? "The books are clean. Zero debt, and " + formatMoney(savings) + " left in savings." : "The books are clean. Zero debt.")
+                : "Debt of " + formatMoney(debt) + ". That is a hole in the budget.";
+            const crewTalk = crewOk ? "Every crew member came home." : totalCasualties + " casualty. That will stay with us.";
+            const accTalk = "Average period accuracy: " + Math.round(avg) + "%. " + rankLine(avg);
+            endingSnap = {
+                title: "Campaign debrief",
+                file: "period-ending.webp",
+                cards: [
+                    { head: "Debt", text: debtTalk },
+                    { head: "Casualties", text: crewTalk },
+                    { head: "Accuracy", text: accTalk }
+                ]
+            };
+            popupText.innerHTML =
+                `<div class="brief-date">Campaign debrief</div>` +
+                `<div class="end-grid">` +
+                `<div class="end-card"><img src="endings/${debtOk ? "end-debt-ok" : "end-debt-bad"}.webp" alt=""><h3>Debt</h3><p class="end-talk" id="endTalk0"></p></div>` +
+                `<div class="end-card"><img src="endings/${crewOk ? "end-crew-ok" : "end-crew-bad"}.webp" alt=""><h3>Casualties</h3><p class="end-talk" id="endTalk1"></p></div>` +
+                `<div class="end-card"><img src="endings/${accOk ? "end-acc-ok" : "end-acc-bad"}.webp" alt=""><h3>Accuracy</h3><p class="end-talk" id="endTalk2"></p></div>` +
+                `</div>`;
+            introPopup.classList.add("show");
+            const parts = [debtTalk, crewTalk, accTalk];
+            setPopupReady(false);
+            const next = (i) => {
+                if (i >= parts.length) { setPopupReady(true); return; }
+                typeInto(document.getElementById("endTalk" + i), parts[i], () => next(i + 1));
+            };
+            next(0);
+        }
+        endBtn.onclick = () => showEnding(finalAvg);
+        document.getElementById("saveEndBtn").onclick = () => saveEndingImage();
+        function saveEndingImage() {
+            if (!endingSnap) return;
+            const W = 1200, pad = 36, gap = 18;
+            const colW = (W - pad * 2 - gap * 2) / 3;
+            const canvas = document.createElement("canvas");
+            canvas.width = W; canvas.height = 460;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#071428";
+            ctx.fillRect(0, 0, W, 460);
+            ctx.fillStyle = "#66ddff";
+            ctx.font = "600 26px sans-serif";
+            ctx.fillText(endingSnap.title, pad, 42);
+            const photos = [...popupText.querySelectorAll(".end-card img")];
+            endingSnap.cards.forEach((card, i) => {
+                const x = pad + i * (colW + gap);
+                ctx.fillStyle = "#061018";
+                ctx.fillRect(x, 64, colW, 360);
+                const im = photos[i];
+                if (im && im.complete && im.naturalWidth) ctx.drawImage(im, x + 8, 72, colW - 16, 160);
+                ctx.fillStyle = "#66ddff";
+                ctx.font = "700 15px sans-serif";
+                ctx.fillText(card.head.toUpperCase(), x + 14, 260);
+                ctx.fillStyle = "#e8eef8";
+                ctx.font = "18px sans-serif";
+                wrapFill(ctx, card.text, x + 14, 290, colW - 28, 24);
+            });
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = endingSnap.file;
+                a.click();
+            }, "image/webp");
+        }
+        function wrapFill(ctx, text, x, y, maxW, lh) {
+            const words = String(text).split(/\s+/);
+            let line = "", yy = y;
+            words.forEach((word) => {
+                const trial = line ? line + " " + word : word;
+                if (line && ctx.measureText(trial).width > maxW) { ctx.fillText(line, x, yy); line = word; yy += lh; }
+                else line = trial;
+            });
+            if (line) ctx.fillText(line, x, yy);
+        }
+
+        document.querySelectorAll("#eqPanel .eq").forEach((el) => {
+            el.addEventListener("click", () => {
+                if (!el.dataset.eq) return;
+                window.open("orbit-sandbox2.html?eq=" + el.dataset.eq, "_blank", "noopener");
+            });
+        });
+
+        const calcPad = document.getElementById("calcPad");
+        const calcScreen = document.getElementById("calcScreen");
+        const calcState = { acc: null, op: null, buf: "0", fresh: true, ans: null };
+        function calcFormat(n) {
+            if (!Number.isFinite(n)) return "Error";
+            if (Math.abs(n) >= 1e10 || (Math.abs(n) > 0 && Math.abs(n) < 1e-6)) return n.toExponential(6);
+            return String(parseFloat(n.toPrecision(12)));
+        }
+        function calcRender() { calcScreen.textContent = calcState.buf; }
+        function calcClear() { calcState.acc = null; calcState.op = null; calcState.buf = "0"; calcState.fresh = true; calcRender(); }
+        function calcNum() { const n = parseFloat(calcState.buf); return Number.isFinite(n) ? n : 0; }
+        function calcApply(a, b, op) {
+            if (op === "+") return a + b;
+            if (op === "-") return a - b;
+            if (op === "*") return a * b;
+            if (op === "/") return b === 0 ? NaN : a / b;
+            return b;
+        }
+        function calcUnary(fn) {
+            const n = fn(calcNum());
+            calcState.buf = calcFormat(n);
+            calcState.fresh = true;
+            if (Number.isFinite(n)) calcState.ans = n;
+            calcRender();
+        }
+        function calcKey(code) {
+            const btn = calcPad.querySelector('[data-calc="' + code + '"]');
+            if (btn) { btn.classList.add("pressed"); setTimeout(() => btn.classList.remove("pressed"), 120); }
+            if (code >= "0" && code <= "9") {
+                if (calcState.fresh || calcState.buf === "0" || calcState.buf === "Error") calcState.buf = code;
+                else calcState.buf += code;
+                calcState.fresh = false;
+                calcRender();
+            } else if (code === ".") {
+                if (calcState.fresh || calcState.buf === "Error") calcState.buf = "0.";
+                else if (!calcState.buf.includes(".")) calcState.buf += ".";
+                calcState.fresh = false;
+                calcRender();
+            } else if (code === "+" || code === "-" || code === "*" || code === "/") {
+                const n = calcNum();
+                if (calcState.op && calcState.acc != null) calcState.acc = calcApply(calcState.acc, n, calcState.op);
+                else calcState.acc = n;
+                calcState.op = code;
+                calcState.buf = calcFormat(calcState.acc);
+                calcState.fresh = true;
+                calcRender();
+            } else if (code === "=") {
+                if (calcState.op && calcState.acc != null) {
+                    const result = calcApply(calcState.acc, calcNum(), calcState.op);
+                    calcState.buf = calcFormat(result);
+                    calcState.acc = result;
+                    calcState.op = null;
+                    calcState.fresh = true;
+                    if (Number.isFinite(result)) calcState.ans = result;
+                    calcRender();
+                }
+            } else if (code === "C") calcClear();
+            else if (code === "bs") {
+                if (calcState.fresh || calcState.buf === "Error") calcClear();
+                else {
+                    calcState.buf = calcState.buf.slice(0, -1);
+                    if (!calcState.buf || calcState.buf === "-") calcState.buf = "0";
+                    calcRender();
+                }
+            } else if (code === "ans") {
+                if (calcState.ans == null) return;
+                calcState.buf = calcFormat(calcState.ans);
+                calcState.fresh = true;
+                calcRender();
+            } else if (code === "sqrt") calcUnary(Math.sqrt);
+            else if (code === "cbrt") calcUnary(Math.cbrt);
+            else if (code === "sq") calcUnary((n) => n * n);
+            else if (code === "cu") calcUnary((n) => n * n * n);
+            else if (code === "pi") {
+                calcState.buf = calcFormat(Math.PI);
+                calcState.fresh = true;
+                calcRender();
+            }
+        }
+        function calcOpen(on) {
+            const show = on == null ? !calcPad.classList.contains("open") : on;
+            calcPad.classList.toggle("open", show);
+            calcPad.setAttribute("aria-hidden", show ? "false" : "true");
+        }
+        document.getElementById("calcToggle").onclick = () => calcOpen();
+        document.getElementById("calcClose").onclick = () => calcOpen(false);
+        calcPad.querySelectorAll(".calc-keys button").forEach((btn) => btn.addEventListener("click", () => calcKey(btn.dataset.calc)));
+        let calcDrag = null;
+        calcPad.addEventListener("pointerdown", (e) => {
+            if (e.target !== calcPad) return;
+            const rect = calcPad.getBoundingClientRect();
+            calcDrag = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+            calcPad.style.left = rect.left + "px";
+            calcPad.style.top = rect.top + "px";
+            calcPad.style.bottom = "auto";
+            calcPad.style.transform = "none";
+            calcPad.setPointerCapture(e.pointerId);
+        });
+        calcPad.addEventListener("pointermove", (e) => {
+            if (!calcDrag) return;
+            calcPad.style.left = Math.max(0, e.clientX - calcDrag.dx) + "px";
+            calcPad.style.top = Math.max(0, e.clientY - calcDrag.dy) + "px";
+        });
+        calcPad.addEventListener("pointerup", () => { calcDrag = null; });
+
+        const dragGhost = document.getElementById("dragGhost");
+        let valueDrag = null;
+        function boardDragFrom(target) {
+            const stat = target.closest && target.closest(".stat");
+            if (!stat || stat.classList.contains("is-hidden") || stat.classList.contains("adjust")) return null;
+            if (target.closest("input, button")) return null;
+            const v = stat.querySelector(".value");
+            if (!v) return null;
+            const n = parseFloat(v.dataset.num);
+            if (!Number.isFinite(n)) return null;
+            return { n, label: v.textContent.trim() };
+        }
+        function overCalc(x, y) {
+            if (!calcPad.classList.contains("open")) return false;
+            const r = calcPad.getBoundingClientRect();
+            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        }
+        function overAnswer(x, y) {
+            const el = document.getElementById("answerStat");
+            const r = el.getBoundingClientRect();
+            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        }
+        document.getElementById("ui").addEventListener("pointerdown", (e) => {
+            const picked = boardDragFrom(e.target);
+            if (!picked) return;
+            e.preventDefault();
+            valueDrag = { n: picked.n, x0: e.clientX, y0: e.clientY, started: false, label: picked.label, from: "board" };
+        });
+        calcScreen.addEventListener("pointerdown", (e) => {
+            const n = calcNum();
+            if (!Number.isFinite(n) || calcState.buf === "Error") return;
+            valueDrag = { n, x0: e.clientX, y0: e.clientY, started: false, label: calcState.buf, from: "calc" };
+        });
+        window.addEventListener("pointermove", (e) => {
+            if (!valueDrag) return;
+            const dx = e.clientX - valueDrag.x0, dy = e.clientY - valueDrag.y0;
+            if (!valueDrag.started) {
+                if (dx * dx + dy * dy < 36) return;
+                valueDrag.started = true;
+                dragGhost.textContent = valueDrag.label;
+                dragGhost.style.display = "block";
+                if (valueDrag.from !== "calc") calcOpen(true);
+            }
+            dragGhost.style.left = e.clientX + "px";
+            dragGhost.style.top = e.clientY + "px";
+            calcPad.classList.toggle("drop-target", valueDrag.from !== "calc" && overCalc(e.clientX, e.clientY));
+            document.getElementById("answerStat").classList.toggle("drop-target", valueDrag.from === "calc" && overAnswer(e.clientX, e.clientY));
+        });
+        window.addEventListener("pointerup", (e) => {
+            if (!valueDrag) return;
+            if (valueDrag.started && e) {
+                if (valueDrag.from === "calc" && overAnswer(e.clientX, e.clientY)) setAnswer(valueDrag.n);
+                else if (valueDrag.from !== "calc" && overCalc(e.clientX, e.clientY)) {
+                    calcState.buf = calcFormat(valueDrag.n);
+                    calcState.fresh = true;
+                    calcRender();
+                    sfx("ok");
+                }
+            }
+            dragGhost.style.display = "none";
+            calcPad.classList.remove("drop-target");
+            document.getElementById("answerStat").classList.remove("drop-target");
+            valueDrag = null;
+        });
+
+        const coachSteps = [
+            { text: "Drag r onto the calculator.", spots: ["#rStat", "#calcPad"], openCalc: true },
+            { text: "Press x³. That is r³.", spots: ['[data-calc="cu"]'], openCalc: true },
+            { text: "Press ×, then 4, then ×.", spots: ['[data-calc="*"]', '[data-calc="4"]'], openCalc: true },
+            { text: "Press π, then x². That finishes 4π².", spots: ['[data-calc="pi"]', '[data-calc="sq"]'], openCalc: true },
+            { text: "Press ÷, then drag GM.", spots: ['[data-calc="/"]', "#gmStat"], openCalc: true },
+            { text: "Press =. That is T². Then press √. That is T in seconds.", spots: ['[data-calc="="]', '[data-calc="sqrt"]'], openCalc: true },
+            { text: "Press ÷ 6 0 =. That is minutes.", spots: ['[data-calc="="]'], openCalc: true },
+            { text: "Drag that answer onto T.", spots: ["#calcScreen", "#answerStat"], openCalc: true },
+            { text: "Press LAUNCH.", spots: ["#launchBtn"] }
+        ];
+        let coachIndex = 0;
+        const coachEl = document.getElementById("coach");
+        const coachText = document.getElementById("coachText");
+        const coachCount = document.getElementById("coachCount");
+        const coachSpots = document.getElementById("coachSpots");
+        function coachLive() {
+            return current === 0 && coachEl.dataset.shut !== "1" && !introPopup.classList.contains("show");
+        }
+        function showCoachStep() {
+            const step = coachSteps[coachIndex];
+            coachText.textContent = step.text;
+            coachCount.textContent = (coachIndex + 1) + " / " + coachSteps.length;
+            document.getElementById("coachBack").disabled = coachIndex === 0;
+            document.getElementById("coachNext").textContent = coachIndex === coachSteps.length - 1 ? "Done" : "Next";
+            if (step.openCalc) calcOpen(true);
+            placeCoachSpots();
+        }
+        function placeCoachSpots() {
+            const live = coachLive();
+            coachEl.hidden = !live;
+            document.getElementById("calcGuideShow").hidden = !(current === 0 && coachEl.dataset.shut === "1" && !introPopup.classList.contains("show"));
+            if (!live) { coachSpots.replaceChildren(); return; }
+            const step = coachSteps[coachIndex];
+            while (coachSpots.childElementCount < step.spots.length) {
+                const spot = document.createElement("div");
+                spot.className = "coach-spot";
+                coachSpots.appendChild(spot);
+            }
+            while (coachSpots.childElementCount > step.spots.length) coachSpots.lastChild.remove();
+            step.spots.forEach((sel, i) => {
+                const el = document.querySelector(sel);
+                const spot = coachSpots.children[i];
+                if (!el) { spot.style.display = "none"; return; }
+                const r = el.getBoundingClientRect();
+                if (r.width < 2) { spot.style.display = "none"; return; }
+                spot.style.display = "block";
+                spot.style.left = (r.left - 4) + "px";
+                spot.style.top = (r.top - 4) + "px";
+                spot.style.width = (r.width + 8) + "px";
+                spot.style.height = (r.height + 8) + "px";
+            });
+        }
+        function syncCalcGuide() {
+            if (current !== 0) coachIndex = 0;
+            showCoachStep();
+        }
+        document.getElementById("coachBack").onclick = () => { if (coachIndex > 0) coachIndex--; showCoachStep(); };
+        document.getElementById("coachNext").onclick = () => {
+            if (coachIndex < coachSteps.length - 1) coachIndex++;
+            else coachEl.dataset.shut = "1";
+            showCoachStep();
+        };
+        document.getElementById("calcGuideHide").onclick = () => { coachEl.dataset.shut = "1"; showCoachStep(); };
+        document.getElementById("calcGuideShow").onclick = () => { coachEl.dataset.shut = "0"; showCoachStep(); };
+
+        const clock3 = new THREE.Clock();
+        function frame() {
+            requestAnimationFrame(frame);
+            const dt = Math.min(0.05, clock3.getDelta());
+            if (flying) {
+                const step = dt / LAP_SEC * Math.PI * 2;
+                ang += step;
+                clockMin += dt / LAP_SEC * lapTrueMin;
+                if (missions[current].find === "T") {
+                    ghostAng += step * (lapTrueMin / Math.max(committed, 0.05));
+                    placeOnOrbit(ghost, ghostAng, rVis);
+                }
+                placeOnOrbit(sat, ang, rVis);
+                hudClock.textContent = clockMin.toFixed(1) + " min";
+                if (ang >= Math.PI * 2) {
+                    ang = Math.PI * 2;
+                    placeOnOrbit(sat, ang, rVis);
+                    clockMin = lapTrueMin;
+                    hudClock.textContent = clockMin.toFixed(1) + " min";
+                    finishLap();
+                }
+            }
+            if (boom) {
+                boom.userData.age += dt;
+                const arr = boom.geometry.attributes.position.array;
+                boom.userData.vel.forEach((v, i) => {
+                    arr[i * 3] += v.x * dt;
+                    arr[i * 3 + 1] += v.y * dt;
+                    arr[i * 3 + 2] += v.z * dt;
+                });
+                boom.geometry.attributes.position.needsUpdate = true;
+                boom.material.opacity = Math.max(0, 1 - boom.userData.age * 0.7);
+                if (boom.userData.age > 1.6) clearBoom();
+            }
+            placeCoachSpots();
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        window.addEventListener("resize", () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+        showPreIntro();
+        frame();
+    </script>
+</body>
+</html>

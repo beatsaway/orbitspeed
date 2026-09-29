@@ -18,7 +18,7 @@
       --ok: #d7eccf;
     }
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+    html, body { margin: 0; height: 100%; background: #7eb4e6; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
     body { overflow: hidden; user-select: none; -webkit-user-select: none; }
     input { user-select: text; -webkit-user-select: text; }
     #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
@@ -54,6 +54,20 @@
       border: 1px solid rgba(243, 236, 223, 0.28);
     }
     button:disabled { background: rgba(243, 236, 223, 0.12); color: var(--dim); cursor: default; }
+    @keyframes retryPulse {
+      0%, 100% { background: #f3ecdf; color: #16140f; box-shadow: 0 0 0 0 rgba(243, 236, 223, 0.45); }
+      50% { background: #fff8ea; color: #16140f; box-shadow: 0 0 0 7px rgba(243, 236, 223, 0); }
+    }
+    button#retry.nudge:not(:disabled) {
+      animation: retryPulse 1.15s ease-in-out infinite;
+      border-color: transparent;
+    }
+    button#retry.skip:not(:disabled) {
+      background: #f3ecdf;
+      color: #16140f;
+      border-color: transparent;
+      animation: none;
+    }
     #flightBtn {
       position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 6;
     }
@@ -96,12 +110,24 @@
       font-weight: 500; font-size: 28px; line-height: 1;
     }
     .card p { margin: 0 0 8px; line-height: 1.45; color: var(--dim); }
-    .card button { width: 100%; margin-top: 6px; }
+    .pop-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .pop-actions button { flex: 1; width: auto; margin-top: 0; }
+    #popNo[hidden] { display: none !important; }
     #popKicker { margin: 0 0 4px; font-size: 0.85rem; color: var(--gold); }
+    #flash {
+      position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
+      background: radial-gradient(circle at 50% 58%, rgba(255, 244, 214, 0.92), rgba(255, 110, 28, 0.38) 28%, rgba(255, 70, 20, 0) 62%);
+    }
+    #flash.on { animation: bangFlash 0.85s ease-out; }
+    @keyframes bangFlash {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
   </style>
 </head>
 <body>
   <canvas id="view"></canvas>
+  <div id="flash"></div>
   <aside>
     <p class="kicker" id="kicker">Flight 1 of 8</p>
     <p id="goalLine">Reach the line.</p>
@@ -118,6 +144,8 @@
   <div id="quipbox"><span id="face">🙂</span><p id="quip">Set the sliders, then launch.</p></div>
   <div id="hud">
     <div class="row"><span>Height</span><b id="hudHeight">0 km</b></div>
+    <div class="row"><span>Stage</span><b id="hudStage">On the pad</b></div>
+    <div class="row" id="hudDropRow" hidden><span>Drop in</span><b id="hudDrop">—</b></div>
     <div class="row"><span>Budget</span><b id="hudBudget">¥0</b></div>
     <div class="row"><span>Savings</span><b id="hudSavings" class="ok">¥0</b></div>
     <div class="row"><span>Debt</span><b id="hudDebt" class="ok">¥0</b></div>
@@ -127,7 +155,10 @@
       <p id="popKicker"></p>
       <h2 id="popTitle"></h2>
       <div id="popBody"></div>
-      <button id="popBtn" type="button">I am ready</button>
+      <div class="pop-actions">
+        <button class="ghost" id="popNo" type="button" hidden>Keep flying</button>
+        <button id="popBtn" type="button">I am ready</button>
+      </div>
     </div>
   </div>
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
@@ -138,9 +169,15 @@
   <script>
 
     const G = 9.81;
-    const ISP = 115;
-    const BASE = [240000, 150000, 10000];
-    const PER = [14000, 11000, 8000];
+    const ISP = [165, 330, 160];
+    const BASE = [310000, 135000, 18000];
+    const PER = [11000, 4300, 3600];
+    const DRY0 = 450;
+    const DRY_FRAC = 0.27;
+    const DRAG_AREA = 2;
+    const AIR_SCALE = 8500;
+    const AIR_DENSITY = 1.22;
+    const PAYLOAD = 130;
     const TIME_SCALE = 12;
     function altY(metres) {
       const km = Math.max(0, metres) / 1000;
@@ -155,10 +192,10 @@
     const flights = [
       {
         title: "Add a second stage",
-        goal: 185,
+        goal: 400,
         budget: 36,
-        hint: "One tank runs out. A second stage, dropped when it is empty, goes further.",
-        brief: "One stage cannot reach the line. Add a second stage. When the first tank is empty, it drops, and the next engine lights.",
+        hint: "One tank runs out below the edge of space. A second stage carries the payload up to the line.",
+        brief: "One stage cannot reach the line. Add a second stage. When the first tank is empty, it drops, and the next engine carries the payload the rest of the way up.",
         n: 1,
         fuels: [14, 11, 6],
         drop: 0,
@@ -166,7 +203,7 @@
       },
       {
         title: "Fuel the bottom stage",
-        goal: 220,
+        goal: 540,
         budget: 36,
         hint: "The first stage lifts the whole rocket. Give it more of the fuel.",
         brief: "The fuel is split across two stages. The total stays the same. Put more of it in the first stage, so the rocket can lift off.",
@@ -178,18 +215,18 @@
       },
       {
         title: "Drop the empty tank",
-        goal: 203,
+        goal: 590,
         budget: 34,
-        hint: "Drop the stage as soon as its tank is empty. Do not carry it.",
-        brief: "This rocket already has two stages and enough fuel. If you wait, the next engine starts late and you fall short.",
+        hint: "The first tank burns for a fixed time. Drop it when that fuel is gone. Earlier throws fuel away. Later, you carry an empty tank.",
+        brief: "You choose when the first tank drops. The engine uses fuel on its own clock. Too soon, and fuel is still in the tank. Too late, and the empty tank stays on.",
         n: 2,
         fuels: [14, 11],
-        drop: 8,
-        controls: [{ key: "drop", label: "Wait before you drop", min: 0, max: 10, step: 1, ends: ["Right away", "Hold on"] }]
+        drop: 2,
+        controls: [{ key: "drop", label: "When the first tank drops", min: 1, max: 12, step: 1, ends: ["Too soon", "Hold on"] }]
       },
       {
         title: "Keep the second tank small",
-        goal: 230,
+        goal: 620,
         budget: 32,
         hint: "A huge second tank is heavy at lift-off. Leave it smaller.",
         brief: "The first tank stays full. If you fill the second tank as well, the rocket is heavy before it even drops a stage.",
@@ -201,10 +238,10 @@
       },
       {
         title: "Fill the one tank",
-        goal: 150,
+        goal: 60,
         budget: 24,
-        hint: "This line is low. One tank can reach it if you fill it.",
-        brief: "There is only one stage. A little fuel falls short. More fuel reaches the line, but after that, extra fuel barely helps.",
+        hint: "This line is low, still in the air. One tank can reach it if you fill it.",
+        brief: "There is only one stage. A little fuel falls short of this low line. More fuel reaches it. Extra fuel after that adds less and less height.",
         n: 1,
         bottom: 8,
         drop: 0,
@@ -212,18 +249,18 @@
       },
       {
         title: "Do not hold the empty tank",
-        goal: 247,
+        goal: 730,
         budget: 36,
-        hint: "This rocket is strong, and it still misses if you wait.",
-        brief: "Two stages, with plenty of fuel. Drop the first stage as soon as its tank is empty. Holding on makes the next engine late.",
+        hint: "This first tank also burns for a fixed time. Drop it when the fuel is gone. Too soon wastes fuel. Too late carries the empty tank.",
+        brief: "Two stages, with plenty of fuel. The drop time is separate from the burn. If the tank leaves early, fuel is still in it. If it stays late, the next engine waits.",
         n: 2,
         fuels: [18, 8],
-        drop: 10,
-        controls: [{ key: "drop", label: "Wait before you drop", min: 0, max: 10, step: 1, ends: ["Right away", "Hold on"] }]
+        drop: 2,
+        controls: [{ key: "drop", label: "When the first tank drops", min: 1, max: 14, step: 1, ends: ["Too soon", "Hold on"] }]
       },
       {
         title: "Lift with the first stage",
-        goal: 232,
+        goal: 735,
         budget: 40,
         hint: "Use two stages. Put most of the fuel in the first one, and drop it when it is empty.",
         brief: "The line is higher. One stage will not reach it. Three small stages are heavy at lift-off. Two stages, with a strong first stage, can.",
@@ -238,7 +275,7 @@
       },
       {
         title: "Two stages are enough",
-        goal: 200,
+        goal: 400,
         budget: 16,
         hint: "Two stages reach the line. A third stage costs more and flies lower.",
         brief: "The budget is small. One stage misses. Three stages are heavy and can put you in debt. Two stages, dropped on time, are enough.",
@@ -268,10 +305,10 @@
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x07080c);
-    scene.fog = new THREE.Fog(0x07080c, 22, 70);
+    scene.background = new THREE.Color(0x8ec4ef);
+    scene.fog = new THREE.Fog(0x9ecbf2, 38, 110);
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1600);
-    scene.add(new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.85));
+    scene.add(new THREE.HemisphereLight(0xd7ecff, 0x8a7a58, 1.05));
     const sun = new THREE.DirectionalLight(0xfff3e2, 1.55);
     sun.position.set(6, 14, 8);
     scene.add(sun);
@@ -281,7 +318,7 @@
     scene.add(site);
     const sea = new THREE.Mesh(
       new THREE.CircleGeometry(90, 48),
-      new THREE.MeshStandardMaterial({ color: 0x1a2428, roughness: 0.42, metalness: 0.18 })
+      new THREE.MeshStandardMaterial({ color: 0x3f86b8, roughness: 0.35, metalness: 0.12 })
     );
     sea.rotation.x = -Math.PI / 2;
     sea.position.set(0, -0.12, 22);
@@ -362,7 +399,29 @@
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute("position", new THREE.BufferAttribute(starArr, 3));
-    scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.08, fog: false })));
+    const groundStarMat = new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.08, transparent: true, opacity: 0, fog: false });
+    scene.add(new THREE.Points(starGeo, groundStarMat));
+    const skyCanvas = document.createElement("canvas");
+    skyCanvas.width = 8;
+    skyCanvas.height = 512;
+    {
+      const pen = skyCanvas.getContext("2d");
+      const wash = pen.createLinearGradient(0, 0, 0, 512);
+      wash.addColorStop(0, "#2f74c4");
+      wash.addColorStop(0.42, "#6aadec");
+      wash.addColorStop(0.72, "#b7dcfa");
+      wash.addColorStop(0.88, "#d7ecff");
+      wash.addColorStop(1, "#c5ddf4");
+      pen.fillStyle = wash;
+      pen.fillRect(0, 0, 8, 512);
+    }
+    const skyTex = new THREE.CanvasTexture(skyCanvas);
+    skyTex.flipY = false;
+    const skyMat = new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false, depthWrite: false });
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(700, 24, 16), skyMat);
+    sky.renderOrder = -1;
+    sky.frustumCulled = false;
+    scene.add(sky);
 
     const goalRing = new THREE.Mesh(
       new THREE.TorusGeometry(3.4, 0.035, 8, 64),
@@ -370,6 +429,115 @@
     );
     goalRing.rotation.x = Math.PI / 2;
     scene.add(goalRing);
+    const spaceRing = new THREE.Mesh(
+      new THREE.TorusGeometry(9.2, 0.018, 8, 96),
+      new THREE.MeshBasicMaterial({ color: 0x9ecbff, transparent: true, opacity: 0.9, fog: false })
+    );
+    spaceRing.rotation.x = Math.PI / 2;
+    scene.add(spaceRing);
+    function makeSkyLabel(text) {
+      const board = document.createElement("canvas");
+      board.width = 640;
+      board.height = 128;
+      const pen = board.getContext("2d");
+      pen.clearRect(0, 0, board.width, board.height);
+      pen.font = "500 54px sans-serif";
+      pen.fillStyle = "#d7ebff";
+      pen.textAlign = "center";
+      pen.textBaseline = "middle";
+      pen.fillText(text, 320, 64);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: new THREE.CanvasTexture(board), transparent: true, depthWrite: false, fog: false
+      }));
+      sprite.scale.set(16, 3.2, 1);
+      return sprite;
+    }
+    const spaceLabel = makeSkyLabel("Edge of space  ·  100 km");
+    scene.add(spaceLabel);
+    const cloudTex = document.createElement("canvas");
+    cloudTex.width = cloudTex.height = 128;
+    {
+      const pen = cloudTex.getContext("2d");
+      const wash = pen.createRadialGradient(64, 60, 6, 64, 64, 62);
+      wash.addColorStop(0, "rgba(255,255,255,0.72)");
+      wash.addColorStop(0.28, "rgba(232,240,246,0.38)");
+      wash.addColorStop(0.62, "rgba(214,226,236,0.12)");
+      wash.addColorStop(1, "rgba(214,226,236,0)");
+      pen.fillStyle = wash;
+      pen.beginPath();
+      pen.ellipse(64, 68, 46, 28, 0, 0, Math.PI * 2);
+      pen.fill();
+      pen.beginPath();
+      pen.ellipse(46, 62, 24, 18, 0, 0, Math.PI * 2);
+      pen.fill();
+      pen.beginPath();
+      pen.ellipse(84, 60, 22, 16, 0, 0, Math.PI * 2);
+      pen.fill();
+    }
+    const cloudMap = new THREE.CanvasTexture(cloudTex);
+    function cloudBank(km, clusters) {
+      const y = PAD_CLEAR + altY(km * 1000);
+      for (let c = 0; c < clusters; c++) {
+        const ang = Math.random() * Math.PI * 2;
+        const rad = 2.2 + Math.random() * 3.2;
+        const cx = Math.cos(ang) * rad;
+        const cz = Math.sin(ang) * rad;
+        const blobs = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < blobs; i++) {
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: cloudMap, transparent: true, depthWrite: false, fog: false,
+            opacity: 0.28 + Math.random() * 0.22, color: 0xeef4f8
+          }));
+          const w = 2.4 + Math.random() * 2.4;
+          sprite.scale.set(w, w * (0.42 + Math.random() * 0.22), 1);
+          sprite.position.set(
+            cx + (Math.random() - 0.5) * 2.2,
+            y + (Math.random() - 0.5) * 0.55,
+            cz + (Math.random() - 0.5) * 2.2
+          );
+          scene.add(sprite);
+        }
+      }
+    }
+    cloudBank(4, 4);
+    cloudBank(14, 3);
+    cloudBank(32, 3);
+    cloudBank(58, 2);
+    const highStarArr = new Float32Array(260 * 3);
+    for (let i = 0; i < 260; i++) {
+      const r = 36 + Math.random() * 48;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(Math.random() * 2 - 1);
+      highStarArr[i * 3] = Math.sin(ph) * Math.cos(th) * r;
+      highStarArr[i * 3 + 1] = Math.cos(ph) * r * 0.55;
+      highStarArr[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * r;
+    }
+    const highStarGeo = new THREE.BufferGeometry();
+    highStarGeo.setAttribute("position", new THREE.BufferAttribute(highStarArr, 3));
+    const highStarMat = new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.09, transparent: true, opacity: 0, fog: false });
+    const highStars = new THREE.Points(highStarGeo, highStarMat);
+    scene.add(highStars);
+    const RUSH_N = 18;
+    const rushMat = new THREE.MeshBasicMaterial({
+      color: 0xf7fbff, transparent: true, opacity: 0.34, depthWrite: false, fog: false
+    });
+    const rushGroup = new THREE.Group();
+    scene.add(rushGroup);
+    const rushSeeds = [];
+    for (let i = 0; i < RUSH_N; i++) {
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(0.012, 1, 0.012), rushMat);
+      bar.visible = false;
+      rushGroup.add(bar);
+      const ang = Math.random() * Math.PI * 2;
+      const rad = 2.1 + Math.random() * 2.4;
+      rushSeeds.push({
+        bar,
+        x: Math.cos(ang) * rad,
+        z: Math.sin(ang) * rad,
+        y: Math.random()
+      });
+    }
+    let rushScroll = 0;
 
     const shellMat = new THREE.MeshStandardMaterial({
       color: 0xe7f2fb, transparent: true, opacity: 0.22, roughness: 0.05,
@@ -384,6 +552,17 @@
     const nozzleMat = new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.7, roughness: 0.28 });
     const finMat = new THREE.MeshStandardMaterial({ color: 0x2c6bed, roughness: 0.5, side: THREE.DoubleSide });
     const collarMat = new THREE.MeshStandardMaterial({ color: 0x1c2836, metalness: 0.4, roughness: 0.45 });
+    for (let i = 0; i < 4; i++) {
+      const ang = i * Math.PI / 2 + Math.PI / 4;
+      const stand = new THREE.Group();
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.07, NZ + LEG, 8), collarMat);
+      post.position.y = (NZ + LEG) / 2;
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.07, 10), collarMat);
+      foot.position.y = 0.035;
+      stand.add(post, foot);
+      stand.position.set(Math.cos(ang) * 0.72, PAD_TOP, Math.sin(ang) * 0.72);
+      site.add(stand);
+    }
 
     const finShape = new THREE.Shape();
     finShape.moveTo(BODY_R * 0.92, 0);
@@ -478,10 +657,6 @@
           fin.position.y = 0.08;
           fin.rotation.y = i * Math.PI / 2;
           g.add(fin);
-          const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, NZ + LEG, 6), collarMat);
-          const a = i * Math.PI / 2 + Math.PI / 4;
-          leg.position.set(Math.cos(a) * 0.72, -(NZ + LEG) / 2, Math.sin(a) * 0.72);
-          g.add(leg);
         }
       }
       const plume = makePlume();
@@ -490,6 +665,8 @@
       return g;
     }
     function buildRocket(d) {
+      clearBoom();
+      rocket.visible = true;
       clearScraps();
       units.forEach(u => { rocket.remove(u); clearGeos(u); });
       units = [];
@@ -507,6 +684,9 @@
       rocket.position.set(0, PAD_CLEAR, 0);
       rocket.rotation.set(0, 0, 0);
       goalRing.position.y = PAD_CLEAR + altY(flights[index].goal * 1000) + stackTop;
+      const spaceY = PAD_CLEAR + altY(100000) + stackTop;
+      spaceRing.position.y = spaceY;
+      spaceLabel.position.set(11.5, spaceY, 0);
       visualIdx = 0;
     }
 
@@ -514,9 +694,11 @@
     let budget = 0, savings = 0, debt = 0;
     let setup = null;
     let flying = null;
+    let boom = null;
     let scraps = [];
     let visualIdx = 0;
     let mode = "intro";
+    let paused = false;
 
     function yen(mil) {
       const n = Math.round(mil * 1000000);
@@ -537,6 +719,26 @@
       const fuel = d.fuels.reduce((a, b) => a + b, 0);
       return Math.round((4 * d.n + 0.28 * fuel) * 10) / 10;
     }
+    function costText(d) {
+      const line = "This launch costs " + yen(launchCost(d));
+      if (flights[index].pool != null) return line + ". Moving fuel between the tanks does not change the cost.";
+      return line;
+    }
+    function tons(n) {
+      const v = Math.round(Number(n) * 10) / 10;
+      const text = Number.isInteger(v) ? String(v) : v.toFixed(1);
+      return text + (Math.abs(v) === 1 ? " ton" : " tons");
+    }
+    function setRetryNudge(on) {
+      document.getElementById("retry").classList.toggle("nudge", !!on);
+    }
+    function setRetryMode(kind) {
+      const btn = document.getElementById("retry");
+      const skip = kind === "skip";
+      btn.textContent = skip ? "Skip" : "Retry";
+      btn.classList.toggle("skip", skip);
+      if (skip) setRetryNudge(false);
+    }
     function paintHud(heightKm) {
       document.getElementById("hudHeight").textContent = heightKm.toFixed(1) + " km";
       document.getElementById("hudBudget").textContent = yen(budget);
@@ -545,6 +747,33 @@
       document.getElementById("hudSavings").className = savings > 0 ? "ok" : "";
       document.getElementById("hudDebt").textContent = yen(debt);
       document.getElementById("hudDebt").className = debt > 0 ? "bad" : "ok";
+      const stage = document.getElementById("hudStage");
+      const dropRow = document.getElementById("hudDropRow");
+      const dropRead = document.getElementById("hudDrop");
+      const dropLabel = document.getElementById("vl-drop");
+      const counting = flying && flying.timedDrop && mode === "fly" && flying.idx === 0 && flying.watch < flying.dropWait;
+      if (dropRow) dropRow.hidden = !(flying && flying.timedDrop && mode === "fly");
+      if (counting) {
+        const left = Math.max(0, flying.dropWait - flying.watch);
+        const fuelT = flying.stages[0].fuel / 1000;
+        const text = left.toFixed(1) + " s";
+        if (dropLabel) dropLabel.textContent = text;
+        if (dropRead) dropRead.textContent = fuelT > 0.05 ? text + " · " + tons(fuelT) : text + " · empty";
+        stage.textContent = fuelT > 0.05 ? "Fuel still in the tank" : "Tank empty, still attached";
+      } else if (flying && flying.timedDrop && mode === "fly") {
+        if (dropLabel) dropLabel.textContent = "Dropped";
+        if (dropRead) dropRead.textContent = "Dropped";
+        const i = Math.min(flying.idx, flying.n - 1);
+        const lit = flying.litKm[i];
+        stage.textContent = (i + 1) + " of " + flying.n + (i > 0 ? " · from " + Math.round(lit) + " km" : "");
+      } else if (!flying) {
+        stage.textContent = "On the pad";
+        if (dropLabel && document.getElementById("sl-drop") && setup) dropLabel.textContent = setup.drop + " s";
+      } else {
+        const i = Math.min(flying.idx, flying.n - 1);
+        const lit = flying.litKm[i];
+        stage.textContent = (i + 1) + " of " + flying.n + (i > 0 ? " · from " + Math.round(lit) + " km" : "");
+      }
     }
     function spend(amount) {
       let left = amount;
@@ -569,9 +798,9 @@
     function makeStages(d) {
       return d.fuels.map((fuelT, i) => {
         const fuel = fuelT * 1000;
-        const dry = 500 + fuel * 0.16;
+        const dry = DRY0 + fuel * DRY_FRAC;
         const thrust = BASE[i] + fuelT * PER[i];
-        return { fuel, dry, thrust, burn: thrust / (ISP * G) };
+        return { fuel, dry, thrust, burn: thrust / (ISP[i] * G) };
       });
     }
     function readControls() {
@@ -591,13 +820,23 @@
     }
     function sliderText(c) {
       if (c.key === "n") return String(setup.n);
-      if (c.key === "bottom" || c.key === "top") return setup[c.key] + " t";
-      if (c.key === "drop") return setup.drop === 0 ? "Right away" : setup.drop + " s";
+      if (c.key === "bottom" || c.key === "top") return tons(setup[c.key]);
+      if (c.key === "drop") return setup.drop + " s";
       return "";
+    }
+    function burnSeconds(i, fuelT) {
+      const thrust = BASE[i] + fuelT * PER[i];
+      const rate = thrust / (ISP[i] * G);
+      return (fuelT * 1000 / rate) / TIME_SCALE;
     }
     function tankLine(d) {
       const names = ["Bottom tank", "Second tank", "Third tank"];
-      return d.fuels.map((t, i) => names[i] + " " + t + " t").join(" · ");
+      let line = d.fuels.map((t, i) => names[i] + " " + tons(t)).join(" · ");
+      const f = flights[index];
+      if (f.controls.some(c => c.key === "drop") && d.fuels[0]) {
+        line += ". First tank burns for " + burnSeconds(0, d.fuels[0]).toFixed(1) + " s.";
+      }
+      return line;
     }
     function paintControls() {
       const f = flights[index];
@@ -616,13 +855,13 @@
           document.getElementById("vl-" + key).textContent = sliderText(f.controls.find(c => c.key === key));
           const d = design();
           document.getElementById("tanks").textContent = tankLine(d);
-          document.getElementById("costLine").textContent = "This launch costs " + yen(launchCost(d));
+          document.getElementById("costLine").textContent = costText(d);
           buildRocket(d);
         });
       });
       const d = design();
       document.getElementById("tanks").textContent = tankLine(d);
-      document.getElementById("costLine").textContent = "This launch costs " + yen(launchCost(d));
+      document.getElementById("costLine").textContent = costText(d);
       buildRocket(d);
     }
     function loadFlight(i) {
@@ -646,6 +885,8 @@
       document.getElementById("hint").textContent = f.hint;
       document.getElementById("launch").disabled = false;
       document.getElementById("retry").disabled = true;
+      setRetryMode("retry");
+      setRetryNudge(false);
       paintControls();
       paintHud(0);
       say("🙂", "Set the sliders, then launch.");
@@ -655,22 +896,35 @@
       document.getElementById("quip").textContent = text;
     }
     let popNext = null;
-    function openPop(kicker, title, paragraphs, button, next) {
+    function openPop(kicker, title, paragraphs, button, next, cancelLabel) {
       document.getElementById("popKicker").textContent = kicker;
       document.getElementById("popTitle").textContent = title;
       document.getElementById("popBody").innerHTML = paragraphs.map(p => "<p>" + p + "</p>").join("");
       document.getElementById("popBtn").textContent = button;
+      const no = document.getElementById("popNo");
+      no.hidden = !cancelLabel;
+      if (cancelLabel) no.textContent = cancelLabel;
       document.getElementById("pop").hidden = false;
       popNext = next;
     }
     document.getElementById("popBtn").addEventListener("click", () => {
+      sfx.click();
       document.getElementById("pop").hidden = true;
+      document.getElementById("popNo").hidden = true;
       const fn = popNext;
       popNext = null;
       if (fn) fn();
     });
+    document.getElementById("popNo").addEventListener("click", () => {
+      sfx.click();
+      document.getElementById("pop").hidden = true;
+      document.getElementById("popNo").hidden = true;
+      popNext = null;
+      paused = false;
+    });
     document.getElementById("flightBtn").addEventListener("click", () => {
       if (mode === "fly") return;
+      sfx.click();
       const f = flights[index];
       openPop("Flight " + (index + 1), f.title, [f.brief], "Close", null);
     });
@@ -681,41 +935,91 @@
       spend(launchCost(d));
       buildRocket(d);
       const stages = makeStages(d);
+      const timedDrop = flights[index].controls.some(c => c.key === "drop");
       flying = {
-        stages, n: d.n, dropWait: d.drop, idx: 0, wait: null,
+        stages, n: d.n, dropWait: d.drop, timedDrop, idx: 0,
+        releaseAt: timedDrop ? d.drop : null, clock: 0, watch: 0,
         h: 0, v: 0, t: 0, maxH: 0, goal: flights[index].goal * 1000,
-        done: false, won: false, falling: false, thrusting: false
+        done: false, won: false, falling: false, thrusting: false,
+        litKm: [0], burnKm: null, saidSpace: false, saidEmpty: false, droppedFuelT: 0
       };
       mode = "fly";
+      paused = false;
       document.getElementById("launch").disabled = true;
-      document.getElementById("retry").disabled = true;
+      document.getElementById("retry").disabled = false;
+      setRetryMode("retry");
+      setRetryNudge(false);
       document.querySelectorAll("#controls input").forEach(el => { el.disabled = true; });
-      say("😐", "Launch. Watch for the empty stage to drop.");
+      say("😐", timedDrop ? "Launch. The first tank drops at " + d.drop + " s, whether or not the fuel is gone." : "Launch. Watch for the empty stage to drop.");
+      sfx.click();
       sfx.ignite();
       if (heard) music.setMood("ok");
     }
     document.getElementById("launch").addEventListener("click", startLaunch);
-    document.getElementById("retry").addEventListener("click", () => {
+    function resetPad() {
+      paused = false;
       flying = null;
       mode = "pad";
       sfx.quiet();
       if (heard) music.setMood("scene1");
       document.getElementById("launch").disabled = false;
       document.getElementById("retry").disabled = true;
+      setRetryMode("retry");
+      setRetryNudge(false);
       document.querySelectorAll("#controls input").forEach(el => { el.disabled = false; });
       buildRocket(design());
       paintHud(0);
       say("🙂", "Change a slider if you need to, then launch again.");
+    }
+    function skipCoast() {
+      if (!flying || flying.done || !flying.won) return;
+      sfx.spinStop();
+      let guard = 0;
+      while (flying && !flying.done && guard < 25000) {
+        stepPhysics(0.04);
+        guard++;
+      }
+      if (flying && !flying.done) {
+        flying.done = true;
+        finishFlight();
+      }
+    }
+    document.getElementById("retry").addEventListener("click", () => {
+      sfx.click();
+      if (mode === "fly" && flying && flying.won && !flying.done) {
+        skipCoast();
+        return;
+      }
+      if (mode === "fly" && flying && !flying.done) {
+        paused = true;
+        sfx.spinStop();
+        const cost = yen(launchCost(design()));
+        openPop(
+          "Stop this flight?",
+          "Are you sure?",
+          [
+            "The money for this launch stays spent.",
+            "Going back to the pad means the next launch spends " + cost + " again."
+          ],
+          "Yes, go back",
+          () => resetPad(),
+          "Keep flying"
+        );
+        return;
+      }
+      resetPad();
     });
     function finishFlight() {
       mode = "done";
       sfx.quiet();
+      setRetryMode("retry");
       document.getElementById("retry").disabled = false;
       const f = flights[index];
       const km = flying.maxH / 1000;
       paintHud(km);
       if (flying.won) {
-        say("🙂", "You reached " + f.goal + " km.");
+        const climbed = climbLine();
+        say("🙂", climbed || ("You reached " + f.goal + " km."));
         sfx.win();
         if (heard) {
           music.sting("upgrade");
@@ -725,7 +1029,7 @@
         openPop(
           "Reached the line",
           f.title,
-          [winLine(), "Money left over pays any debt first. The rest goes into savings."],
+          [winLine(), climbed, savingLine(), "Money left over pays any debt first. The rest goes into savings."].filter(Boolean),
           last ? "See the money" : "Next flight",
           () => {
             bank();
@@ -737,8 +1041,15 @@
           }
         );
       } else {
-        say("😐", loseLine(km));
-        sfx.miss();
+        const climbed = climbLine();
+        if (flying.airburst) {
+          say("😐", "It was spinning too fast. It broke apart at " + (flying.h / 1000).toFixed(1) + " km, before the ground.");
+        } else {
+          say("😐", climbed ? loseLine(km) + " " + climbed : loseLine(km));
+        }
+        setRetryNudge(true);
+        spawnBoom();
+        sfx.bang();
         if (heard) {
           music.sting("fall");
           music.setMood("sos");
@@ -748,7 +1059,7 @@
     function winLine() {
       if (index === 0) return "The empty stage dropped, and the next engine reached the line.";
       if (index === 1) return "The first stage was strong enough to lift the rest.";
-      if (index === 2 || index === 5) return "You dropped the empty tank straight away, so the next engine had time.";
+      if (index === 2 || index === 5) return "The first tank dropped when its fuel was gone, so the next engine was not late and no fuel was thrown away.";
       if (index === 3) return "The second tank stayed small, so the first stage could lift the rocket.";
       if (index === 4) return "One full enough tank reached this low line.";
       if (index === 7) return "Two stages reached the line, and the launch stayed inside the budget.";
@@ -760,23 +1071,66 @@
       if ((index === 0 || index === 7) && d.n === 1) return "One tank ran out. Add a second stage.";
       if (index === 0 && d.n === 3) return "Three stages were heavy at lift-off. Try two.";
       if (index === 1 || index === 4) return "The first tank did not have enough fuel.";
-      if (index === 2 || index === 5) return "The empty tank stayed on too long. Drop it sooner.";
+      if (index === 2 || index === 5) {
+        if (flying && flying.droppedFuelT > 0.05) return "The tank dropped while fuel was still in it. That fuel was wasted. Drop it when the burn is finished.";
+        return "The tank was already empty, and it stayed on too long. Drop it when the fuel is gone.";
+      }
       if (index === 3) return "The second tank is too full. Make it smaller.";
       if (d.n === 1) return "One stage cannot reach " + f.goal + " km.";
       if (d.n === 3) return "Three stages were too heavy at the start. Two stages are enough.";
       return "You reached " + km.toFixed(0) + " km. The line is " + f.goal + " km. Put more fuel in the first stage.";
     }
+    function savingLine() {
+      if (!flying || !flying.won) return "";
+      const f = flights[index];
+      const d = design();
+      const top = Math.round(flying.maxH / 1000);
+      if (top <= f.goal) return "";
+      const spent = launchCost(d);
+      let lean = null;
+      if (index === 3 && d.fuels[1] > 2) {
+        lean = { cost: launchCost({ n: 2, fuels: [14, 2] }), text: "A second tank of " + tons(2) + " still clears " + f.goal + " km." };
+      } else if (index === 4 && d.fuels[0] > 11) {
+        lean = { cost: launchCost({ n: 1, fuels: [11] }), text: "A tank of " + tons(11) + " still reaches " + f.goal + " km." };
+      } else if (index === 6 && d.n === 2 && d.fuels[0] > 14) {
+        lean = { cost: launchCost({ n: 2, fuels: [14, 8] }), text: "Two stages, with " + tons(14) + " in the first tank, still reach " + f.goal + " km." };
+      } else if (index === 7 && d.n === 2 && d.fuels[0] > 8) {
+        lean = { cost: launchCost({ n: 2, fuels: [8, 6] }), text: "Two stages, with " + tons(8) + " in the first tank, still reach " + f.goal + " km." };
+      }
+      if (!lean || lean.cost >= spent - 0.05) return "";
+      const saved = Math.round((spent - lean.cost) * 10) / 10;
+      return "You reached " + f.goal + " km, and the payload went on to " + top + " km. " + lean.text + " That would have cost " + yen(saved) + " less.";
+    }
+    function climbLine() {
+      if (!flying) return "";
+      const top = Math.round(flying.maxH / 1000);
+      if (flying.litKm && flying.litKm[1] != null) {
+        return "The second stage lit at " + Math.round(flying.litKm[1]) + " km and carried the payload to " + top + " km.";
+      }
+      if (flying.burnKm != null) {
+        return "The tank emptied at " + Math.round(flying.burnKm) + " km. The payload coasted to " + top + " km.";
+      }
+      return "";
+    }
     function dropStage() {
       const fly = flying;
+      const spent = fly.stages[fly.idx];
+      if (!spent) return;
+      const leftT = spent.fuel / 1000;
+      fly.droppedFuelT = leftT;
+      const km = fly.h / 1000;
       scraps.push({ h: fly.h, v: fly.v * 0.4, spin: 0, mesh: null, localY: 0 });
       fly.idx++;
-      fly.wait = null;
-      say("🙂", "Empty stage dropped.");
+      fly.releaseAt = null;
+      fly.litKm[fly.idx] = km;
+      if (leftT > 0.05) say("😐", "Tank dropped with " + tons(leftT) + " of fuel still in it. That fuel is gone.");
+      else if (fly.idx === 1) say("🙂", "Second stage lit at " + Math.round(km) + " km. The first tank was empty.");
+      else say("🙂", "Empty stage dropped.");
     }
     function stepPhysics(dt) {
       const fly = flying;
       if (!fly || fly.done) return;
-      let mass = 180;
+      let mass = PAYLOAD;
       for (let i = fly.idx; i < fly.stages.length; i++) {
         mass += fly.stages[i].dry + Math.max(0, fly.stages[i].fuel);
       }
@@ -789,27 +1143,45 @@
         thrust = s.thrust * (burn / (cap || 1));
         if (s.fuel <= 0.05) {
           s.fuel = 0;
-          if (fly.idx < fly.stages.length - 1) {
-            if (fly.dropWait <= 0) dropStage();
-            else fly.wait = fly.dropWait;
+          if (fly.burnKm == null) fly.burnKm = fly.h / 1000;
+          if (fly.timedDrop && fly.idx === 0 && !fly.saidEmpty && fly.watch < fly.dropWait - 0.15) {
+            fly.saidEmpty = true;
+            say("😐", "The tank is empty, and it is still attached until " + fly.dropWait + " s.");
           }
         }
-      } else if (fly.wait != null && fly.wait > 0) {
-        fly.wait -= dt;
-        if (fly.wait <= 0) dropStage();
       }
-      fly.v += (thrust / mass - G) * dt;
+      const still = fly.stages[fly.idx];
+      const burnedOut = still && still.fuel <= 0 && fly.idx < fly.stages.length - 1 && !(fly.timedDrop && fly.idx === 0);
+      if (fly.idx < fly.stages.length - 1 && burnedOut) dropStage();
+      const rho = AIR_DENSITY * Math.exp(-Math.max(0, fly.h) / AIR_SCALE);
+      const drag = 0.5 * rho * Math.abs(fly.v) * fly.v * DRAG_AREA;
+      fly.v += (thrust / mass - G - drag / mass) * dt;
       fly.h += fly.v * dt;
       fly.thrusting = thrust > 1000;
       if (fly.h > fly.maxH) fly.maxH = fly.h;
       if (fly.h >= fly.goal && !fly.won) {
         fly.won = true;
+        say("🙂", "Past the line. Skip if you do not want to watch the rest of the climb.");
+        setRetryMode("skip");
+      }
+      if (fly.won && fly.v <= 0) {
         fly.done = true;
         finishFlight();
         return;
       }
+      if (!fly.saidSpace && fly.idx >= 1 && fly.h >= 100000 && !fly.won) {
+        fly.saidSpace = true;
+        say("🙂", "Past the edge of space. The second stage is still carrying the payload up.");
+      }
       if (!fly.won && !fly.falling && fly.v < -1 && fly.t > 1 && fly.h < fly.goal) {
         fly.falling = true;
+        const tilt = rocket.rotation.z;
+        const side = Math.abs(tilt) > 0.05 ? Math.sign(tilt) : (Math.random() < 0.5 ? -1 : 1);
+        fly.tumble = {
+          z: Math.abs(tilt) > 0.05 ? tilt : side * 0.1,
+          spin: side * (0.55 + Math.random() * 0.35),
+          age: 0
+        };
         say("😐", "Coming back down.");
       }
       scraps.forEach(sc => {
@@ -817,18 +1189,34 @@
         sc.h += sc.v * dt;
         sc.spin += dt * 1.4;
       });
-      if (fly.h <= 0 && fly.t > 0.6) {
+      if (fly.h <= 0 && fly.t > 0.6 && !fly.won) {
         fly.h = 0;
         fly.v = 0;
         fly.done = true;
+        fly.crashed = true;
         finishFlight();
       }
       fly.t += dt;
+      fly.clock += dt;
+    }
+    function showFuel(unit, fuelKg) {
+      if (!unit || !unit.userData.fuel) return;
+      const frac = fuelKg / Math.max(1, unit.userData.fuelKg0);
+      const f = Math.max(0, Math.min(1, frac));
+      const show = f > 0.03;
+      unit.userData.fuel.visible = show;
+      unit.userData.core.visible = show;
+      const sy = Math.max(0.02, show ? f : 0.02);
+      unit.userData.fuel.scale.y = sy;
+      unit.userData.fuel.position.y = unit.userData.fullH * sy / 2;
+      unit.userData.core.scale.y = sy;
+      unit.userData.core.position.y = unit.userData.fuel.position.y;
     }
     function detachSpent() {
       while (visualIdx < (flying ? flying.idx : 0) && units[visualIdx]) {
         const unit = units[visualIdx];
         const localY = unit.position.y;
+        if (flying && flying.stages[visualIdx]) showFuel(unit, flying.stages[visualIdx].fuel);
         if (unit.userData.plume) unit.userData.plume.visible = false;
         rocket.remove(unit);
         scene.add(unit);
@@ -847,16 +1235,7 @@
       for (let i = flying.idx; i < units.length; i++) {
         const u = units[i];
         if (!u || u.parent !== rocket) continue;
-        const frac = flying.stages[i].fuel / u.userData.fuelKg0;
-        const f = Math.max(0, Math.min(1, frac));
-        const show = f > 0.03;
-        u.userData.fuel.visible = show;
-        u.userData.core.visible = show;
-        const sy = Math.max(0.02, f);
-        u.userData.fuel.scale.y = sy;
-        u.userData.fuel.position.y = u.userData.fullH * sy / 2;
-        u.userData.core.scale.y = sy;
-        u.userData.core.position.y = u.userData.fuel.position.y;
+        showFuel(u, flying.stages[i].fuel);
         const plume = u.userData.plume;
         const parts = plume.userData;
         plume.visible = i === flying.idx && flying.thrusting;
@@ -924,7 +1303,7 @@
       const live = flying && units[flying.idx] ? units[flying.idx].position.y : 0;
       const remain = Math.max(1.6, stackTop - live);
       const y = base + live + remain * 0.42;
-      const dist = Math.max(8.6, remain * 2.15) * zoom;
+      const dist = Math.max(mode === "fly" ? 13.5 : 8.6, remain * 2.15) * zoom;
       const cp = Math.cos(pitch);
       const x = rocket.position.x || 0;
       camera.position.set(
@@ -939,26 +1318,150 @@
     let last = performance.now();
     let acc = 0;
     let frameDt = 0.016;
+    function clearBoom() {
+      if (!boom) return;
+      scene.remove(boom);
+      boom.traverse(child => { if (child.geometry) child.geometry.dispose(); });
+      boom = null;
+      rocket.visible = true;
+    }
+    function spawnBoom() {
+      clearBoom();
+      boom = new THREE.Group();
+      boom.position.set(rocket.position.x, rocket.position.y, rocket.position.z);
+      const fire = new THREE.Mesh(
+        new THREE.SphereGeometry(0.45, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xfff6d8, transparent: true, side: THREE.DoubleSide, depthWrite: false })
+      );
+      const mid = new THREE.Mesh(
+        new THREE.SphereGeometry(0.85, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xff7a18, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+      );
+      const smoke = new THREE.Mesh(
+        new THREE.SphereGeometry(1.15, 14, 10),
+        new THREE.MeshBasicMaterial({ color: 0x6a5044, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })
+      );
+      const wave = new THREE.Mesh(
+        new THREE.RingGeometry(0.1, 0.24, 40),
+        new THREE.MeshBasicMaterial({ color: 0xfff3c4, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+      );
+      wave.rotation.x = -Math.PI / 2;
+      wave.position.y = 0.05;
+      boom.add(fire, mid, smoke, wave);
+      const bits = [];
+      for (let i = 0; i < 28; i++) {
+        const bit = new THREE.Mesh(
+          new THREE.BoxGeometry(0.08 + Math.random() * 0.16, 0.06, 0.06 + Math.random() * 0.12),
+          new THREE.MeshStandardMaterial({
+            color: i % 3 === 0 ? 0xd24b3c : i % 3 === 1 ? 0xf2f5f8 : 0x2c6bed,
+            emissive: 0xff6a22, emissiveIntensity: 0.4
+          })
+        );
+        const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.9 + 0.2, Math.random() - 0.5).normalize();
+        bit.userData.vel = dir.multiplyScalar(6 + Math.random() * 11);
+        bit.userData.spin = (Math.random() - 0.5) * 8;
+        boom.add(bit);
+        bits.push(bit);
+      }
+      const light = new THREE.PointLight(0xfff1c2, 18, 22);
+      boom.add(light);
+      boom.userData = { fire, mid, smoke, wave, bits, light, age: 0 };
+      scene.add(boom);
+      rocket.visible = false;
+      const flash = document.getElementById("flash");
+      flash.classList.remove("on");
+      void flash.offsetWidth;
+      flash.classList.add("on");
+    }
+    function stepBoom(dt) {
+      if (!boom) return;
+      const b = boom.userData;
+      b.age += dt;
+      const k = Math.max(0, 1 - b.age / 2.4);
+      const grow = Math.min(2.4, b.age * 3.4);
+      b.fire.scale.setScalar(1 + grow);
+      b.mid.scale.setScalar(1 + grow * 1.25);
+      b.smoke.scale.setScalar(1 + grow * 1.05);
+      b.fire.material.opacity = Math.max(0, 1 - b.age * 1.15);
+      b.mid.material.opacity = 0.92 * k;
+      b.smoke.material.opacity = 0.5 * Math.max(0, 1 - b.age * 0.12);
+      b.wave.scale.setScalar(1 + b.age * 14);
+      b.wave.material.opacity = 0.85 * k;
+      b.light.intensity = 18 * k;
+      b.bits.forEach(bit => {
+        bit.userData.vel.y -= 9 * dt;
+        bit.position.addScaledVector(bit.userData.vel, dt);
+        bit.rotation.z += bit.userData.spin * dt;
+        if (bit.position.y < 0.05) {
+          bit.position.y = 0.05;
+          bit.userData.vel.y *= -0.25;
+          bit.userData.vel.x *= 0.7;
+          bit.userData.vel.z *= 0.7;
+        }
+      });
+    }
+    function paintRush() {
+      const speed = flying && mode === "fly" ? flying.v : 0;
+      const moving = Math.abs(speed) > 20;
+      rushMat.opacity = moving ? Math.min(0.42, 0.12 + Math.abs(speed) / 4200) : 0;
+      const dir = speed >= 0 ? 1 : -1;
+      if (moving) rushScroll += dir * Math.abs(speed) * frameDt * 0.02;
+      const len = moving ? 0.55 + Math.min(2.1, Math.abs(speed) / 900) : 1;
+      const baseY = rocket.position.y + stackTop * 0.35;
+      const span = 22;
+      for (let i = 0; i < RUSH_N; i++) {
+        const seed = rushSeeds[i];
+        seed.bar.visible = moving;
+        if (!moving) continue;
+        let y = seed.y * span - rushScroll;
+        y = ((y % span) + span) % span - span / 2;
+        seed.bar.position.set(rocket.position.x + seed.x, baseY + y, seed.z);
+        seed.bar.scale.y = len;
+      }
+    }
     function frame(now) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       frameDt = dt;
-      if (mode === "fly" && flying && !flying.done) {
-        acc += dt * TIME_SCALE * (flying.falling ? 4 : 1);
+      if (mode === "fly" && flying && !flying.done && !paused) {
+        flying.watch += dt;
+        acc += dt * TIME_SCALE * (flying.falling ? 2.2 : 1);
         while (acc >= 0.04) {
           stepPhysics(0.04);
           acc -= 0.04;
           if (!flying || flying.done) break;
         }
-        if (flying) {
+        if (flying && !flying.done && flying.timedDrop && flying.idx === 0 && flying.watch >= flying.dropWait - 0.001) {
+          dropStage();
+        }
+        if (flying && !flying.done) {
           rocket.position.y = PAD_CLEAR + altY(flying.h);
-          if (flying.thrusting) {
+          if (flying.falling && flying.tumble) {
+            const tb = flying.tumble;
+            tb.age += dt;
+            const ramp = 0.25 + tb.age * tb.age * 2.4;
+            const rate = Math.abs(tb.spin) * ramp;
+            tb.z += tb.spin * ramp * dt;
+            rocket.rotation.z = tb.z;
+            rocket.rotation.x = Math.sin(tb.age * 1.4) * Math.min(1.15, tb.age * 0.45);
+            sfx.spin(Math.min(1, rate / 7.5));
+            if (!flying.won && flying.h > 40 && rate > 7.5) {
+              flying.done = true;
+              flying.crashed = true;
+              flying.airburst = true;
+              finishFlight();
+            }
+          } else if (flying.thrusting) {
             const t = now * 0.001;
             rocket.rotation.z = Math.sin(t * 18) * 0.045;
+            rocket.rotation.x *= 0.8;
             rocket.position.x = Math.sin(t * 22) * 0.06;
+            sfx.spinStop();
           } else {
             rocket.rotation.z *= 0.8;
+            rocket.rotation.x *= 0.8;
             rocket.position.x *= 0.8;
+            sfx.spinStop();
           }
           detachSpent();
           paintFuel();
@@ -971,11 +1474,44 @@
         detachSpent();
         paintFuel();
       }
+      stepBoom(dt);
+      paintRush();
       music.update();
       frameCamera();
+      highStars.position.copy(camera.position);
+      sky.position.copy(camera.position);
+      const alt = flying ? flying.h : 0;
+      groundStarMat.opacity = Math.max(0, Math.min(0.8, (alt - 18000) / 40000));
+      const skyMix = Math.max(0, Math.min(1, alt / 90000));
+      skyMat.color.setRGB(1 - skyMix * 0.62, 1 - skyMix * 0.48, 1 - skyMix * 0.22);
+      highStarMat.opacity = flying ? Math.max(0, Math.min(0.95, (flying.h - 20000) / 40000)) : 0;
       renderer.render(scene, camera);
       requestAnimationFrame(frame);
     }
+
+    const cheatWord = "skiplevel";
+    let cheatBuf = "";
+    addEventListener("keydown", (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key.length !== 1) return;
+      cheatBuf = (cheatBuf + e.key.toLowerCase()).slice(-cheatWord.length);
+      if (cheatBuf !== cheatWord) return;
+      cheatBuf = "";
+      sfx.quiet();
+      paused = false;
+      flying = null;
+      mode = "pad";
+      document.getElementById("pop").hidden = true;
+      document.getElementById("popNo").hidden = true;
+      popNext = null;
+      if (index >= flights.length - 1) {
+        bank();
+        say(debt > 0 ? "😟" : "🙂", debt > 0
+          ? "You finished, and there is still debt of " + yen(debt) + "."
+          : "You finished. Savings " + yen(savings) + ".");
+        return;
+      }
+      loadFlight(index + 1);
+    });
 
     buildRocket({ n: 2, fuels: [14, 11], drop: 0 });
     frameCamera();
@@ -985,7 +1521,8 @@
       [
         "A stage is a fuel tank and an engine.",
         "The blue in each tank is the fuel. Some flights let you change how full a tank is.",
-        "Light the bottom stage first. When its tank is empty, drop it, and light the next one.",
+        "Light the bottom stage first. When its tank is empty, drop it, and the next engine carries the payload on up.",
+        "The pale ring is the edge of space, 100 km up. The gold ring is the line the payload has to reach.",
         "Each launch costs money. If the budget runs out, the extra becomes debt."
       ],
       "I am ready",

@@ -1,0 +1,55 @@
+How to pull orbitspeed onto this laptop
+========================================
+
+Repo:   https://github.com/beatsaway/orbitspeed
+Branch: main
+Folder: /Users/staff/Desktop/tempstuff
+User:   staff
+
+This copy is already on the laptop. Open Terminal and run:
+
+    cd /Users/staff/Desktop/tempstuff
+    git pull origin main
+
+That brings in whatever is newest on GitHub and leaves your local main
+matching origin/main.
+
+Check that it worked:
+
+    git status
+    git log -1 --oneline
+
+You should see "Your branch is up to date with 'origin/main'."
+
+
+First time on a laptop that does not have the folder yet
+---------------------------------------------------------
+
+Git must be installed (it already is on this Mac). Then:
+
+    cd /Users/staff/Desktop
+    git clone https://github.com/beatsaway/orbitspeed tempstuff
+    cd tempstuff
+
+If /Users/staff/Desktop/tempstuff already exists and is not empty, clone
+will refuse to use that folder. This Mac's Terminal is zsh. Clone beside
+the folder, then move the files, including the hidden .git directory:
+
+    cd /Users/staff/Desktop
+    git clone https://github.com/beatsaway/orbitspeed orbitspeed-tmp
+    mkdir -p tempstuff
+    setopt GLOB_DOTS
+    mv orbitspeed-tmp/* tempstuff/
+    rmdir orbitspeed-tmp
+    cd tempstuff
+    git status
+
+Do not delete the folder's .git directory. Without it, git pull has
+nothing to update.
+
+
+Open the lessons
+----------------
+
+From the folder, open index.html in a browser, or on Windows double-click
+start.bat. This Mac can just open the html files directly.
