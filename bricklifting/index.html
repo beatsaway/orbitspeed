@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Brick Lifting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+<style>
+  :root {
+    --ink: #f3ecdf;
+    --dim: rgba(243, 236, 223, 0.72);
+    --faint: rgba(243, 236, 223, 0.46);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #07080c;
+    color: var(--ink);
+    font-family: Outfit, system-ui, sans-serif;
+  }
+  #view { position: fixed; inset: 0; z-index: 1; display: block; }
+  #veil {
+    position: fixed;
+    inset: 0;
+    background: #07080c;
+    z-index: 20;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+  }
+  #vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 48%, rgba(0, 0, 0, 0.48) 100%);
+  }
+  #split { position: fixed; z-index: 4; pointer-events: none; background: rgba(243, 236, 223, 0.35); }
+  body:not(.stacked) #split { left: 50%; top: 0; bottom: 0; width: 1px; }
+  body.stacked #split { top: 50%; left: 0; right: 0; height: 1px; }
+  .ring { position: fixed; z-index: 4; pointer-events: none; }
+  body:not(.stacked) #ring-a { left: 0; top: 0; width: 50%; height: 100%; }
+  body:not(.stacked) #ring-b { left: 50%; top: 0; width: 50%; height: 100%; }
+  body.stacked #ring-a { left: 0; top: 0; width: 100%; height: 50%; }
+  body.stacked #ring-b { left: 0; top: 50%; width: 100%; height: 50%; }
+  .ring.on { box-shadow: inset 0 0 0 5px #e7c56a; }
+  #ui { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+  #bank {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
+  #trial-tag {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--dim);
+  }
+  #yuan {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 32px;
+    line-height: 1;
+  }
+  #fund-label { font-size: 12px; color: var(--dim); }
+  .lab {
+    position: absolute;
+    z-index: 6;
+    max-width: 280px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(8, 9, 12, 0.4);
+    backdrop-filter: blur(6px);
+    text-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  body:not(.stacked) .lab-a { top: 16px; left: 16px; }
+  body:not(.stacked) .lab-b { top: 16px; left: calc(50% + 16px); max-width: min(280px, calc(50% - 190px)); }
+  body.stacked .lab-a { top: 16px; left: 16px; }
+  body.stacked .lab-b { top: calc(50% + 16px); left: 16px; }
+  .lab .who {
+    margin: 0 0 4px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--dim);
+  }
+  .lab .body {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .lab .alt {
+    margin: 4px 0 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 26px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .lab .score { margin: 6px 0 0; font-size: 16px; }
+  .lab.ahead { box-shadow: inset 0 0 0 1px rgba(231, 197, 106, 0.85); }
+  .lab.ahead .body, .lab.ahead .alt { color: #f0d78c; }
+  #dock {
+    position: absolute;
+    z-index: 8;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(560px, calc(100vw - 32px));
+    max-height: 44vh;
+    overflow: auto;
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(8, 9, 12, 0.9);
+    border: 1px solid rgba(243, 236, 223, 0.16);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    pointer-events: auto;
+  }
+  body.quip #dock { width: min(520px, calc(100vw - 280px)); left: calc(50% - 70px); }
+  #prompt {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 26px;
+    line-height: 1.15;
+    font-weight: 500;
+  }
+  #note { margin: 0; color: var(--dim); line-height: 1.45; font-size: 14.5px; }
+  .legend { margin: 0; color: var(--faint); font-size: 13px; }
+  .legend { display: flex; gap: 14px; align-items: center; }
+  .swatch { display: inline-block; width: 14px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .swatch.small { background: #e36a1e; }
+  .swatch.big { width: 18px; height: 12px; background: #3a3f46; }
+  #guess { display: flex; gap: 8px; }
+  #guess button { flex: 1; }
+  #tune { display: grid; gap: 12px; }
+  @media (min-width: 720px) { #tune { grid-template-columns: 1fr 1fr; } }
+  .tune-top { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 4px; }
+  input[type="range"] { width: 100%; accent-color: #e36a1e; }
+  .actions { display: flex; }
+  .actions button { flex: 1; }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid rgba(243, 236, 223, 0.35);
+    border-radius: 999px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  button:hover { border-color: rgba(243, 236, 223, 0.7); }
+  button.on, #confirm, #begin, #quiz-next, #again, #next {
+    background: #f3ecdf;
+    color: #1a140e;
+    border-color: transparent;
+  }
+  #confirm:disabled { opacity: 0.45; cursor: default; }
+  button.bad { border-color: #e07a68; color: #ffd0c8; }
+  #quip {
+    position: absolute;
+    right: 22px;
+    bottom: 22px;
+    z-index: 8;
+    max-width: 220px;
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-style: italic;
+    font-size: 28px;
+    line-height: 1.15;
+    text-align: right;
+    text-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+  #count {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    background: rgba(7, 8, 12, 0.28);
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 28vw;
+    line-height: 1;
+    pointer-events: none;
+  }
+  #intro, #quiz, #ending {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(7, 8, 12, 0.78);
+    pointer-events: auto;
+  }
+  .card {
+    width: min(560px, 100%);
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    padding: 18px 18px 20px;
+    background: rgba(8, 9, 12, 0.94);
+    border: 1px solid rgba(243, 236, 223, 0.18);
+    border-radius: 16px;
+  }
+  .card h2 {
+    margin: 0 0 8px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 500;
+    font-size: 40px;
+  }
+  #quiz h2 { font-size: 28px; line-height: 1.25; }
+  .kicker {
+    margin: 0 0 6px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: #e7c56a;
+  }
+  .card p { color: var(--dim); line-height: 1.45; }
+  .card .legend { margin: 0 0 12px; }
+  #quiz .row, #ending .row { display: flex; gap: 8px; }
+  #quiz .row button, #again { flex: 1; }
+  #quiz img, #ending img {
+    width: 100%;
+    height: 210px;
+    object-fit: cover;
+    object-position: center 40%;
+    border-radius: 10px;
+    display: block;
+    margin: 0 0 12px;
+    background: #141820;
+  }
+  #end-checks { margin: 8px 0 14px; padding-left: 18px; color: var(--dim); }
+  #end-checks li { margin: 6px 0; }
+  #err {
+    position: fixed;
+    left: 12px;
+    top: 12px;
+    z-index: 50;
+    margin: 0;
+    padding: 8px 10px;
+    background: #2a1010;
+    color: #ffb4a8;
+  }
+  #intro[hidden], #quiz[hidden], #quiz-brief[hidden], #quiz-ask[hidden], #intro-legend[hidden],
+  #ending[hidden], #count[hidden], #quip[hidden],
+  #tune[hidden], #guess[hidden], #err[hidden], #next[hidden], #confirm[hidden],
+  #dock[hidden], #trial-tag[hidden], .score[hidden] { display: none !important; }
+  @media (max-width: 899px) {
+    body.quip #dock { left: 50%; width: min(560px, calc(100vw - 24px)); }
+    #quip { top: 46%; bottom: auto; font-size: 22px; }
+    .lab .body { font-size: 26px; }
+    .lab .alt { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="veil"></div>
+<div id="vignette"></div>
+<div id="split"></div>
+<div id="ring-a" class="ring"></div>
+<div id="ring-b" class="ring"></div>
+<div id="ui">
+  <div id="bank">
+    <div id="trial-tag" hidden>Trial 1 of 10</div>
+    <div id="yuan">¥2,000</div>
+    <div id="fund-label">research funding</div>
+  </div>
+  <div class="lab lab-a" id="lab-a">
+    <p class="who"></p>
+    <p class="body"></p>
+    <p class="alt"></p>
+    <p class="score" hidden></p>
+  </div>
+  <div class="lab lab-b" id="lab-b">
+    <p class="who"></p>
+    <p class="body"></p>
+    <p class="alt"></p>
+    <p class="score" hidden></p>
+  </div>
+  <div id="dock" hidden>
+    <p class="legend"><span><i class="swatch small"></i>Small</span><span><i class="swatch big"></i>Big = 10 small</span></p>
+    <p id="prompt"></p>
+    <div id="guess"></div>
+    <div id="tune" hidden>
+      <label>
+        <span class="tune-top"><span id="name-a"></span><span id="val-a"></span></span>
+        <input id="slider-a" type="range" min="0" max="16000" step="20" value="0" />
+      </label>
+      <label>
+        <span class="tune-top"><span id="name-b"></span><span id="val-b"></span></span>
+        <input id="slider-b" type="range" min="0" max="16000" step="20" value="0" />
+      </label>
+    </div>
+    <p id="note" aria-live="polite"></p>
+    <div class="actions">
+      <button id="confirm" type="button" disabled>Confirm</button>
+      <button id="next" type="button" hidden>Next trial</button>
+    </div>
+  </div>
+  <p id="quip" hidden></p>
+</div>
+<div id="count" hidden aria-live="assertive">3</div>
+<div id="intro">
+  <div class="card">
+    <p class="kicker">China National Space Administration</p>
+    <h2>Brick Lifting</h2>
+    <p>You are a scientist here. You advise Kiki and Bouba, identical twins trained to lift the same weight.</p>
+    <button id="begin" type="button" disabled>Loading…</button>
+  </div>
+</div>
+<div id="quiz" hidden>
+  <div class="card">
+    <div id="quiz-brief">
+      <img src="art/report-brief.webp" alt="A scientist in a white suit hands a blank folder to a boss in a dark low-poly office, with a planet in the window." />
+      <p class="kicker">Findings report</p>
+      <h2>Your boss is waiting</h2>
+      <p>The yard work is done. You write up what the lifts showed. Your boss reads this report, and it decides the next step in your career: stay on the gravity watch, or go back to training.</p>
+      <button id="quiz-open" type="button">Open the report</button>
+    </div>
+    <div id="quiz-ask" hidden>
+      <p class="kicker" id="quiz-kicker">Check 1 of 4</p>
+      <h2 id="quiz-q"></h2>
+      <div class="row">
+        <button id="say-true" type="button">True</button>
+        <button id="say-false" type="button">False</button>
+      </div>
+      <p id="quiz-why"></p>
+      <button id="quiz-next" type="button" hidden>Next</button>
+    </div>
+  </div>
+</div>
+<div id="ending" hidden>
+  <div class="card">
+    <img id="end-img" alt="" />
+    <p class="kicker" id="end-kicker"></p>
+    <h2 id="end-title"></h2>
+    <p id="end-text"></p>
+    <p id="end-score"></p>
+    <ul id="end-checks"></ul>
+    <button id="again" type="button">Run the trials again</button>
+  </div>
+</div>
+<p id="err" hidden></p>
+<script>
+  window.addEventListener("error", (event) => {
+    const el = document.getElementById("err");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = event.message || "The yard failed to start.";
+  });
+</script>
+<script type="module">
+import * as THREE from "three";
+
+const G = 6.67430e-11;
+const PAY_RIGHT = 600;
+const PAY_WRONG = 400;
+const BODIES = {
+  earth:   { id: "earth", name: "Earth", M: 5.9722e24, R: 6371.0, ground: 0x6d8b52, rock: 0x8a7560, skyTop: "#1a3f78", skyHorizon: "#f0b48a", stars: 0.05, haze: 0.18 },
+  moon:    { id: "moon", name: "Moon", M: 7.346e22, R: 1737.4, ground: 0xb7b3ac, rock: 0x8e8a84, skyTop: "#07080d", skyHorizon: "#3a3d46", stars: 0.95, haze: 0.02 },
+  mars:    { id: "mars", name: "Mars", M: 6.4171e23, R: 3389.5, ground: 0xc2653c, rock: 0x8a3e2a, skyTop: "#6e2c24", skyHorizon: "#e7a06a", stars: 0.2, haze: 0.28 },
+  mercury: { id: "mercury", name: "Mercury", M: 3.3011e23, R: 2439.7, ground: 0xa89884, rock: 0x6e6458, skyTop: "#120e0c", skyHorizon: "#d9c2a4", stars: 0.7, haze: 0.08 },
+  venus:   { id: "venus", name: "Venus", M: 4.8675e24, R: 6051.8, ground: 0xd2a15a, rock: 0xa67a32, skyTop: "#e08a3c", skyHorizon: "#f6e0b0", stars: 0.02, haze: 0.72 }
+};
+const PLACE = {
+  ground: "Ground",
+  slope: "Slope",
+  hill: "Hill",
+  cliff: "Cliff",
+  mountain: "Mountain",
+  building: "Building",
+  rooftop: "Rooftop",
+  tower: "Tower",
+  lift: "Lift",
+  frame: "Frame"
+};
+const CREW = ["Kiki", "Bouba"];
+const TRIALS = [
+  { a: "earth", ha: 0, b: "moon", hb: 0, mode: "call", expect: "b",
+    prompt: "Who can lift more bricks?",
+    lesson: "The Moon's gravity is weaker than Earth's, so the bricks weigh less. Bouba can lift more." },
+  { a: "moon", ha: 0, b: "mars", hb: 0, mode: "call", expect: "a",
+    prompt: "Who can lift more bricks?",
+    lesson: "The Moon's gravity is weaker than Mars's, so the bricks weigh less. Kiki can lift more." },
+  { a: "venus", ha: 0, b: "mars", hb: 0, mode: "call", expect: "b",
+    prompt: "Who can lift more bricks?",
+    lesson: "Mars's gravity is weaker than Venus's, so the bricks weigh less. Bouba can lift more." },
+  { a: "earth", ha: 0, b: "venus", hb: 0, mode: "call", expect: "b",
+    prompt: "Who can lift more bricks?",
+    lesson: "Venus's gravity is a little weaker than Earth's, so Bouba lifts one more small brick." },
+  { a: "earth", ha: 12000, b: "venus", hb: 12000, mode: "call", expect: "b",
+    prompt: "Who can lift more bricks?",
+    lesson: "They are the same height up. Venus's gravity is weaker, so the bricks weigh less and Bouba lifts more." },
+  { a: "earth", ha: 1200, b: "venus", hb: 0, mode: "call", expect: "a",
+    prompt: "Who can lift more bricks?",
+    lesson: "Kiki is high enough. The bricks weigh less there than they do for Bouba." },
+  { a: "venus", ha: 5200, b: "mercury", hb: 0, mode: "call", expect: "a", quip: "Oh! What on earth is going on?",
+    prompt: "Who can lift more bricks?",
+    lesson: "Kiki is so high that the bricks weigh less than they do for Bouba. Height can beat a heavier planet." },
+  { a: "earth", b: "mars", mode: "tune", want: "a",
+    prompt: "Move the heights so Kiki can lift more bricks.",
+    win: "Kiki is high enough. The bricks weigh less for Kiki than for Bouba.",
+    lose: "Not yet. Take Kiki higher, or leave Bouba lower." },
+  { a: "mercury", b: "mars", mode: "tune", want: "b",
+    prompt: "Move the heights so Bouba can lift more bricks.",
+    win: "Bouba is high enough. The bricks weigh less for Bouba than for Kiki.",
+    lose: "Not yet. Take Bouba higher, and keep Kiki lower." },
+  { a: "moon", b: "mercury", mode: "tune", want: "b",
+    prompt: "Move the heights so Bouba can lift more bricks.",
+    win: "Bouba is high enough, and Kiki is low enough. The bricks weigh less for Bouba.",
+    lose: "Not yet. Take Bouba much higher, and leave Kiki low. The Moon's gravity is already weak." }
+];
+const CHECKS = [
+  { q: "Due to gravity, the closer to a planet, the heavier the bricks.", a: true,
+    why: "Closer to the centre, gravity is stronger, so the bricks weigh more." },
+  { q: "Due to gravity, the further away from a planet, the less heavy the bricks.", a: true,
+    why: "Further from the centre, gravity is weaker, so the bricks weigh less." },
+  { q: "The bricks have more weight on a more massive planet.", a: true,
+    why: "More mass means stronger gravity, at the same distance from the centre. Height can still change the weight." },
+  { q: "The weight of the bricks is the gravitational force of the celestial body pulling towards its centre.", a: true,
+    why: "Weight is gravity pulling the bricks toward the centre." }
+];
+const ENDINGS = {
+  commendation: {
+    img: "art/ending-commendation.webp",
+    alt: "Three astronauts stand on a night pad beneath a low-poly Earth.",
+    title: "Kept on the watch",
+    text: "Your calls matched the lifts, and the findings held up. The boss keeps you on the gravity watch. Weaker gravity means the bricks weigh less, so the twins can lift more."
+  },
+  instinct: {
+    img: "art/ending-instinct.webp",
+    alt: "One astronaut steadies a tall stack of bricks while another studies a blank wall.",
+    title: "Good eyes, open notebook",
+    text: "You can see who can lift more. The written findings were shaky, so the boss wants the notebook tidied before the next job."
+  },
+  theory: {
+    img: "art/ending-theory.webp",
+    alt: "An astronaut points at a glowing curve while another rests beside a few bricks.",
+    title: "The findings are in",
+    text: "The report is sound. The calls in the yard were early. The boss sends you back out with the twins."
+  },
+  training: {
+    img: "art/ending-training.webp",
+    alt: "Two astronauts stand among scattered bricks on a night training ground.",
+    title: "Back to the yard",
+    text: "The report and the calls both need another go. Closer to a world, or a more massive world, means stronger gravity and fewer bricks. Higher up, the bricks weigh less."
+  }
+};
+
+const veilEl = document.getElementById("veil");
+const introEl = document.getElementById("intro");
+const beginBtn = document.getElementById("begin");
+const quizBrief = document.getElementById("quiz-brief");
+const quizAsk = document.getElementById("quiz-ask");
+const quizOpen = document.getElementById("quiz-open");
+const quizEl = document.getElementById("quiz");
+const quizKicker = document.getElementById("quiz-kicker");
+const quizQ = document.getElementById("quiz-q");
+const quizWhy = document.getElementById("quiz-why");
+const quizNext = document.getElementById("quiz-next");
+const sayTrue = document.getElementById("say-true");
+const sayFalse = document.getElementById("say-false");
+const endingEl = document.getElementById("ending");
+const endImg = document.getElementById("end-img");
+const endKicker = document.getElementById("end-kicker");
+const endTitle = document.getElementById("end-title");
+const endText = document.getElementById("end-text");
+const endScore = document.getElementById("end-score");
+const endChecks = document.getElementById("end-checks");
+const againBtn = document.getElementById("again");
+const errEl = document.getElementById("err");
+const trialTag = document.getElementById("trial-tag");
+const yuanEl = document.getElementById("yuan");
+const dockEl = document.getElementById("dock");
+const promptEl = document.getElementById("prompt");
+const noteEl = document.getElementById("note");
+const guessEl = document.getElementById("guess");
+const tuneEl = document.getElementById("tune");
+const nameA = document.getElementById("name-a");
+const nameB = document.getElementById("name-b");
+const valA = document.getElementById("val-a");
+const valB = document.getElementById("val-b");
+const sliderA = document.getElementById("slider-a");
+const sliderB = document.getElementById("slider-b");
+const confirmBtn = document.getElementById("confirm");
+const nextBtn = document.getElementById("next");
+const countEl = document.getElementById("count");
+const quipEl = document.getElementById("quip");
+const labA = document.getElementById("lab-a");
+const labB = document.getElementById("lab-b");
+const scoreA = labA.querySelector(".score");
+const scoreB = labB.querySelector(".score");
+const ringA = document.getElementById("ring-a");
+const ringB = document.getElementById("ring-b");
+
+function gravity(body, km) {
+  const r = (body.R + Math.max(0, km)) * 1000;
+  return (G * body.M) / (r * r);
+}
+const G_EARTH = gravity(BODIES.earth, 0);
+function liftAt(body, km) {
+  const g = gravity(body, km);
+  const units = Math.round((10 * G_EARTH / g) * 1e6) / 1e6;
+  const big = Math.floor(units / 10);
+  const small = Math.floor(units - big * 10 + 1e-6);
+  return { g, units, big, small };
+}
+function winner(a, b) {
+  if (a.big !== b.big) return a.big > b.big ? "a" : "b";
+  if (a.small !== b.small) return a.small > b.small ? "a" : "b";
+  return "tie";
+}
+function placeKind(km) {
+  if (km < 1) return "ground";
+  if (km < 80) return "slope";
+  if (km < 250) return "hill";
+  if (km < 700) return "cliff";
+  if (km < 1600) return "mountain";
+  if (km < 3000) return "building";
+  if (km < 5000) return "rooftop";
+  if (km < 8000) return "tower";
+  if (km < 11000) return "lift";
+  return "frame";
+}
+function formatKm(km) {
+  return Math.max(0, Math.round(km)).toLocaleString("en-US") + " km";
+}
+function altLine(km) {
+  return formatKm(km) + " · " + PLACE[placeKind(km)];
+}
+function formatLift(result) {
+  const bits = [];
+  if (result.big) bits.push(result.big === 1 ? "1 big brick" : result.big + " big bricks");
+  if (result.small) bits.push(result.small === 1 ? "1 small brick" : result.small + " small bricks");
+  return bits.length ? bits.join(", ") : "No bricks";
+}
+
+const GEO = {
+  box: new THREE.BoxGeometry(1, 1, 1),
+  sphere: new THREE.SphereGeometry(1, 28, 18),
+  cone: new THREE.ConeGeometry(1, 1, 7),
+  sky: new THREE.SphereGeometry(1, 32, 20),
+  eye: new THREE.SphereGeometry(0.045, 12, 8),
+  head: new THREE.SphereGeometry(0.3, 28, 18),
+  circle: new THREE.CircleGeometry(0.62, 24)
+};
+function std(color, roughness, metalness, extra) {
+  return new THREE.MeshStandardMaterial(Object.assign({ color, roughness, metalness }, extra || {}));
+}
+const MAT = {
+  skin: std(0xffd3be, 0.62, 0.02),
+  suit: std(0x7ecbff, 0.58, 0.06),
+  leg: std(0x3f86b8, 0.62, 0.05),
+  hair: std(0x2c261f, 0.7, 0.04),
+  eye: std(0x1c1814, 0.4, 0.1),
+  tray: std(0x2e343c, 0.45, 0.35),
+  pad: std(0xe4ddd2, 0.84, 0.04),
+  steel: std(0xc5ccd2, 0.32, 0.72),
+  big: std(0x8d949c, 0.4, 0.16, { emissive: 0x3a4048, emissiveIntensity: 0.28 }),
+  small: std(0xe36a1e, 0.74, 0.03),
+  window: std(0xffe2b0, 0.4, 0.08, { emissive: 0xffb25a, emissiveIntensity: 0.4 }),
+  blob: new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false }),
+  sun: new THREE.MeshBasicMaterial({ color: 0xfff6df, depthWrite: false })
+};
+const landMats = new Map();
+function landMat(hex) {
+  if (!landMats.has(hex)) landMats.set(hex, std(hex, 0.92, 0.04));
+  return landMats.get(hex);
+}
+function box(parent, material, w, h, d, x, y, z) {
+  const mesh = new THREE.Mesh(GEO.box, material);
+  mesh.scale.set(w, h, d);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+function clearGroup(group) {
+  while (group.children.length) group.remove(group.children[0]);
+}
+function makeSkyMaterial() {
+  return new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    fog: false,
+    uniforms: {
+      uTop: { value: new THREE.Color("#1a3f78") },
+      uHorizon: { value: new THREE.Color("#f0b48a") },
+      uSun: { value: new THREE.Color("#fff4dd") },
+      uSunDir: { value: new THREE.Vector3(0.42, 0.62, 0.28).normalize() },
+      uTime: { value: 0 },
+      uStars: { value: 0.1 },
+      uHaze: { value: 0.2 },
+      uLift: { value: 0 }
+    },
+    vertexShader: `
+      out vec3 vDir;
+      void main() {
+        vec4 world = modelMatrix * vec4(position, 1.0);
+        vDir = world.xyz - cameraPosition;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      in vec3 vDir;
+      uniform vec3 uTop;
+      uniform vec3 uHorizon;
+      uniform vec3 uSun;
+      uniform vec3 uSunDir;
+      uniform float uTime;
+      uniform float uStars;
+      uniform float uHaze;
+      uniform float uLift;
+      out vec4 fragColor;
+      float hash(vec3 p) {
+        p = fract(p * 0.3183099 + vec3(0.11, 0.17, 0.13));
+        p *= 17.0;
+        return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+      }
+      void main() {
+        vec3 dir = normalize(vDir);
+        float elev = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 col = mix(uHorizon, uTop, smoothstep(0.05, 0.62, elev));
+        col = mix(col, uHorizon, uHaze * (1.0 - smoothstep(0.2, 0.8, elev)));
+        col = mix(col, vec3(0.025, 0.03, 0.05), uLift * smoothstep(0.0, 0.75, elev));
+        float sunDot = dot(dir, normalize(uSunDir));
+        float glow = pow(max(sunDot, 0.0), 48.0) * 0.55;
+        float disc = smoothstep(0.9982, 0.9994, sunDot);
+        col += uSun * (glow + disc) * (1.0 - uHaze * 0.65);
+        float cell = hash(floor(dir * 240.0));
+        float star = smoothstep(0.992, 0.999, cell);
+        float tw = 0.75 + 0.25 * sin(uTime * 1.7 + cell * 30.0);
+        float starAmt = max(uStars * (1.0 - uHaze), uLift * 0.9);
+        col += star * tw * starAmt * smoothstep(0.15, 0.45, elev);
+        fragColor = vec4(col, 1.0);
+      }
+    `,
+    glslVersion: THREE.GLSL3
+  });
+}
+function roundedRectShape(w, h, r) {
+  const hw = w * 0.5;
+  const hh = h * 0.5;
+  const rr = Math.min(r, hw * 0.46, hh * 0.46);
+  const s = new THREE.Shape();
+  s.moveTo(-hw + rr, -hh);
+  s.lineTo(hw - rr, -hh);
+  s.quadraticCurveTo(hw, -hh, hw, -hh + rr);
+  s.lineTo(hw, hh - rr);
+  s.quadraticCurveTo(hw, hh, hw - rr, hh);
+  s.lineTo(-hw + rr, hh);
+  s.quadraticCurveTo(-hw, hh, -hw, hh - rr);
+  s.lineTo(-hw, -hh + rr);
+  s.quadraticCurveTo(-hw, -hh, -hw + rr, -hh);
+  return s;
+}
+function softBox(w, h, d, radius, material, flat) {
+  const geo = new THREE.ExtrudeGeometry(roundedRectShape(w, h, radius), {
+    depth: d,
+    bevelEnabled: !flat,
+    bevelThickness: Math.min(0.08, radius * 0.35),
+    bevelSize: Math.min(0.08, radius * 0.35),
+    bevelSegments: 2,
+    curveSegments: flat ? 10 : 8
+  });
+  geo.translate(0, 0, -d * 0.5);
+  geo.computeVertexNormals();
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+function roundedPlane(w, h, radius, material) {
+  const geo = new THREE.ShapeGeometry(roundedRectShape(w, h, radius), 12);
+  const pos = geo.attributes.position;
+  const uvs = new Float32Array(pos.count * 2);
+  for (let i = 0; i < pos.count; i++) {
+    uvs[i * 2] = (pos.getX(i) + w * 0.5) / w;
+    uvs[i * 2 + 1] = (pos.getY(i) + h * 0.5) / h;
+  }
+  geo.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  return mesh;
+}
+const cloth = (color) => new THREE.MeshStandardMaterial({ color, roughness: 0.74, metalness: 0.06 });
+const headMat = cloth(0xffd3be);
+const torsoMat = cloth(0x7ecbff);
+const legMat = cloth(0x3f86b8);
+const glassMat = new THREE.MeshStandardMaterial({
+  color: 0x081018, emissive: 0x123038, emissiveIntensity: 0.4, roughness: 0.4, metalness: 0.06
+});
+const woodMat = new THREE.MeshStandardMaterial({ color: 0xe7c48a, roughness: 0.68, metalness: 0.05 });
+const BODY = 0.34;
+const DROP_T = 1.25;
+const HEAVE_T = 2.15;
+const SIM_END = 3.45;
+function smooth01(k) {
+  const x = Math.min(1, Math.max(0, k));
+  return x * x * (3 - 2 * x);
+}
+function makeScreen(name) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    map: tex,
+    emissive: 0x9dffef,
+    emissiveMap: tex,
+    emissiveIntensity: 0.5,
+    roughness: 0.42,
+    metalness: 0.04,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -2
+  });
+  return { canvas, ctx: canvas.getContext("2d"), tex, mat, name };
+}
+function paintFace(ud, mood) {
+  const g = ud.ctx;
+  const w = 256;
+  g.fillStyle = "#d9fff4";
+  g.fillRect(0, 0, w, w);
+  const glow = g.createRadialGradient(128, 108, 18, 128, 120, 140);
+  glow.addColorStop(0, "rgba(255,255,255,0.6)");
+  glow.addColorStop(1, "rgba(90,210,196,0.12)");
+  g.fillStyle = glow;
+  g.fillRect(0, 0, w, w);
+  g.fillStyle = "rgba(4, 28, 36, 0.08)";
+  for (let yy = 0; yy < w; yy += 8) g.fillRect(0, yy, w, 1);
+  g.textAlign = "center";
+  g.textBaseline = "middle";
+  g.fillStyle = "#062028";
+  g.font = "700 " + (ud.name.length > 4 ? 62 : 78) + "px Outfit, sans-serif";
+  g.fillText(ud.name, 128, mood === "win" ? 108 : 124);
+  if (mood === "win") {
+    g.font = "700 40px Outfit, sans-serif";
+    g.fillText("YES", 128, 176);
+    ud.screenMat.emissiveIntensity = 0.85 + Math.sin(clock * 12) * 0.28;
+  } else if (mood === "fail") {
+    g.font = "700 40px Outfit, sans-serif";
+    g.fillText("oof", 128, 188);
+    ud.screenMat.emissiveIntensity = 0.14;
+  } else {
+    const lit = 1 + Math.floor((Math.sin(clock * 3) + 1) * 1.1);
+    for (let i = 0; i < 3; i++) {
+      g.beginPath();
+      g.fillStyle = i < lit ? "rgba(6,32,40,0.92)" : "rgba(6,32,40,0.2)";
+      g.arc(100 + i * 28, 190, 6, 0, Math.PI * 2);
+      g.fill();
+    }
+    ud.screenMat.emissiveIntensity = mood === "heave" ? 0.7 : 0.48;
+  }
+  ud.tex.needsUpdate = true;
+}
+function makeActor(name, scene) {
+  const root = new THREE.Group();
+  const thighH = 1.05;
+  const shinH = 0.82;
+  const limbW = 0.72;
+  const torsoW = 2.05;
+  const torsoH = 2.2;
+  const torsoD = 1.28;
+  const headW = 3.05;
+  const headH = 2.28;
+  const headD = 2.05;
+  const hip = thighH + shinH;
+  const thighL = new THREE.Group();
+  const thighR = new THREE.Group();
+  thighL.position.set(-0.42, hip, 0);
+  thighR.position.set(0.42, hip, 0);
+  const thighMeshL = softBox(limbW, thighH, limbW, 0.42, legMat);
+  thighMeshL.position.y = -thighH / 2;
+  const thighMeshR = thighMeshL.clone();
+  thighL.add(thighMeshL);
+  thighR.add(thighMeshR);
+  const shinL = new THREE.Group();
+  const shinR = new THREE.Group();
+  shinL.position.y = -thighH;
+  shinR.position.y = -thighH;
+  const shinMeshL = softBox(limbW * 0.92, shinH, limbW * 0.92, 0.4, legMat);
+  shinMeshL.position.y = -shinH / 2;
+  const shinMeshR = shinMeshL.clone();
+  shinL.add(shinMeshL);
+  shinR.add(shinMeshR);
+  thighL.add(shinL);
+  thighR.add(shinR);
+  root.add(thighL, thighR);
+  const torso = new THREE.Group();
+  torso.position.set(0, hip, 0);
+  const torsoMesh = softBox(torsoW, torsoH, torsoD, 0.55, torsoMat);
+  torsoMesh.position.y = torsoH / 2;
+  torso.add(torsoMesh);
+  root.add(torso);
+  const head = new THREE.Group();
+  head.position.set(0, torsoH + 0.08, 0);
+  const headMesh = softBox(headW, headH, headD, 0.42, headMat, true);
+  headMesh.position.y = headH / 2;
+  head.add(headMesh);
+  torso.add(head);
+  const screen = makeScreen(name);
+  const screenW = headW * 0.9;
+  const screenH = headH * 0.78;
+  const face = new THREE.Group();
+  face.position.set(0, headH / 2, headD / 2 + 0.04);
+  const glass = softBox(screenW, screenH, 0.14, 0.18, glassMat, true);
+  glass.position.z = 0.07;
+  glass.castShadow = false;
+  const picture = roundedPlane(screenW * 0.86, screenH * 0.86, 0.14, screen.mat);
+  picture.position.z = 0.2;
+  face.add(glass, picture);
+  head.add(face);
+  const arm = (side) => {
+    const limb = new THREE.Group();
+    const w = 0.46;
+    const h = 1.28;
+    const mesh = softBox(w, h, 0.5, 0.22, torsoMat);
+    mesh.position.set(side * w * 0.28, -h * 0.5, 0);
+    limb.add(mesh);
+    limb.position.set(side * (torsoW * 0.42), torsoH * 0.74, 0.06);
+    torso.add(limb);
+    return limb;
+  };
+  const armL = arm(-1);
+  const armR = arm(1);
+  const tray = new THREE.Group();
+  const trayY = torsoH * 0.2;
+  const trayZ = torsoD * 0.5 + 0.92;
+  tray.position.set(0, trayY, trayZ);
+  torso.add(tray);
+  const trayW = 2.7;
+  const trayD = 1.35;
+  const board = 0.08;
+  const boardOf = (w, h, d, x, y, z) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), woodMat);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    tray.add(mesh);
+  };
+  boardOf(trayW, board, trayD, 0, board * 0.5, 0);
+  boardOf(board, 0.28, trayD, -trayW * 0.5, 0.18, 0);
+  boardOf(board, 0.28, trayD, trayW * 0.5, 0.18, 0);
+  boardOf(trayW, 0.34, board, 0, 0.2, -trayD * 0.5);
+  boardOf(trayW, 0.16, board, 0, 0.12, trayD * 0.5);
+  const stack = new THREE.Group();
+  stack.position.y = board + 0.02;
+  tray.add(stack);
+  const bricks = [];
+  for (let i = 0; i < 6; i++) {
+    const mesh = new THREE.Mesh(GEO.box, MAT.big);
+    mesh.visible = false;
+    mesh.castShadow = true;
+    stack.add(mesh);
+    bricks.push(mesh);
+  }
+  for (let i = 0; i < 5; i++) {
+    const mesh = new THREE.Mesh(GEO.box, MAT.small);
+    mesh.visible = false;
+    mesh.castShadow = true;
+    stack.add(mesh);
+    bricks.push(mesh);
+  }
+  root.scale.setScalar(BODY);
+  scene.add(root);
+  const ringMat = () => new THREE.MeshBasicMaterial({
+    color: 0xffe08a, transparent: true, opacity: 0, depthWrite: false
+  });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.045, 8, 32), ringMat());
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.03, 8, 28), ringMat());
+  ring2.material.color.set(0xfff6d2);
+  ring.rotation.x = -Math.PI / 2;
+  ring2.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.05;
+  ring2.position.y = 0.08;
+  scene.add(ring, ring2);
+  const sparks = [];
+  for (let i = 0; i < 18; i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffe08a : 0xff7a32 });
+    const mesh = new THREE.Mesh(i % 3 === 0 ? GEO.box : GEO.sphere, mat);
+    mesh.visible = false;
+    scene.add(mesh);
+    sparks.push(mesh);
+  }
+  const dustMat = new THREE.MeshBasicMaterial({
+    color: 0xd9d3c8, transparent: true, opacity: 0.4, depthWrite: false
+  });
+  const dust = [];
+  for (let i = 0; i < 8; i++) {
+    const mesh = new THREE.Mesh(GEO.sphere, dustMat.clone());
+    mesh.visible = false;
+    scene.add(mesh);
+    dust.push(mesh);
+  }
+  root.userData = {
+    name, ctx: screen.ctx, tex: screen.tex, screenMat: screen.mat,
+    thighL, thighR, shinL, shinR, torso, head, armL, armR, tray, stack, bricks,
+    ring, ring2, sparks, dust, hip, trayY, trayZ, spilled: false, dustOn: false, sparkT: 99, flinch: 0
+  };
+  return root;
+}
+function slotsFor(big, small) {
+  const nBig = Math.min(big, 6);
+  const nSmall = Math.min(small, 5);
+  const bh = 0.5;
+  const sh = 0.24;
+  const gap = 0.035;
+  const raw = nBig * (bh + gap) + nSmall * (sh + gap);
+  const fit = raw > 2.2 ? 2.2 / raw : 1;
+  const slots = [];
+  let y = 0;
+  for (let i = 0; i < nBig; i++) {
+    const h = bh * fit;
+    slots.push({ x: i % 2 ? 0.05 : -0.05, y: y + h / 2, z: 0, sx: 1.15, sy: h, sz: 0.76 });
+    y += h + gap;
+  }
+  for (let i = 0; i < nSmall; i++) {
+    const h = sh * fit;
+    slots.push({ x: i % 2 ? 0.28 : -0.28, y: y + h / 2, z: 0.04, sx: 0.5, sy: h, sz: 0.34 });
+    y += h + gap * 0.6;
+  }
+  return slots;
+}
+function parkBricks(ud) {
+  ud.spilled = false;
+  ud.dustOn = false;
+  for (const mesh of ud.bricks) {
+    mesh.visible = false;
+    mesh.userData.loose = false;
+    if (mesh.parent !== ud.stack) ud.stack.add(mesh);
+  }
+  for (const puff of ud.dust) puff.visible = false;
+}
+function hideFx(ud) {
+  ud.ring.material.opacity = 0;
+  ud.ring2.material.opacity = 0;
+  ud.sparkT = 99;
+  for (const spark of ud.sparks) spark.visible = false;
+}
+function restCrew(actor, time) {
+  const ud = actor.userData;
+  const bob = Math.sin(time * 1.6) * 0.035;
+  actor.position.set(0, 0, 0);
+  actor.rotation.set(0, 0, 0);
+  ud.thighL.rotation.set(-0.04 + bob, 0, 0);
+  ud.thighR.rotation.set(-0.04 - bob, 0, 0);
+  ud.shinL.rotation.set(0.05, 0, 0);
+  ud.shinR.rotation.set(0.05, 0, 0);
+  ud.torso.rotation.set(0.04, 0, 0);
+  ud.torso.position.set(0, ud.hip - ud.flinch * 0.16, 0);
+  ud.head.rotation.set(-0.04 + ud.flinch * 0.25, Math.sin(time * 0.55) * 0.06, 0);
+  ud.armL.rotation.set(-0.45, 0.08, -0.38);
+  ud.armR.rotation.set(-0.45, -0.08, 0.38);
+  ud.tray.rotation.set(0, 0, 0);
+  ud.tray.position.set(0, ud.trayY, ud.trayZ);
+}
+function armLoad(pane) {
+  const ud = pane.actor.userData;
+  const slots = slotsFor(pane.big, pane.small);
+  ud.spilled = false;
+  ud.dustOn = false;
+  ud.sparkT = 99;
+  ud.flinch = 0;
+  hideFx(ud);
+  ud.bricks.forEach((mesh, i) => {
+    const slot = slots[i];
+    mesh.userData.loose = false;
+    mesh.userData.landed = false;
+    mesh.userData.squash = 0;
+    mesh.userData.kick = 0;
+    if (mesh.parent !== ud.stack) ud.stack.add(mesh);
+    mesh.visible = !!slot;
+    mesh.rotation.set(0, 0, 0);
+    if (!slot) return;
+    mesh.userData.home = slot;
+    mesh.scale.set(slot.sx, slot.sy, slot.sz);
+    mesh.position.set(slot.x, slot.y + 6.2 + i * 0.38, slot.z);
+    mesh.userData.vy = -0.4;
+  });
+}
+function dropBricks(ud, dt) {
+  for (const mesh of ud.bricks) {
+    if (!mesh.visible || mesh.userData.loose) continue;
+    const home = mesh.userData.home;
+    if (mesh.userData.landed) {
+      mesh.userData.squash = Math.max(0, mesh.userData.squash - dt * 3.2);
+      mesh.userData.kick *= Math.max(0, 1 - dt * 7);
+      mesh.position.set(home.x + mesh.userData.kick, home.y, home.z);
+      mesh.scale.set(home.sx, home.sy * (1 - mesh.userData.squash * 0.4), home.sz);
+      continue;
+    }
+    mesh.userData.vy -= 32 * dt;
+    mesh.position.y += mesh.userData.vy * dt;
+    if (mesh.position.y > home.y) continue;
+    mesh.position.y = home.y;
+    if (Math.abs(mesh.userData.vy) > 2.4) {
+      mesh.userData.vy = -mesh.userData.vy * 0.38;
+      mesh.userData.squash = 0.45;
+      mesh.userData.kick = (Math.random() - 0.5) * 0.28;
+      ud.flinch = 1;
+    } else {
+      mesh.userData.landed = true;
+      mesh.userData.vy = 0;
+      mesh.userData.squash = 0.3;
+      ud.flinch = Math.max(ud.flinch, 0.65);
+    }
+  }
+  ud.flinch = Math.max(0, ud.flinch - dt * 3.4);
+}
+function seatBricks(ud) {
+  for (const mesh of ud.bricks) {
+    if (!mesh.visible || mesh.userData.loose || !mesh.userData.home) continue;
+    const home = mesh.userData.home;
+    mesh.position.set(home.x, home.y, home.z);
+    mesh.scale.set(home.sx, home.sy, home.sz);
+    mesh.rotation.set(0, 0, 0);
+  }
+}
+function releaseBrick(mesh, scene, i) {
+  const pos = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const sc = new THREE.Vector3();
+  mesh.getWorldPosition(pos);
+  mesh.getWorldQuaternion(quat);
+  mesh.getWorldScale(sc);
+  scene.add(mesh);
+  mesh.position.copy(pos);
+  mesh.position.y += 0.2;
+  mesh.quaternion.copy(quat);
+  mesh.scale.copy(sc);
+  mesh.userData.loose = true;
+  const fan = (i - 2.5) * 2.6;
+  mesh.userData.vx = fan;
+  mesh.userData.vy = 2.4 + (i % 3) * 0.45;
+  mesh.userData.vz = i % 2 ? 1.35 : -0.55;
+  mesh.userData.spin = (i % 2 ? 1 : -1) * (7 + i);
+}
+function spillBricks(pane) {
+  const ud = pane.actor.userData;
+  if (ud.spilled) return;
+  ud.spilled = true;
+  let n = 0;
+  for (const mesh of ud.bricks) {
+    if (!mesh.visible) continue;
+    releaseBrick(mesh, pane.scene, n);
+    n += 1;
+  }
+}
+function flyLoose(ud, dt) {
+  for (const mesh of ud.bricks) {
+    if (!mesh.userData.loose) continue;
+    mesh.userData.vy -= 12 * dt;
+    mesh.position.x += mesh.userData.vx * dt;
+    mesh.position.y += mesh.userData.vy * dt;
+    mesh.position.z += mesh.userData.vz * dt;
+    mesh.rotation.x += mesh.userData.spin * dt;
+    mesh.rotation.z += mesh.userData.spin * 0.65 * dt;
+    if (mesh.position.y > 0.06) continue;
+    const falling = mesh.userData.vy < -0.15;
+    mesh.position.y = 0.06;
+    if (!falling) {
+      mesh.userData.vy = 0;
+      continue;
+    }
+    mesh.userData.vy = Math.abs(mesh.userData.vy) * 0.38;
+    mesh.userData.vx *= 0.78;
+    mesh.userData.vz *= 0.78;
+    mesh.userData.spin *= 0.75;
+    if (mesh.userData.vy < 0.5) mesh.userData.vy = 0;
+  }
+}
+function heaveCrew(actor, k) {
+  const ud = actor.userData;
+  const s = smooth01(k);
+  actor.position.set(0, 0, 0);
+  actor.rotation.set(0, 0, 0);
+  ud.thighL.rotation.set(-0.04, 0, 0);
+  ud.thighR.rotation.set(-0.04, 0, 0);
+  ud.shinL.rotation.set(0.05, 0, 0);
+  ud.shinR.rotation.set(0.05, 0, 0);
+  ud.torso.position.set(0, ud.hip, 0);
+  ud.torso.rotation.set(0.04, 0, 0);
+  ud.head.rotation.set(-0.06 * s, 0, 0);
+  ud.armL.rotation.set(-0.45 - 1.15 * s, 0.08, -0.38);
+  ud.armR.rotation.set(-0.45 - 1.15 * s, -0.08, 0.38);
+  ud.tray.rotation.set(0, 0, 0);
+  ud.tray.position.set(0, ud.trayY + s * 0.85, ud.trayZ);
+}
+function burstSparks(ud) {
+  ud.sparks.forEach((spark, i) => {
+    const a = (i / ud.sparks.length) * Math.PI * 2;
+    const speed = 1.8 + (i % 4) * 0.55;
+    spark.visible = true;
+    spark.position.set(0, 1.35, 0.2);
+    spark.userData.vx = Math.cos(a) * speed;
+    spark.userData.vy = 2.4 + (i % 5) * 0.45;
+    spark.userData.vz = Math.sin(a) * speed;
+    spark.userData.life = 0;
+    spark.userData.base = 0.14 + (i % 3) * 0.06;
+    spark.scale.setScalar(spark.userData.base);
+  });
+}
+function flySparks(ud, dt) {
+  ud.sparkT += dt;
+  if (ud.sparkT > 1.15) {
+    ud.sparkT = 0;
+    burstSparks(ud);
+  }
+  const pulse = (clock % 1.05) / 1.05;
+  const pulse2 = ((clock + 0.4) % 1.05) / 1.05;
+  ud.ring.scale.set(1, 1, 1);
+  ud.ring2.scale.set(1, 1, 1);
+  ud.ring.scale.multiplyScalar(0.45 + pulse * 2.8);
+  ud.ring2.scale.multiplyScalar(0.25 + pulse2 * 2.1);
+  ud.ring.material.opacity = 0.35 + (1 - pulse) * 0.65;
+  ud.ring2.material.opacity = 0.25 + (1 - pulse2) * 0.6;
+  for (const spark of ud.sparks) {
+    if (!spark.visible) continue;
+    spark.userData.life += dt;
+    spark.userData.vy -= 4.2 * dt;
+    spark.position.x += spark.userData.vx * dt;
+    spark.position.y += spark.userData.vy * dt;
+    spark.position.z += spark.userData.vz * dt;
+    spark.rotation.y += dt * 6;
+    const fade = Math.max(0, 1 - spark.userData.life / 1.05);
+    spark.scale.setScalar(spark.userData.base * (0.35 + fade));
+    if (fade <= 0) spark.visible = false;
+  }
+}
+function winCrew(actor, time) {
+  const ud = actor.userData;
+  const hop = Math.pow(Math.abs(Math.sin(time * 5.4)), 0.85);
+  actor.position.set(0, hop * 0.28, 0);
+  actor.rotation.set(0, time * 1.6, 0);
+  ud.thighL.rotation.set(-0.04, 0, 0);
+  ud.thighR.rotation.set(-0.04, 0, 0);
+  ud.shinL.rotation.set(0.05, 0, 0);
+  ud.shinR.rotation.set(0.05, 0, 0);
+  ud.torso.position.set(0, ud.hip, 0);
+  ud.torso.rotation.set(-0.06, Math.sin(time * 3) * 0.08, 0);
+  ud.head.rotation.set(-0.35, Math.sin(time * 4) * 0.35, Math.sin(time * 8) * 0.18);
+  const pump = Math.sin(time * 12) * 0.35;
+  ud.armL.rotation.set(-0.15, 0.15, -2.45 + pump);
+  ud.armR.rotation.set(-0.15, -0.15, 2.45 - pump);
+  ud.tray.rotation.set(0, 0, 0);
+  ud.tray.position.set(0, ud.trayY + 0.85 + hop * 0.15, ud.trayZ);
+}
+function failCrew(actor, k) {
+  const ud = actor.userData;
+  const s = smooth01(k);
+  const flap = Math.sin(k * 18) * (1 - s) * 1.1;
+  const wobble = k > 0.55 ? Math.sin((k - 0.55) * 24) * (1 - k) * 0.28 : 0;
+  const mix = (a, b) => a + (b - a) * s;
+  actor.position.set(0, 0, 0);
+  actor.rotation.set(0, 0, mix(0, 0.22));
+  ud.thighL.rotation.set(mix(-0.04, -0.85), 0, 0);
+  ud.thighR.rotation.set(mix(-0.04, -0.7), 0, 0);
+  ud.shinL.rotation.set(mix(0.05, 1.35), 0, 0);
+  ud.shinR.rotation.set(mix(0.05, 1.15), 0, 0);
+  ud.torso.position.set(0, mix(ud.hip, ud.hip - 0.35), 0);
+  ud.torso.rotation.set(mix(0.04, 1.15) + wobble, 0, mix(0, 0.45));
+  ud.head.rotation.set(mix(-0.06, 0.85), 0, mix(0, -0.35) + flap * 0.2);
+  ud.armL.rotation.set(mix(-1.6, 0.4), 0.08, mix(-0.38, -1.2) + flap);
+  ud.armR.rotation.set(mix(-1.6, 0.55), -0.08, mix(0.38, 1.25) - flap);
+  ud.tray.rotation.set(mix(0, 1.35), 0, mix(0, 0.45));
+  ud.tray.position.set(0, mix(ud.trayY + 0.85, ud.trayY + 0.15), ud.trayZ);
+  if (s > 0.32) puffDust(ud);
+}
+function puffDust(ud) {
+  if (ud.dustOn) return;
+  ud.dustOn = true;
+  ud.dust.forEach((puff, i) => {
+    const a = (i / ud.dust.length) * Math.PI * 2;
+    puff.visible = true;
+    puff.position.set(Math.cos(a) * 0.2, 0.1, Math.sin(a) * 0.2);
+    puff.userData.vx = Math.cos(a) * 1.5;
+    puff.userData.vz = Math.sin(a) * 1.5;
+    puff.userData.life = 0;
+  });
+}
+function flyDust(ud, dt) {
+  for (const puff of ud.dust) {
+    if (!puff.visible) continue;
+    puff.userData.life += dt;
+    puff.position.x += puff.userData.vx * dt;
+    puff.position.z += puff.userData.vz * dt;
+    puff.position.y = 0.08 + puff.userData.life * 0.4;
+    const fade = Math.max(0, 1 - puff.userData.life / 0.75);
+    puff.material.opacity = fade * 0.5;
+    puff.scale.setScalar(0.14 + puff.userData.life * 0.7);
+    if (fade <= 0) puff.visible = false;
+  }
+}
+function stepCrew(pane, dt) {
+  const actor = pane.actor;
+  const ud = actor.userData;
+  const live = phase === "sim" || phase === "result";
+  if (!live) {
+    ud.flinch = Math.max(0, ud.flinch - dt * 3);
+    restCrew(actor, clock);
+    parkBricks(ud);
+    hideFx(ud);
+    paintFace(ud, "idle");
+    return;
+  }
+  const t = phase === "result" ? SIM_END : simT;
+  if (t < DROP_T) {
+    restCrew(actor, clock);
+    dropBricks(ud, dt);
+    paintFace(ud, "idle");
+    return;
+  }
+  if (t < HEAVE_T) {
+    heaveCrew(actor, (t - DROP_T) / (HEAVE_T - DROP_T));
+    seatBricks(ud);
+    paintFace(ud, "heave");
+    return;
+  }
+  const rt = t - HEAVE_T;
+  if (pane.holds) {
+    winCrew(actor, clock);
+    seatBricks(ud);
+    flySparks(ud, dt);
+    paintFace(ud, "win");
+    return;
+  }
+  failCrew(actor, phase === "result" ? 1 : Math.min(1, rt / 0.62));
+  if (rt > 0.42) spillBricks(pane);
+  else seatBricks(ud);
+  flyLoose(ud, dt);
+  flyDust(ud, dt);
+  paintFace(ud, "fail");
+}
+function windowsOn(parent, z, ys, xs) {
+  for (const y of ys) {
+    for (const x of xs) box(parent, MAT.window, 0.28, 0.34, 0.06, x, y, z);
+  }
+}
+function buildTerrain(group, kind, body) {
+  clearGroup(group);
+  const land = landMat(body.ground);
+  const rock = landMat(body.rock);
+  box(group, MAT.pad, 2.6, 0.14, 2.6, 0, -0.07, 0);
+  const shadow = new THREE.Mesh(GEO.circle, MAT.blob);
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 0.02;
+  group.add(shadow);
+  if (kind === "ground") {
+    box(group, land, 48, 0.3, 48, 0, -0.3, 0);
+    box(group, rock, 0.7, 0.28, 0.5, -3.4, 0.02, -1.6);
+    box(group, rock, 0.45, 0.2, 0.4, 3.1, 0.0, 1.8);
+  } else if (kind === "slope") {
+    box(group, land, 40, 0.4, 40, 0, -1.5, 0);
+    const wedge = box(group, land, 14, 0.5, 9, 0, -0.2, 0);
+    wedge.rotation.x = -0.32;
+  } else if (kind === "hill") {
+    box(group, land, 40, 0.4, 40, 0, -2.4, 0);
+    const hill = new THREE.Mesh(GEO.sphere, land);
+    hill.scale.set(6.5, 2.2, 6.5);
+    hill.position.y = -2.15;
+    hill.castShadow = true;
+    hill.receiveShadow = true;
+    group.add(hill);
+  } else if (kind === "cliff") {
+    box(group, land, 12, 3.2, 7, 0, -1.7, -0.4);
+    box(group, rock, 8, 4.2, 12, -6.2, -2.3, 0.4);
+  } else if (kind === "mountain") {
+    const peak = new THREE.Mesh(GEO.cone, rock);
+    peak.scale.set(6.5, 5, 6.5);
+    peak.position.y = -2.7;
+    peak.castShadow = true;
+    peak.receiveShadow = true;
+    group.add(peak);
+    box(group, land, 28, 0.4, 28, 0, -5.4, 0);
+  } else if (kind === "building") {
+    box(group, rock, 3.4, 6, 3.4, 0, -3.1, 0);
+    windowsOn(group, 1.74, [-1.5, -2.7, -3.9], [-0.7, 0, 0.7]);
+  } else if (kind === "rooftop") {
+    box(group, rock, 6.4, 3.1, 4.8, 0, -1.65, 0);
+    box(group, MAT.steel, 6.6, 0.28, 0.12, 0, 0.16, 2.3);
+    box(group, MAT.steel, 6.6, 0.28, 0.12, 0, 0.16, -2.3);
+    windowsOn(group, 2.44, [-1.2, -2.2], [-1.6, 0, 1.6]);
+  } else if (kind === "tower") {
+    box(group, rock, 1.7, 8, 1.7, 0, -4.1, 0);
+    box(group, MAT.steel, 2.8, 0.1, 2.8, 0, -0.16, 0);
+    windowsOn(group, 0.9, [-1.6, -3.2, -4.8], [0]);
+  } else if (kind === "lift") {
+    for (const [x, z] of [[-1.15, -1.15], [1.15, -1.15], [-1.15, 1.15], [1.15, 1.15]]) {
+      box(group, MAT.steel, 0.1, 7, 0.1, x, -3.5, z);
+    }
+    box(group, MAT.steel, 2.5, 0.08, 0.08, 0, -0.35, -1.15);
+    box(group, MAT.steel, 2.5, 0.08, 0.08, 0, -0.35, 1.15);
+  } else {
+    for (const [x, z] of [[-1.35, -1.35], [1.35, -1.35], [-1.35, 1.35], [1.35, 1.35]]) {
+      box(group, MAT.steel, 0.1, 6.5, 0.1, x, -3.3, z);
+    }
+    box(group, MAT.steel, 2.8, 0.08, 0.08, 0, -0.45, -1.35);
+    box(group, MAT.steel, 2.8, 0.08, 0.08, 0, -0.45, 1.35);
+    box(group, MAT.steel, 0.08, 0.08, 2.8, -1.35, -0.45, 0);
+    box(group, MAT.steel, 0.08, 0.08, 2.8, 1.35, -0.45, 0);
+  }
+}
+function frameCamera(cam, kind) {
+  const high = kind === "tower" || kind === "frame" || kind === "lift" || kind === "building" || kind === "rooftop";
+  cam.position.set(high ? 5.8 : 4.8, high ? 2.55 : 2.25, high ? 8.2 : 7.1);
+  cam.lookAt(0, 1.15, 0);
+  cam.fov = 38;
+  cam.updateProjectionMatrix();
+}
+function addLights(scene) {
+  const hemi = new THREE.HemisphereLight(0xd5e2f4, 0x6a6248, 0.9);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xfff3e2, 2.5);
+  sun.position.set(7, 12, 5);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 40;
+  sun.shadow.camera.left = -8;
+  sun.shadow.camera.right = 8;
+  sun.shadow.camera.top = 8;
+  sun.shadow.camera.bottom = -8;
+  sun.shadow.bias = -0.0004;
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xc5d4ee, 0.55);
+  fill.position.set(-6, 4, -4);
+  scene.add(fill);
+  return { hemi };
+}
+function createPane(name) {
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(38, 1, 0.08, 180);
+  const { hemi } = addLights(scene);
+  const skyMat = makeSkyMaterial();
+  const sky = new THREE.Mesh(GEO.sky, skyMat);
+  sky.scale.setScalar(90);
+  sky.frustumCulled = false;
+  const rig = new THREE.Group();
+  rig.add(sky);
+  const sunBall = new THREE.Mesh(GEO.sphere, MAT.sun);
+  sunBall.scale.setScalar(5);
+  sunBall.position.set(48, 34, 16);
+  rig.add(sunBall);
+  scene.add(rig);
+  const terrain = new THREE.Group();
+  scene.add(terrain);
+  const actor = makeActor(name, scene);
+  frameCamera(cam, "ground");
+  return { scene, cam, hemi, skyMat, rig, sunBall, terrain, actor, key: "", big: 0, small: 0, holds: true, cap: null };
+}
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+renderer.setClearColor(0x07080c, 1);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.id = "view";
+document.body.prepend(renderer.domElement);
+const panes = [createPane(CREW[0]), createPane(CREW[1])];
+
+let index = 0;
+let phase = "intro";
+let funds = 2000;
+let firstCall = true;
+let firstRight = 0;
+let pick = null;
+let tuneA = 0;
+let tuneB = 0;
+let simT = 0;
+let lastOutcome = null;
+let resultShown = false;
+let quizI = 0;
+let quizLocked = false;
+let checksRight = 0;
+const said = [];
+let quipTimer = 0;
+let clock = 0;
+let lastNow = performance.now();
+let audioCtx = null;
+
+function altitudes() {
+  const trial = TRIALS[index];
+  if (trial.mode === "tune") return [tuneA, tuneB];
+  return [trial.ha, trial.hb];
+}
+function applyPane(i) {
+  const trial = TRIALS[index];
+  const id = i === 0 ? trial.a : trial.b;
+  const km = altitudes()[i];
+  const body = BODIES[id];
+  const kind = placeKind(km);
+  const pane = panes[i];
+  const key = id + ":" + kind;
+  pane.skyMat.uniforms.uTop.value.set(body.skyTop);
+  pane.skyMat.uniforms.uHorizon.value.set(body.skyHorizon);
+  pane.skyMat.uniforms.uStars.value = body.stars;
+  pane.skyMat.uniforms.uHaze.value = body.haze;
+  pane.skyMat.uniforms.uLift.value = Math.min(1, km / 10000);
+  pane.hemi.color.set(body.skyTop);
+  pane.hemi.groundColor.set(body.ground);
+  pane.sunBall.scale.setScalar(id === "mercury" ? 9 : 5);
+  if (pane.key !== key) {
+    pane.key = key;
+    buildTerrain(pane.terrain, kind, body);
+    frameCamera(pane.cam, kind);
+  }
+  const lab = i === 0 ? labA : labB;
+  lab.querySelector(".who").textContent = CREW[i];
+  lab.querySelector(".body").textContent = body.name;
+  lab.querySelector(".alt").textContent = altLine(km);
+  lab.classList.toggle("ahead", phase === "result" && lastOutcome && lastOutcome.who === (i === 0 ? "a" : "b"));
+}
+function grant(delta) {
+  const next = Math.max(0, funds + delta);
+  const applied = next - funds;
+  funds = next;
+  yuanEl.textContent = "¥" + funds.toLocaleString("en-US");
+  return applied;
+}
+function moneyLine(ok, applied) {
+  if (ok) return "+¥" + applied.toLocaleString("en-US") + ".";
+  if (applied === 0) return "Grant is empty.";
+  return "−¥" + Math.abs(applied).toLocaleString("en-US") + ".";
+}
+function hideQuip() {
+  clearTimeout(quipTimer);
+  quipEl.hidden = true;
+  document.body.classList.remove("quip");
+}
+function buildPicks() {
+  guessEl.replaceChildren();
+  const trial = TRIALS[index];
+  if (trial.mode !== "call") return;
+  for (const side of ["a", "b"]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "pick";
+    button.textContent = CREW[side === "a" ? 0 : 1];
+    button.addEventListener("click", () => {
+      if (phase !== "predict") return;
+      pick = side;
+      for (const el of guessEl.children) el.classList.toggle("on", el === button);
+      confirmBtn.disabled = false;
+    });
+    guessEl.append(button);
+  }
+}
+function paint() {
+  const trial = TRIALS[index];
+  trialTag.hidden = phase === "intro" || phase === "quiz" || phase === "end";
+  trialTag.textContent = "Trial " + (index + 1) + " of 10";
+  yuanEl.textContent = "¥" + funds.toLocaleString("en-US");
+  dockEl.hidden = phase === "intro" || phase === "quiz" || phase === "end";
+  const showScore = phase === "result";
+  scoreA.hidden = !showScore;
+  scoreB.hidden = !showScore;
+  if (phase === "result" && lastOutcome) {
+    scoreA.textContent = (panes[0].holds ? "Holds it · " : "Drops it · ") + formatLift(panes[0].cap);
+    scoreB.textContent = (panes[1].holds ? "Holds it · " : "Drops it · ") + formatLift(panes[1].cap);
+  }
+  ringA.classList.toggle("on", phase === "result" && lastOutcome && lastOutcome.who === "a");
+  ringB.classList.toggle("on", phase === "result" && lastOutcome && lastOutcome.who === "b");
+  guessEl.hidden = !(phase === "predict" && trial.mode === "call");
+  tuneEl.hidden = !(phase === "predict" && trial.mode === "tune");
+  confirmBtn.hidden = phase !== "predict";
+  nextBtn.hidden = phase !== "result";
+  sliderA.disabled = phase !== "predict";
+  sliderB.disabled = phase !== "predict";
+  if (trial.mode === "tune") {
+    nameA.textContent = CREW[0] + " · " + BODIES[trial.a].name;
+    nameB.textContent = CREW[1] + " · " + BODIES[trial.b].name;
+    valA.textContent = altLine(tuneA);
+    valB.textContent = altLine(tuneB);
+  }
+  if (phase === "predict") {
+    promptEl.textContent = trial.prompt;
+    noteEl.textContent = "";
+    confirmBtn.disabled = trial.mode === "call" && !pick;
+  } else if (phase === "count" || phase === "sim") {
+    promptEl.textContent = "Watch.";
+    noteEl.textContent = "";
+  } else if (phase === "result") {
+    promptEl.textContent = "Who lifted more?";
+    if (trial.mode === "tune" && lastOutcome && !lastOutcome.ok) nextBtn.textContent = "Try again";
+    else if (index === TRIALS.length - 1) nextBtn.textContent = "Write the report";
+    else nextBtn.textContent = "Next";
+  }
+  if (phase !== "result") hideQuip();
+  applyPane(0);
+  applyPane(1);
+}
+function calm(pane) {
+  const ud = pane.actor.userData;
+  ud.flinch = 0;
+  restCrew(pane.actor, 0);
+  parkBricks(ud);
+  hideFx(ud);
+  paintFace(ud, "idle");
+}
+function openTrial(i) {
+  index = i;
+  phase = "predict";
+  firstCall = true;
+  resultShown = false;
+  lastOutcome = null;
+  pick = null;
+  simT = 0;
+  hideQuip();
+  const trial = TRIALS[i];
+  if (trial.mode === "tune") {
+    tuneA = 0;
+    tuneB = 0;
+    sliderA.value = "0";
+    sliderB.value = "0";
+  }
+  panes[0].big = 0;
+  panes[1].big = 0;
+  panes[0].small = 0;
+  panes[1].small = 0;
+  panes[0].holds = true;
+  panes[1].holds = true;
+  calm(panes[0]);
+  calm(panes[1]);
+  panes[0].key = "";
+  panes[1].key = "";
+  buildPicks();
+  paint();
+}
+function retryTrial() {
+  phase = "predict";
+  resultShown = false;
+  lastOutcome = null;
+  pick = null;
+  simT = 0;
+  hideQuip();
+  panes[0].big = 0;
+  panes[1].big = 0;
+  panes[0].small = 0;
+  panes[1].small = 0;
+  panes[0].holds = true;
+  panes[1].holds = true;
+  calm(panes[0]);
+  calm(panes[1]);
+  buildPicks();
+  paint();
+}
+function judge() {
+  const trial = TRIALS[index];
+  const [ha, hb] = altitudes();
+  const A = liftAt(BODIES[trial.a], ha);
+  const B = liftAt(BODIES[trial.b], hb);
+  const who = winner(A, B);
+  const ok = trial.mode === "call" ? pick === who : who === trial.want;
+  return { A, B, who, ok, ha, hb, countIt: false };
+}
+function showResult() {
+  if (resultShown) return;
+  resultShown = true;
+  phase = "result";
+  const trial = TRIALS[index];
+  const outcome = lastOutcome;
+  if (outcome.countIt) {
+    if (outcome.ok) firstRight += 1;
+    outcome.countIt = false;
+  }
+  const applied = grant(outcome.ok ? PAY_RIGHT : -PAY_WRONG);
+  const pay = moneyLine(outcome.ok, applied);
+  const tie = outcome.who === "tie" ? "Same stack. " : "";
+  paint();
+  if (trial.mode === "tune") {
+    noteEl.textContent = (outcome.ok ? "Yes. " : "No. ") + pay + " " + (outcome.ok ? trial.win : trial.lose);
+  } else {
+    noteEl.textContent = (outcome.ok ? "Yes. " : "No. ") + pay + " " + tie + trial.lesson;
+  }
+  if (trial.quip) {
+    quipTimer = setTimeout(() => {
+      if (phase !== "result") return;
+      quipEl.textContent = trial.quip;
+      quipEl.hidden = false;
+      document.body.classList.add("quip");
+    }, 420);
+  }
+  beep(outcome.ok ? 660 : 196, outcome.ok ? 0.12 : 0.22);
+}
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+async function runCount() {
+  countEl.hidden = false;
+  for (const word of ["3", "2", "1"]) {
+    countEl.textContent = word;
+    beep(word === "3" ? 494 : word === "2" ? 587 : 698, 0.16);
+    await wait(720);
+    if (phase !== "count") {
+      countEl.hidden = true;
+      return;
+    }
+  }
+  countEl.hidden = true;
+  const load = lastOutcome.A.units >= lastOutcome.B.units ? lastOutcome.A : lastOutcome.B;
+  for (let i = 0; i < 2; i++) {
+    const pane = panes[i];
+    pane.big = load.big;
+    pane.small = load.small;
+    pane.cap = i === 0 ? lastOutcome.A : lastOutcome.B;
+    pane.holds = lastOutcome.who === "tie" || lastOutcome.who === (i === 0 ? "a" : "b");
+    armLoad(pane);
+  }
+  simT = 0;
+  phase = "sim";
+  paint();
+  beep(330, 0.18, "triangle");
+}
+function onConfirm() {
+  if (phase !== "predict") return;
+  const trial = TRIALS[index];
+  if (trial.mode === "call" && !pick) return;
+  lastOutcome = judge();
+  lastOutcome.countIt = firstCall;
+  firstCall = false;
+  phase = "count";
+  paint();
+  runCount();
+}
+function onNext() {
+  if (phase !== "result") return;
+  const trial = TRIALS[index];
+  if (trial.mode === "tune" && lastOutcome && !lastOutcome.ok) {
+    retryTrial();
+    return;
+  }
+  if (index >= TRIALS.length - 1) {
+    openQuiz();
+    return;
+  }
+  openTrial(index + 1);
+}
+function showCheck() {
+  const item = CHECKS[quizI];
+  quizKicker.textContent = "Finding " + (quizI + 1) + " of 4";
+  quizQ.textContent = item.q;
+  quizWhy.textContent = "";
+  quizNext.hidden = true;
+  quizLocked = false;
+  sayTrue.classList.remove("on", "bad");
+  sayFalse.classList.remove("on", "bad");
+  sayTrue.disabled = false;
+  sayFalse.disabled = false;
+}
+function answer(value) {
+  if (phase !== "quiz" || quizLocked) return;
+  quizLocked = true;
+  const item = CHECKS[quizI];
+  said[quizI] = value;
+  if (value === item.a) checksRight += 1;
+  quizWhy.textContent = (value === item.a ? "Yes. " : "Not quite. ") + item.why;
+  if (value !== item.a) (value ? sayTrue : sayFalse).classList.add("bad");
+  (item.a ? sayTrue : sayFalse).classList.add("on");
+  sayTrue.disabled = true;
+  sayFalse.disabled = true;
+  quizNext.hidden = false;
+  quizNext.textContent = quizI === CHECKS.length - 1 ? "Ending" : "Next";
+}
+function openQuiz() {
+  phase = "quiz";
+  quizI = 0;
+  checksRight = 0;
+  said.length = 0;
+  quizEl.hidden = false;
+  quizBrief.hidden = false;
+  quizAsk.hidden = true;
+  hideQuip();
+  paint();
+}
+function endingKey() {
+  if (firstRight >= 7 && checksRight >= 3) return "commendation";
+  if (firstRight >= 7) return "instinct";
+  if (checksRight >= 3) return "theory";
+  return "training";
+}
+function openEnding() {
+  phase = "end";
+  quizEl.hidden = true;
+  endingEl.hidden = false;
+  const ending = ENDINGS[endingKey()];
+  endImg.src = ending.img;
+  endImg.alt = ending.alt;
+  endKicker.textContent = "Report";
+  endTitle.textContent = ending.title;
+  endText.textContent = ending.text;
+  endScore.textContent = "Calls " + firstRight + " of 10. Checks " + checksRight + " of 4. ¥" + funds.toLocaleString("en-US") + ".";
+  endChecks.replaceChildren();
+  CHECKS.forEach((item, i) => {
+    const li = document.createElement("li");
+    li.textContent = (i + 1) + ". " + (said[i] === item.a ? "Right" : "Answer: true");
+    endChecks.append(li);
+  });
+  paint();
+}
+function beep(freq, dur, type) {
+  const ctx = audioCtx || (audioCtx = new AudioContext());
+  if (ctx.state === "suspended") ctx.resume();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type || "sine";
+  osc.frequency.value = freq;
+  const t = ctx.currentTime;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.05, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.02);
+}
+function selfCheck() {
+  const bad = [];
+  const earth = liftAt(BODIES.earth, 0);
+  if (earth.big !== 1 || earth.small !== 0) bad.push("Earth ground is not 1 big brick");
+  const moon = liftAt(BODIES.moon, 0);
+  if (moon.big !== 6 || moon.small !== 0) bad.push("Moon ground is not 6 big bricks");
+  TRIALS.forEach((trial, i) => {
+    if (!trial.expect) return;
+    const who = winner(liftAt(BODIES[trial.a], trial.ha), liftAt(BODIES[trial.b], trial.hb));
+    if (who !== trial.expect) bad.push("Trial " + (i + 1) + " came out " + who);
+  });
+  if (!bad.length) return;
+  errEl.hidden = false;
+  errEl.textContent = bad.join(". ");
+}
+function viewRects() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const stacked = w < 900;
+  document.body.classList.toggle("stacked", stacked);
+  return stacked
+    ? [{ x: 0, y: h / 2, w, h: h / 2 }, { x: 0, y: 0, w, h: h / 2 }]
+    : [{ x: 0, y: 0, w: w / 2, h }, { x: w / 2, y: 0, w: w / 2, h }];
+}
+function size() {
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastNow) / 1000);
+  lastNow = now;
+  clock += dt;
+  if (phase === "sim") {
+    simT += dt;
+    if (simT >= SIM_END) {
+      simT = SIM_END;
+      showResult();
+    }
+  }
+  const rects = viewRects();
+  renderer.setScissorTest(false);
+  renderer.clear(true, true, true);
+  renderer.setScissorTest(true);
+  for (let i = 0; i < 2; i++) {
+    const pane = panes[i];
+    const rect = rects[i];
+    renderer.setViewport(rect.x, rect.y, rect.w, rect.h);
+    renderer.setScissor(rect.x, rect.y, rect.w, rect.h);
+    pane.cam.aspect = rect.w / rect.h;
+    pane.cam.updateProjectionMatrix();
+    pane.rig.position.copy(pane.cam.position);
+    pane.skyMat.uniforms.uTime.value = clock;
+    stepCrew(pane, dt);
+    renderer.render(pane.scene, pane.cam);
+  }
+}
+
+sliderA.addEventListener("input", () => {
+  if (phase !== "predict") return;
+  tuneA = Number(sliderA.value);
+  valA.textContent = altLine(tuneA);
+  applyPane(0);
+});
+sliderB.addEventListener("input", () => {
+  if (phase !== "predict") return;
+  tuneB = Number(sliderB.value);
+  valB.textContent = altLine(tuneB);
+  applyPane(1);
+});
+confirmBtn.addEventListener("click", onConfirm);
+nextBtn.addEventListener("click", onNext);
+beginBtn.addEventListener("click", () => {
+  if (phase !== "intro") return;
+  introEl.hidden = true;
+  beep(523, 0.08);
+  openTrial(0);
+});
+quizOpen.addEventListener("click", () => {
+  if (phase !== "quiz") return;
+  quizBrief.hidden = true;
+  quizAsk.hidden = false;
+  showCheck();
+});
+sayTrue.addEventListener("click", () => answer(true));
+sayFalse.addEventListener("click", () => answer(false));
+quizNext.addEventListener("click", () => {
+  if (quizI >= CHECKS.length - 1) openEnding();
+  else {
+    quizI += 1;
+    showCheck();
+  }
+});
+againBtn.addEventListener("click", () => location.reload());
+window.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") return;
+  if (phase === "intro") beginBtn.click();
+  else if (phase === "predict") onConfirm();
+  else if (phase === "result") onNext();
+});
+window.addEventListener("resize", size);
+
+function boot() {
+  size();
+  selfCheck();
+  applyPane(0);
+  applyPane(1);
+  paint();
+  beginBtn.disabled = false;
+  beginBtn.textContent = "Start";
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      for (const pane of panes) paintFace(pane.actor.userData, phase === "sim" || phase === "result" ? "heave" : "idle");
+    });
+  }
+  requestAnimationFrame(() => { veilEl.style.opacity = "0"; });
+  renderer.setAnimationLoop(frame);
+  const params = new URLSearchParams(location.search);
+  if (params.get("debug") === "1") {
+    globalThis.__brick = {
+      openTrial,
+      retryTrial,
+      liftAt,
+      winner,
+      BODIES,
+      TRIALS,
+      setTune(a, b) {
+        tuneA = a;
+        tuneB = b;
+        sliderA.value = String(a);
+        sliderB.value = String(b);
+        applyPane(0);
+        applyPane(1);
+        paint();
+      },
+      get phase() { return phase; },
+      get index() { return index; },
+      get funds() { return funds; },
+      get firstRight() { return firstRight; },
+      get lastOutcome() { return lastOutcome; }
+    };
+    const n = Number(params.get("trial"));
+    if (n >= 1 && n <= 10) {
+      introEl.hidden = true;
+      openTrial(n - 1);
+    }
+  }
+}
+boot();
+</script>
+</body>
+</html>
