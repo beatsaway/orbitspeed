@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rover missions</title>
+<style>
+  :root { --ink:#172033; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#1a0e0c; color:#f4efe6; font-family:"Segoe UI", sans-serif; }
+  canvas { display:block; position:fixed; inset:0; z-index:0; }
+  #vignette { position:fixed; inset:0; z-index:1; pointer-events:none; background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.45) 100%); }
+  #nextReady.hide { display:none; }
+  #nextReady {
+    position:fixed; z-index:10; left:50%; bottom:22px; transform:translateX(-50%);
+    padding:12px 22px; font-size:1.05rem; box-shadow:0 8px 20px rgba(0,0,0,.35);
+  }
+  #detailBtn {
+    position:fixed; z-index:5; top:14px; left:50%; transform:translateX(-50%);
+    padding:6px 14px; border:1px solid #2a6a88; border-radius:999px;
+    background:rgba(8,9,12,.9); color:#f4efe6; font:inherit; font-size:.85rem; cursor:pointer;
+  }
+  #detailBtn.hide { display:none; }
+  #tipBox.hide { display:none; }
+  #tipBox {
+    position:fixed; z-index:6; width:min(280px, 92vw); pointer-events:none;
+    background:#fff; color:var(--ink); border-radius:14px; padding:10px 12px;
+    box-shadow:0 8px 20px rgba(0,0,0,.28); font-size:.95rem; font-weight:600; line-height:1.35;
+  }
+  #tipBox b { display:block; margin-bottom:3px; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:#8a4b2a; }
+  #panel { position:fixed; z-index:4; top:14px; left:14px; width:min(360px, 94vw); max-height:calc(100vh - 28px); overflow:auto; background:rgba(16,36,63,.9); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:14px 14px 12px; }
+  .kicker { margin:0; letter-spacing:.12em; text-transform:uppercase; font-size:.72rem; color:#e7b197; font-weight:700; }
+  h1 { margin:4px 0 6px; font-size:1.45rem; }
+  .hint, .rule { margin:0 0 8px; font-size:.98rem; line-height:1.35; }
+  .rule { color:#f0c14a; font-weight:700; }
+  .slide { margin:8px 0; }
+  .slide label { display:flex; justify-content:space-between; gap:8px; font-size:.98rem; font-weight:700; }
+  input[type=range] { width:100%; margin-top:4px; accent-color:#f0c14a; }
+  button { border:0; border-radius:999px; padding:10px 16px; font:700 1rem "Segoe UI", sans-serif; cursor:pointer; background:#fff; color:var(--ink); }
+  button:disabled { opacity:.45; cursor:default; }
+  #hud { position:fixed; z-index:4; top:14px; right:16px; width:min(280px, 46vw); background:rgba(16,36,63,.9); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:12px; }
+  .row { display:flex; justify-content:space-between; gap:10px; margin:3px 0; font-size:.92rem; }
+  .row span { color:#e7d7c8; }
+  .row b { font-variant-numeric:tabular-nums; }
+  .row b.ok { color:#86efac; }
+  .row b.bad { color:#ff8b8b; }
+  #meters { margin:8px 0 0; font-size:.95rem; }
+  #live { margin-top:8px; }
+  #live.hide { display:none; }
+  .bar { display:grid; grid-template-columns:92px 1fr 74px; gap:6px; align-items:center; font-size:.82rem; margin:4px 0; }
+  #lifeNote { margin:2px 0 0; font-size:.75rem; line-height:1.3; color:#e7d7c8; }
+  .track { height:10px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
+  .fill { height:100%; width:0; border-radius:99px; }
+  .fill.bat { background:#7dcea0; }
+  .fill.dura { background:#e0b07a; }
+  .fill.extra { background:#8eb4d4; }
+  #b3row.hide { display:none; }
+  #clock { margin:6px 0 0; font-size:1rem; font-weight:700; }
+  #shade, #report, #ending, #intro { position:fixed; inset:0; z-index:8; background:rgba(7,17,28,.72); display:flex; align-items:center; justify-content:center; }
+  #ending, #intro { z-index:9; }
+  #shade.hide, #report.hide, #ending.hide, #intro.hide { display:none; }
+  .popup { background:#071018; border:1px solid #2a6a88; border-radius:16px; padding:16px; width:min(480px, 92vw); max-height:min(88vh, 760px); overflow:auto; line-height:1.45; }
+  .popup h2 { margin:0 0 8px; font-size:1.35rem; }
+  .popup p { margin:0 0 8px; }
+  .popup button { width:100%; margin-top:8px; }
+  .popup img.art { width:100%; height:150px; object-fit:cover; border-radius:12px; margin:0 0 10px; display:block; background:#1a100c; }
+  .meter-top { display:flex; justify-content:space-between; gap:8px; font-size:.88rem; }
+  .meter-top b { font-variant-numeric:tabular-nums; }
+  .scale { position:relative; height:12px; background:rgba(0,0,0,.4); border-radius:99px; margin:4px 0 2px; }
+  .scale i { display:block; height:100%; width:0; border-radius:99px; background:#ff8b8b; }
+  .scale i.met { background:#7dcea0; }
+  .scale i.high { background:#f0c14a; }
+  .scale em { position:absolute; left:50%; top:-3px; bottom:-3px; width:2px; background:#fff; }
+  .ladder { display:flex; gap:4px; margin:2px 0 10px; }
+  .ladder span { flex:1; text-align:center; font-size:.68rem; color:#8ea0b0; border-top:3px solid #243444; padding-top:3px; }
+  .ladder span.on { color:#f4efe6; border-top-color:#f0c14a; font-weight:700; }
+  #mood { position:fixed; z-index:5; right:16px; bottom:14px; display:flex; align-items:flex-end; gap:8px; pointer-events:none; }
+  #moodSay { margin:0 0 18px; max-width:240px; background:#fff; color:var(--ink); border-radius:16px 16px 4px 16px; padding:10px 12px; font-size:1rem; font-weight:700; line-height:1.3; }
+  #moodFace { font-size:84px; line-height:1; filter:drop-shadow(0 8px 12px rgba(0,0,0,.35)); }
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+<button type="button" id="detailBtn">Mission 1</button>
+<div id="panel">
+  <p class="kicker" id="kicker">Mission 1 of 7</p>
+  <h1 id="title">Sun day</h1>
+  <p class="rule">Score = Mars days × km</p>
+  <p class="rule" id="need"></p>
+  <div id="sliders"></div>
+  <p class="hint" id="hint"></p>
+  <button id="go" type="button">Launch</button>
+</div>
+<button type="button" id="nextReady" class="hide">Next mission</button>
+<div id="hud">
+  <div class="row"><span>Grant</span><b id="grant"></b></div>
+  <div class="row"><span>Savings</span><b id="savings"></b></div>
+  <div class="row"><span>Debt</span><b id="debt"></b></div>
+  <div class="row"><span>Rover cost</span><b id="cost"></b></div>
+  <div id="live" class="hide">
+    <div class="bar"><span id="b1n">Battery</span><div class="track"><div class="fill bat" id="b1"></div></div><span id="b1v">Full</span></div>
+    <p id="lifeNote">How long it can keep working.</p>
+    <div class="bar"><span id="b2n">Durability</span><div class="track"><div class="fill dura" id="b2"></div></div><span id="b2v">Tough</span></div>
+    <p id="duraNote">How much dust and sand it can still take.</p>
+    <div class="bar hide" id="b3row"><span id="b3n">Warmth</span><div class="track"><div class="fill extra" id="b3"></div></div><span id="b3v">0</span></div>
+    <p id="clock">Mars day 0</p>
+    <p id="meters">0 km</p>
+  </div>
+</div>
+<div id="mood">
+  <p id="moodSay">The rover is waiting for a plan.</p>
+  <div id="moodFace">🙂</div>
+</div>
+<div id="tipBox" class="hide"><b id="tipLabel">Tip</b><span id="tipText"></span></div>
+<div id="intro" class="hide">
+  <div class="popup">
+    <p class="kicker">Chinese space agency</p>
+    <h2>Your post</h2>
+    <img id="introArt" class="art" src="art/intro-lab.webp" alt="A scientist at a design desk, with Mars beyond the window">
+    <div id="introParas"></div>
+    <button type="button" id="introOk">Begin</button>
+  </div>
+</div>
+<div id="shade" class="hide">
+  <div class="popup">
+    <p class="kicker" id="briefKicker">Mission</p>
+    <h2 id="briefTitle"></h2>
+    <img id="briefArt" class="art" alt="">
+    <div id="briefParas"></div>
+    <button type="button" id="briefOk">Ready</button>
+  </div>
+</div>
+<div id="report" class="hide"></div>
+<div id="ending" class="hide"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+function pack(sols, km, cost, line, dust0, dust1, opt) {
+  opt = opt || {};
+  sols = Math.max(0, Math.round(sols));
+  km = Math.max(0, Math.round(km * 10) / 10);
+  const unit = opt.unit || "day";
+  return {
+    sols, km, score: Math.round(sols * km), cost: Math.round(cost * 10) / 10, line, unit,
+    span: unit === "year" ? Math.max(0, Math.round(sols / 300)) : sols,
+    dust0, dust1,
+    bat0: opt.bat0 == null ? 100 : opt.bat0,
+    bat1: opt.bat1 == null ? 40 : opt.bat1,
+    lifeName: opt.lifeName || "Battery",
+    lifeNote: opt.lifeNote || "How long the battery can keep working.",
+    meter: opt.meter || "Dust",
+    m0: opt.m0 == null ? Math.round(dust0 * 100) : opt.m0,
+    m1: opt.m1 == null ? Math.round(dust1 * 100) : opt.m1
+  };
+}
+function lifeWord(n) {
+  if (n >= 78) return "Full";
+  if (n >= 52) return "Good";
+  if (n >= 30) return "Low";
+  return "Gone";
+}
+function duraWord(n) {
+  if (n >= 75) return "Tough";
+  if (n >= 50) return "Scratched";
+  if (n >= 28) return "Worn";
+  return "Breaking";
+}
+const PACK_NOTE = "How long the nuclear pack can keep working.";
+function mSun(panels, bat, kmDay) {
+  const mass = 6 + panels * 1.5 + bat * 1.1;
+  const power = 7 + panels * 5;
+  const use = kmDay * 0.9 * (mass / 9);
+  let sols, km;
+  if (use > power + 1) { sols = 10 + bat * 4; km = sols * kmDay * 0.06; }
+  else {
+    sols = Math.max(20, 55 + panels * 14 + bat * 8 - kmDay * 2.2);
+    km = sols * kmDay * 0.08 * (power / (power + use * 0.35)) * (11 / mass);
+  }
+  let line = "Dust settled on the blue glass, and the battery still had enough for the drives.";
+  if (use > power + 1) line = "The daily drive needed more power than the panels and the battery could give.";
+  else if (kmDay >= 10) line = "The long drives each day covered a lot of ground, and the battery was the limit.";
+  return pack(sols, km, 8 + panels * 3 + bat * 2.2 + kmDay * 0.4, line, 0.15, 0.72, {
+    bat0: 100, bat1: use > power + 1 ? 8 : Math.round(clamp(82 - kmDay * 3.2, 22, 74)),
+    meter: "Dust", m0: 12, m1: 74
+  });
+}
+function mStorm(panels, bat, kmDay) {
+  const supply = 2.2 + panels * 1.5;
+  const daily = kmDay * 1.1 + 3.2;
+  const sols = daily <= supply + 0.2 ? 28 + bat * 8 : clamp(bat * 14 / (daily - supply), 4, 80);
+  const km = sols * kmDay * 0.16;
+  let line = "The brown sky hid most of the sun, and the battery carried the rover through.";
+  if (kmDay === 0) line = "The rover waited out the storm, and the wheels never turned.";
+  else if (sols < 12) line = "Driving under that weak sun used up the battery.";
+  return pack(sols, km, 8 + panels * 2.6 + bat * 2.5 + kmDay * 0.35, line, 0.45, 0.9, {
+    bat0: 100, bat1: sols < 12 ? 6 : Math.round(clamp(76 - kmDay * 5, 18, 68)),
+    meter: "Sunlight", m0: 38, m1: kmDay === 0 ? 18 : 8
+  });
+}
+function mNight(heater, bat, kmNight) {
+  const cold = Math.max(0, 4 - heater);
+  const draw = 2.1 + heater * 0.7 + kmNight * 0.62;
+  let sols;
+  if (heater < 2) sols = 6 + bat;
+  else if (draw <= 4.95) sols = 22 + bat * 8;
+  else sols = clamp(bat * 22 / (draw - 4.8), 6, 100);
+  sols = sols / (1 + cold * 0.35);
+  const km = sols * kmNight * 0.11 * (heater < 2 ? 0.3 : 1);
+  let line = "The night heater and the kilometres after dark shared one battery.";
+  if (heater < 2) line = "The night heater was too small, and the cold reached the computer.";
+  else if (kmNight === 0) line = "The night heater kept it warm, and the rover stayed where it landed.";
+  else if (draw > 7.4) line = "The night heater and the driving used up the battery, so the rover did not wake.";
+  return pack(sols, km, 7 + heater * 1.3 + bat * 2.4 + kmNight * 0.45, line, 0.05, 0.2, {
+    bat0: 100, bat1: draw > 7.4 || heater < 2 ? 8 : Math.round(clamp(84 - heater * 5 - kmNight * 3, 20, 70)),
+    meter: "Warmth", m0: 55, m1: heater < 2 ? 8 : 64
+  });
+}
+function mRidge(wheels, motor, bat) {
+  const climb = 0.4 + wheels * 0.35 + motor * 0.3;
+  const use = wheels * 0.7 + motor * 1.1 + climb * 0.4;
+  const supply = 4 + bat * 2.2;
+  const sols = use > supply ? 8 + bat * 2 : 30 + bat * 6 + (supply - use) * 2;
+  const km = sols * climb * 0.18 * (12 / (8 + wheels + motor));
+  let line = "The wheels and the motor took the rover up the ridge.";
+  if (use > supply) line = "The climb needed more power than the battery held.";
+  else if (wheels <= 2 && motor <= 2) line = "Small wheels made a slow climb, and the battery lasted.";
+  return pack(sols, km, 8 + wheels * 2.2 + motor * 2.5 + bat * 2, line, 0.1, 0.35, {
+    bat0: 100, bat1: use > supply ? 8 : Math.round(clamp(80 - use * 3, 24, 72)),
+    meter: "Power", m0: 78, m1: use > supply ? 12 : 40
+  });
+}
+function mNuke(packSize, kmDay, tools) {
+  let watts = 22 + packSize * 15;
+  const mass = 8 + packSize * 4.2 + tools * 0.3;
+  let years = 0, km = 0;
+  const record = clamp(tools / 4, 0.15, 1);
+  while (years < 16) {
+    const need = 7 + mass * 0.16 + kmDay * 2.6 + tools * 2.4;
+    if (watts < need) break;
+    km += kmDay * 0.62 * record * (14 / mass);
+    watts *= 0.93;
+    years += 1;
+  }
+  let line = "The instruments and the kilometres each day shared the weakening pack.";
+  if (years === 0) line = "The drive and the instruments needed more power than the pack could give.";
+  else if (tools <= 0) line = "The pack lasted, but almost none of the drive was recorded.";
+  else if (tools >= 6) line = "The instruments stayed on, so the pack had less power left for the wheels.";
+  return pack(years * 300, km, 6 + packSize * 6.5 + kmDay * 0.4 + tools * 0.7, line, 0.05, 0.15, {
+    unit: "year", bat0: 100, bat1: years === 0 ? 6 : Math.round(clamp(96 - years * 4, 16, 78)),
+    lifeName: "Pack", lifeNote: PACK_NOTE,
+    meter: "Pack output", m0: 100, m1: years === 0 ? 6 : Math.max(12, 100 - years * 4)
+  });
+}
+function mDrill(packSize, hours, kmHop) {
+  let watts = 22 + packSize * 14;
+  const mass = 10 + packSize * 4 + hours * 0.5;
+  let years = 0, km = 0;
+  while (years < 12) {
+    const need = 8 + mass * 0.15 + hours * 4.2 + kmHop * 2.2;
+    if (watts < need) break;
+    km += kmHop * 0.85 * (15 / mass);
+    watts *= 0.92;
+    years += 1;
+  }
+  let line = "The drill and the drives between holes shared the nuclear pack.";
+  if (years === 0) line = "The drilling and the drive needed more power than the pack had.";
+  else if (hours >= 6) line = "Long hours of drilling used up the pack, so the route stayed short.";
+  else if (hours <= 1) line = "The drill hardly ran, and the pack lasted.";
+  return pack(years * 300, km, 7 + packSize * 5 + hours * 0.9 + kmHop * 0.35, line, 0.08, 0.2, {
+    unit: "year", bat0: 100, bat1: years === 0 ? 6 : Math.round(clamp(94 - years * 5, 14, 76)),
+    lifeName: "Pack", lifeNote: PACK_NOTE,
+    meter: "Drill use", m0: 30, m1: years === 0 ? 90 : Math.round(clamp(20 + hours * 10, 20, 88))
+  });
+}
+function mBall(kmDay, shrink, ribs) {
+  const size = 6 - shrink;
+  const sail = size * 0.16 + ribs * 0.12;
+  const dust = size * 0.12 + ribs * 0.08;
+  const days = Math.max(4, 26 + shrink * 14 - dust * 22 - kmDay * 1.6);
+  const roll = kmDay * sail / (1 + dust * 0.45);
+  const km = days * roll * 0.12;
+  let line = "The wind rolled the ball. The ribs caught the gusts, and they caught dust too.";
+  if (days < 12) line = "The large shell caught the wind, and the dust stopped it early.";
+  else if (shrink >= 4) line = "The ball pulled in tight. Dust hit less of it, and the wind had less to push.";
+  return pack(days, km, 10 + kmDay * 0.35 + size * 0.8 + ribs * 0.7, line, 0.2, clamp(dust, 0.1, 0.9), {
+    bat0: 100, bat1: Math.round(clamp(28 + shrink * 14 - ribs * 6 - kmDay, 8, 92)),
+    lifeName: "Shell", lifeNote: "How long the shell can keep rolling.",
+    meter: "Dust on shell", m0: 18, m1: Math.round(clamp(dust * 110, 12, 92))
+  });
+}
+
+const MISSIONS = [
+  {
+    title: "Sun day", kind: "sun", amp: 1, ridge: 0.6, art: "art/brief-01-sun.webp",
+    needDays: 90, needKm: 30,
+    brief: [
+      "This rover runs on sunlight. A Mars day is one sunrise to the next. It is a little longer than a day on Earth.",
+      "More solar panels catch more sun, and they cost more. A bigger battery stores power for the drive. More kilometres each day go further, but the battery runs down sooner.",
+      "Dust slowly settles on the glass as the Mars days pass."
+    ],
+    sky: 0xb86a4a, fog: 0.008, sun: 1, stars: 0.08, wind: 0.45,
+    sliders: [
+      { key: "p", label: "Solar panels", min: 1, max: 5, step: 1, value: 3, tip: "More panels catch more sunlight. They cost more, and they make the rover heavier, so each drive uses a little more power." },
+      { key: "b", label: "Battery", min: 1, max: 5, step: 1, value: 3, tip: "A bigger battery keeps the rover going for more Mars days. It costs more, and the extra weight uses a little more power." },
+      { key: "k", label: "Kilometres each day", min: 2, max: 12, step: 1, value: 6, unit: " km", tip: "A longer drive covers more ground, and it uses the battery faster. If the drive is too long, the rover can stop early." }
+    ],
+    run: (v) => mSun(v.p, v.b, v.k)
+  },
+  {
+    title: "Dust storm", kind: "storm", amp: 0.7, ridge: 0.3, art: "art/brief-02-storm.webp",
+    needDays: 45, needKm: 18,
+    brief: [
+      "A dust storm turns the sky brown, so the sunlight is weak.",
+      "The solar panels still help a little. The battery is what keeps the rover going while the light is poor.",
+      "Kilometres in the storm use that battery. Choose zero and the rover waits. It does not travel."
+    ],
+    sky: 0x8a4528, fog: 0.042, sun: 0.28, stars: 0, wind: 1,
+    sliders: [
+      { key: "p", label: "Solar panels", min: 1, max: 5, step: 1, value: 3, tip: "In a dust storm the sun is weak, so extra panels only help a little. They still cost money." },
+      { key: "b", label: "Battery", min: 1, max: 6, step: 1, value: 4, tip: "The battery carries the rover while the sky is brown. A larger one lasts more Mars days, and it costs more." },
+      { key: "k", label: "Kilometres in the storm", min: 0, max: 8, step: 1, value: 3, unit: " km", tip: "Driving in the storm uses the battery. Set this to zero and the rover waits. It does not travel." }
+    ],
+    run: (v) => mStorm(v.p, v.b, v.k)
+  },
+  {
+    title: "Cold night", kind: "night", amp: 0.85, ridge: 0.4, art: "art/brief-03-night.webp",
+    needDays: 40, needKm: 14,
+    brief: [
+      "Mars nights fall to about −130°C. The night heater stops the computer from cracking in that cold, and it uses the battery.",
+      "Kilometres after dark use more of the same battery.",
+      "A small night heater lets the cold in. A large night heater, together with driving, can use up the battery so the rover does not wake."
+    ],
+    sky: 0x140e18, fog: 0.02, sun: 0, stars: 0.95, wind: 0.12,
+    sliders: [
+      { key: "h", label: "Night heater", min: 0, max: 8, step: 1, value: 4, tip: "The heater keeps the computer safe at about \u2212130\u00b0C. A small heater lets the cold in. A large one uses a lot of the battery." },
+      { key: "b", label: "Battery", min: 2, max: 8, step: 1, value: 5, tip: "One battery feeds the night heater and the drive. A bigger battery lasts longer, and it costs more." },
+      { key: "k", label: "Kilometres after dark", min: 0, max: 8, step: 1, value: 3, unit: " km", tip: "Driving after dark uses the same battery as the heater. A long drive and a strong heater together can stop the rover." }
+    ],
+    run: (v) => mNight(v.h, v.b, v.k)
+  },
+  {
+    title: "Up the ridge", kind: "ridge", amp: 1.7, ridge: 1.4, art: "art/brief-04-ridge.webp",
+    needDays: 55, needKm: 20,
+    brief: [
+      "The route climbs a ridge. Bigger wheels grip the slope. A stronger motor pulls the rover up.",
+      "Wheels and motor both use power, and they add weight. The battery has to last the whole climb.",
+      "A light rover climbs slowly. A heavy one can stop if the battery is too small."
+    ],
+    sky: 0xd4896a, fog: 0.014, sun: 0.85, stars: 0.1, wind: 0.22,
+    sliders: [
+      { key: "w", label: "Wheel size", min: 1, max: 5, step: 1, value: 3, tip: "Bigger wheels grip the slope. They are heavier, so the climb uses more power." },
+      { key: "m", label: "Motor", min: 1, max: 5, step: 1, value: 3, tip: "A stronger motor pulls the rover up the ridge. It uses more of the battery." },
+      { key: "b", label: "Battery", min: 2, max: 8, step: 1, value: 4, tip: "The battery has to last the whole climb. If it is too small for the wheels and the motor, the rover stops." }
+    ],
+    run: (v) => mRidge(v.w, v.m, v.b)
+  },
+  {
+    title: "Nuclear pack", kind: "nuke", amp: 1, ridge: 0.5, art: "art/brief-06-nuke.webp",
+    needYears: 6, needKm: 12,
+    brief: [
+      "This rover has no solar panels. A nuclear pack makes electricity from its own heat, and that heat keeps the rover warm. The pack gets weaker every year.",
+      "Kilometres each day are the drive. Instruments are the cameras and tools. They stay switched on, so they use power as well as the wheels.",
+      "If the instruments are off, almost none of the drive counts towards the mission."
+    ],
+    sky: 0x3a2430, fog: 0.02, sun: 0.22, stars: 0.7, wind: 0.15,
+    sliders: [
+      { key: "r", label: "Nuclear pack", min: 1, max: 5, step: 1, value: 2, tip: "A larger pack makes more electricity, and its heat keeps the rover warm. It gets weaker every year, and a bigger pack costs more." },
+      { key: "k", label: "Kilometres each day", min: 1, max: 8, step: 1, value: 4, unit: " km", tip: "This is how far the rover tries to drive each day. A long drive uses more of the weakening pack." },
+      { key: "i", label: "Instruments", min: 0, max: 8, step: 1, value: 3, tip: "Cameras and tools stay switched on, so they use power as well as the wheels. If they are off, almost none of the drive counts." }
+    ],
+    run: (v) => mNuke(v.r, v.k, v.i)
+  },
+  {
+    title: "Drill sites", kind: "drill", amp: 1.1, ridge: 0.45, art: "art/brief-08-drill.webp",
+    needYears: 6, needKm: 12,
+    brief: [
+      "This nuclear rover drills for rock samples, then drives on to the next hole.",
+      "Drill hours are how long the drill runs each day. Drilling uses a lot of power.",
+      "Kilometres between holes is the drive from one sample to the next. A long drill and a long drive together can stop the pack early."
+    ],
+    sky: 0x3a2830, fog: 0.016, sun: 0.2, stars: 0.65, wind: 0.2,
+    sliders: [
+      { key: "r", label: "Nuclear pack", min: 1, max: 5, step: 1, value: 3, tip: "The pack powers the drill and the drives between holes. A larger pack lasts more years, and it costs more." },
+      { key: "h", label: "Drill hours", min: 0, max: 8, step: 1, value: 3, tip: "More hours means more time on the drill. Drilling uses a lot of power, so a long drill can stop the pack early." },
+      { key: "k", label: "Kilometres between holes", min: 1, max: 8, step: 1, value: 4, unit: " km", tip: "This is the drive from one hole to the next. A long hop uses power that the drill also needs." }
+    ],
+    run: (v) => mDrill(v.r, v.h, v.k)
+  },
+  {
+    title: "Wind ball", kind: "ball", amp: 0.8, ridge: 0.35, art: "art/brief-09-ball.webp",
+    needDays: 40, needKm: 14,
+    brief: [
+      "This rover is a ball. The wind rolls it along.",
+      "Kilometres on windy days is how far it tries to go when the wind is up. Shrink pulls the ball smaller, so dust and rocks hit less of it, and it can last more Mars days. A small ball also catches less wind.",
+      "The ribs catch the gusts. More ribs mean a stronger push, and more dust stuck in the cage."
+    ],
+    sky: 0xc47a55, fog: 0.012, sun: 0.9, stars: 0.12, wind: 0.85,
+    sliders: [
+      { key: "k", label: "Kilometres on windy days", min: 1, max: 10, step: 1, value: 5, unit: " km", tip: "This is how far the ball tries to roll when the wind is up. A longer roll needs a ball that can catch that wind." },
+      { key: "s", label: "Shrink", min: 1, max: 5, step: 1, value: 3, tip: "A higher number pulls the ball smaller. Dust hits less of it, so it can last longer. A small ball also catches less wind." },
+      { key: "c", label: "Catch ribs", min: 1, max: 5, step: 1, value: 3, tip: "More ribs catch stronger gusts, so the ball rolls further. Dust also sticks in the cage." }
+    ],
+    run: (v) => mBall(v.k, v.s, v.c)
+  }
+];
+MISSIONS.forEach((m) => {
+  const start = {};
+  m.sliders.forEach((s) => { start[s.key] = s.value; });
+  m.ref = m.run(start).score || 1;
+});
+
+let missionBudget = 28, savings = 0, debt = 0, current = 0, introDone = false;
+let pendingGrant = 28, totalScore = 0, play = null, keepVals = null, historyPending = null;
+let camMode = "orbit", blendFrom = null, blendLook = null, blendT = 0;
+const history = [];
+const world = { amp: 1, ridge: 0.6, look: MISSIONS[0] };
+
+function formatMoney(mil) {
+  const n = Math.round(mil * 1000000);
+  const abs = "¥" + Math.abs(n).toLocaleString();
+  return n < 0 ? "−" + abs : abs;
+}
+function readVals() {
+  const vals = {};
+  MISSIONS[current].sliders.forEach((s) => { vals[s.key] = +document.getElementById("s-" + s.key).value; });
+  return vals;
+}
+function refreshHud(cost) {
+  document.getElementById("grant").textContent = formatMoney(missionBudget);
+  document.getElementById("grant").className = missionBudget <= 0 ? "bad" : "";
+  document.getElementById("savings").textContent = formatMoney(savings);
+  document.getElementById("savings").className = savings > 0 ? "ok" : "";
+  document.getElementById("debt").textContent = formatMoney(debt);
+  document.getElementById("debt").className = debt > 0 ? "bad" : "ok";
+  document.getElementById("cost").textContent = formatMoney(cost);
+  document.getElementById("cost").className = cost - missionBudget - savings > 0.05 ? "bad" : "ok";
+}
+function spend(amount) {
+  let left = amount;
+  if (missionBudget >= left) { missionBudget -= left; left = 0; }
+  else { left -= missionBudget; missionBudget = 0; }
+  if (left > 0) {
+    if (savings >= left) { savings -= left; left = 0; }
+    else { left -= savings; savings = 0; }
+  }
+  if (left > 0) debt += left;
+}
+function bankLeftover() {
+  if (missionBudget <= 0) return;
+  if (debt > 0) {
+    const pay = Math.min(debt, missionBudget);
+    debt -= pay;
+    missionBudget -= pay;
+  }
+  savings += missionBudget;
+  missionBudget = 0;
+}
+function grantFrom(score, ref) {
+  const ratio = score / ref;
+  return clamp(Math.round(20 + 14 * Math.min(ratio, 2)), 14, 46);
+}
+
+let renderer, scene, camera, rover, ground, skyMesh, sunLight, hemi, sunSprite, moonSprite, starPoints, fillLight;
+let dustPts, puffPts, glowHeat, glowCore, worldOk = false;
+const lookAt = new THREE.Vector3();
+const camWant = new THREE.Vector3();
+const blendTmp = new THREE.Vector3();
+const orbit = { enabled: true, dragging: false, lx: 0, ly: 0, theta: 0.55, phi: 0.98, radius: 13 };
+const glowMaps = {};
+let solarMap = null;
+
+function hash(x, z, salt) {
+  let n = Math.imul(x + salt * 13, 374761393) + Math.imul(z + salt * 29, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+function fade(t) { return t * t * (3 - 2 * t); }
+function valueNoise(x, z, salt) {
+  const x0 = Math.floor(x), z0 = Math.floor(z);
+  const tx = fade(x - x0), tz = fade(z - z0);
+  const a = hash(x0, z0, salt), b = hash(x0 + 1, z0, salt), c = hash(x0, z0 + 1, salt), d = hash(x0 + 1, z0 + 1, salt);
+  return a + (b - a) * tx + (c - a) * tz + (a - b - c + d) * tx * tz;
+}
+function terrainHeight(x, z) {
+  const broad = valueNoise(x * 0.03, z * 0.03, 11);
+  const mid = valueNoise(x * 0.08, z * 0.08, 17);
+  const fine = valueNoise(x * 0.18, z * 0.18, 23);
+  let h = ((broad - 0.5) * 6.2 + (mid - 0.5) * 2.8 + (fine - 0.5) * 0.9) * world.amp;
+  const ridge = valueNoise(x * 0.02 + 4, z * 0.02, 29);
+  h += clamp((ridge - 0.45) / 0.08, 0, 1) * 3.6 * world.ridge;
+  return h;
+}
+function glowTex(core, edge) {
+  const key = core + edge;
+  if (glowMaps[key]) return glowMaps[key];
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grd.addColorStop(0, core);
+  grd.addColorStop(0.45, edge);
+  grd.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+  const map = new THREE.CanvasTexture(c);
+  map.encoding = THREE.sRGBEncoding;
+  glowMaps[key] = map;
+  return map;
+}
+function solarTex() {
+  if (solarMap) return solarMap;
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#0c2044";
+  g.fillRect(0, 0, 256, 128);
+  for (let x = 6; x < 256; x += 28) {
+    for (let y = 6; y < 128; y += 24) {
+      g.fillStyle = "#1d4e9c";
+      g.fillRect(x, y, 22, 16);
+      g.strokeStyle = "#b7e4ff";
+      g.lineWidth = 1;
+      g.strokeRect(x + 0.5, y + 0.5, 21, 15);
+    }
+  }
+  solarMap = new THREE.CanvasTexture(c);
+  solarMap.encoding = THREE.sRGBEncoding;
+  return solarMap;
+}
+function makePoints(count, color, size, opacity) {
+  const pos = new Float32Array(count * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    color, size, transparent: true, opacity, depthWrite: false, fog: false
+  }));
+  return { pts, pos, count };
+}
+function boot() {
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.98;
+  document.body.prepend(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0xc47855, 0.014);
+  camera = new THREE.PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 220);
+  skyMesh = new THREE.Mesh(new THREE.SphereGeometry(140, 28, 18), new THREE.MeshBasicMaterial({ color: 0xc47855, side: THREE.BackSide }));
+  scene.add(skyMesh);
+  hemi = new THREE.HemisphereLight(0xffc49a, 0x6a3018, 0.7);
+  scene.add(hemi);
+  sunLight = new THREE.DirectionalLight(0xffd2a0, 1.15);
+  sunLight.position.set(18, 28, 8);
+  scene.add(sunLight);
+  fillLight = new THREE.PointLight(0xffc2a0, 0, 9, 2);
+  scene.add(fillLight);
+  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex("#fff6d0", "#ff9a3c"), fog: false, transparent: true, depthWrite: false }));
+  sunSprite.scale.set(22, 22, 1);
+  scene.add(sunSprite);
+  moonSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex("#f7fbff", "#9eb4d8"), fog: false, transparent: true, depthWrite: false }));
+  moonSprite.scale.set(8, 8, 1);
+  scene.add(moonSprite);
+  const stars = [];
+  for (let i = 0; i < 420; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const e = (Math.random() - 0.2) * 1.3;
+    const r = 90;
+    stars.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r + 10, Math.sin(a) * Math.cos(e) * r);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(stars, 3));
+  starPoints = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xfff6e8, size: 0.7, transparent: true, opacity: 0.2, depthWrite: false, fog: false }));
+  scene.add(starPoints);
+  const groundGeo = new THREE.PlaneGeometry(160, 160, 70, 70);
+  groundGeo.rotateX(-Math.PI / 2);
+  groundGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(groundGeo.attributes.position.count * 3), 3));
+  ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }));
+  scene.add(ground);
+  const dust = makePoints(520, 0xd8a070, 0.16, 0.45);
+  dustPts = dust;
+  scene.add(dust.pts);
+  const puff = makePoints(80, 0xc4896a, 0.22, 0.35);
+  puffPts = puff;
+  scene.add(puff.pts);
+  scatterDust(0, 0);
+  renderer.domElement.style.touchAction = "none";
+  bindOrbit();
+  worldOk = true;
+  loadMission();
+  loop();
+}
+function scatterDust(x, z) {
+  const pos = dustPts.pos;
+  for (let i = 0; i < dustPts.count; i++) {
+    pos[i * 3] = x + (Math.random() - 0.5) * 46;
+    pos[i * 3 + 1] = 0.2 + Math.random() * 7;
+    pos[i * 3 + 2] = z + (Math.random() - 0.5) * 36;
+  }
+  dustPts.pts.geometry.attributes.position.needsUpdate = true;
+}
+function shapeGround() {
+  const pos = ground.geometry.attributes.position;
+  const col = ground.geometry.attributes.color;
+  const low = new THREE.Color(0x8a4632);
+  const mid = new THREE.Color(0xc47855);
+  const high = new THREE.Color(0xe0b08a);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const h = terrainHeight(pos.getX(i), pos.getZ(i));
+    pos.setY(i, h);
+    const t = clamp((h + 2) / 8, 0, 1);
+    c.copy(t < 0.5 ? low : mid).lerp(t < 0.5 ? mid : high, t < 0.5 ? t * 2 : (t - 0.5) * 2);
+    col.setXYZ(i, c.r, c.g, c.b);
+  }
+  pos.needsUpdate = true;
+  col.needsUpdate = true;
+  ground.geometry.computeVertexNormals();
+}
+function dropRover() {
+  if (!rover) return;
+  scene.remove(rover);
+  rover.traverse((obj) => { if (obj.geometry && !obj.geometry.userData.keep) obj.geometry.dispose(); });
+  rover = null;
+}
+function makeBall(vals) {
+  const g = new THREE.Group();
+  const shrink = vals.s || 3;
+  const ribs = vals.c || 3;
+  const radius = 1.85 - (shrink - 1) * 0.22;
+  const hoopMat = new THREE.MeshStandardMaterial({ color: 0xd7c4a4, metalness: 0.35, roughness: 0.45 });
+  const cage = new THREE.Group();
+  const hoopCount = ribs + 2;
+  for (let i = 0; i < hoopCount; i++) {
+    const hoop = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.035, 6, 28), hoopMat);
+    hoop.rotation.y = (i / hoopCount) * Math.PI;
+    cage.add(hoop);
+  }
+  const eq = new THREE.Mesh(new THREE.TorusGeometry(radius, 0.04, 6, 28), hoopMat);
+  eq.rotation.x = Math.PI / 2;
+  cage.add(eq);
+  const pod = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.26, 0.36), new THREE.MeshStandardMaterial({ color: 0xf4f7fb, metalness: 0.25, roughness: 0.38 }));
+  cage.add(pod);
+  const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 8), new THREE.MeshStandardMaterial({ color: 0x9fd7ff, emissive: 0x123044, emissiveIntensity: 0.6 }));
+  eye.rotation.x = Math.PI / 2;
+  eye.position.z = 0.2;
+  cage.add(eye);
+  cage.position.y = radius;
+  g.add(cage);
+  g.userData.ball = cage;
+  g.userData.wheels = [];
+  g.userData.panels = [];
+  g.userData.hoopMat = hoopMat;
+  glowHeat = null;
+  glowCore = null;
+  rover = g;
+  scene.add(rover);
+}
+function makeRover(kind, vals) {
+  dropRover();
+  if (kind === "ball") { makeBall(vals); return; }
+  const nuclear = kind === "nuke" || kind === "warm" || kind === "drill";
+  const g = new THREE.Group();
+  const shell = new THREE.MeshStandardMaterial({ color: 0xf4f7fb, metalness: 0.25, roughness: 0.38 });
+  const foil = new THREE.MeshStandardMaterial({ color: 0xd5dde6, metalness: 0.7, roughness: 0.28 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b1f24, metalness: 0.4, roughness: 0.5 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x9fd7ff, emissive: 0x123044, emissiveIntensity: 0.6, roughness: 0.15 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.38, 2.05), shell);
+  body.position.y = 0.62;
+  const belly = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.12, 1.55), foil);
+  belly.position.y = 0.4;
+  g.add(body, belly);
+  const wheels = [];
+  const wheelScale = kind === "ridge" ? 0.85 + (vals.w || 3) * 0.12 : 1;
+  const wheelGeo = new THREE.CylinderGeometry(0.28 * wheelScale, 0.28 * wheelScale, 0.16, 12);
+  wheelGeo.rotateZ(Math.PI / 2);
+  [[-0.78, 0.72], [0.78, 0.72], [-0.86, 0], [0.86, 0], [-0.78, -0.72], [0.78, -0.72]].forEach((p) => {
+    const wheel = new THREE.Mesh(wheelGeo, dark);
+    wheel.position.set(p[0], 0.28 * wheelScale, p[1]);
+    for (let lug = 0; lug < 6; lug++) {
+      const cleat = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.08, 0.14), foil);
+      const a = (lug / 6) * Math.PI * 2;
+      cleat.position.set(0, Math.cos(a) * 0.28 * wheelScale, Math.sin(a) * 0.28 * wheelScale);
+      cleat.rotation.x = a;
+      wheel.add(cleat);
+    }
+    g.add(wheel);
+    wheels.push(wheel);
+  });
+  const panels = [];
+  const panelMat = new THREE.MeshStandardMaterial({
+    map: solarTex(), color: 0xffffff, metalness: 0.45, roughness: 0.25, emissive: 0x123a78, emissiveIntensity: 0.45
+  });
+  if (!nuclear) {
+    const span = 0.62 + (vals.p || 3) * 0.16;
+    [-1, 1].forEach((side) => {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(span, 0.045, 1.35), panelMat);
+      wing.position.set(side * (0.85 + span * 0.35), 1.02, 0.05);
+      wing.rotation.z = side * -0.08;
+      g.add(wing);
+      panels.push(wing);
+    });
+  }
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 0.85, 8), shell);
+  mast.position.set(0, 1.15, 0.72);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.2), dark);
+  head.position.set(0, 1.62, 0.78);
+  g.add(mast, head);
+  [-0.09, 0.09].forEach((x) => {
+    const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 8), glass);
+    eye.rotation.x = Math.PI / 2;
+    eye.position.set(x, 1.62, 0.9);
+    g.add(eye);
+  });
+  const batH = 0.22 + (vals.b || 3) * 0.05;
+  const battery = new THREE.Mesh(new THREE.BoxGeometry(0.7, batH, 0.42), new THREE.MeshStandardMaterial({
+    color: 0xd5dbe3, emissive: kind === "wear" ? 0xff5a2a : 0x223044, emissiveIntensity: kind === "wear" ? 0.45 : 0.15
+  }));
+  battery.position.set(0, 0.78 + batH * 0.3, -0.55);
+  if (!nuclear) g.add(battery);
+  glowHeat = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex("#fff1c4", "#ff6a2a"), transparent: true, depthWrite: false, opacity: 0 }));
+  glowHeat.scale.set(1.6, 1.6, 1);
+  glowHeat.position.set(0, 0.9, -0.2);
+  g.add(glowHeat);
+  glowCore = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex("#fff6d0", "#ff7a1a"), transparent: true, depthWrite: false, opacity: 0 }));
+  glowCore.scale.set(2.4, 2.4, 1);
+  glowCore.position.set(0, 1.05, -0.15);
+  g.add(glowCore);
+  if (nuclear) {
+    const core = new THREE.Mesh(new THREE.CylinderGeometry(0.22 + (vals.r || 2) * 0.05, 0.26 + (vals.r || 2) * 0.05, 0.78, 8), new THREE.MeshStandardMaterial({
+      color: 0xb7c0c8, metalness: 0.6, roughness: 0.3, emissive: 0xff6a1a, emissiveIntensity: 0.7
+    }));
+    core.position.set(0, 1.05, -0.15);
+    g.add(core);
+    for (let i = 0; i < 4; i++) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 0.32), foil);
+      const a = i * Math.PI / 2;
+      fin.position.set(Math.cos(a) * 0.36, 1.05, -0.15 + Math.sin(a) * 0.36);
+      g.add(fin);
+    }
+    glowCore.material.opacity = 0.85;
+    if (kind === "warm") {
+      const pipes = Math.max(0, Math.min(4, vals.w || 0));
+      for (let i = 0; i < pipes; i++) {
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.5, 6), foil);
+        pipe.rotation.z = Math.PI / 2;
+        pipe.position.set(-0.18 + i * 0.12, 0.95, -0.15);
+        g.add(pipe);
+      }
+    }
+    if (kind === "drill") {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.85), foil);
+      arm.position.set(0.15, 0.5, 1.2);
+      arm.rotation.x = 0.45;
+      const bit = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.02, 0.32, 6), dark);
+      bit.position.set(0.15, 0.22, 1.5);
+      g.add(arm, bit);
+    }
+  }
+  if (kind === "night" || kind === "wear") glowHeat.material.opacity = 0.75;
+  g.userData.wheels = wheels;
+  g.userData.panels = panels;
+  g.userData.panelMat = panelMat;
+  g.rotation.y = Math.PI / 2;
+  rover = g;
+  scene.add(rover);
+}
+function applySky(m) {
+  world.amp = m.amp;
+  world.ridge = m.ridge;
+  world.look = m;
+  skyMesh.material.color.setHex(m.sky);
+  scene.fog.color.setHex(m.sky);
+  scene.fog.density = m.fog;
+  hemi.intensity = 0.18 + m.sun * 0.62;
+  sunLight.intensity = 0.15 + m.sun * 1.2;
+  sunSprite.visible = m.sun > 0.05;
+  sunSprite.material.opacity = m.sun;
+  moonSprite.visible = m.sun < 0.45;
+  starPoints.material.opacity = m.stars;
+  dustPts.pts.material.opacity = 0.15 + m.wind * 0.55;
+  dustPts.pts.material.color.setHex(m.kind === "night" ? 0x9bb0c8 : 0xe0b48a);
+  dustPts.pts.material.size = m.kind === "storm" ? 0.22 : 0.12;
+  sunSprite.position.set(28, 18, -8);
+  moonSprite.position.set(-18, 14, -10);
+  shapeGround();
+  plantRocks();
+}
+let rockMeshes = [];
+function plantRocks() {
+  rockMeshes.forEach((rock) => scene.remove(rock));
+  rockMeshes = [];
+  const mat = new THREE.MeshStandardMaterial({ color: 0x9a5340, roughness: 1, flatShading: true });
+  for (let i = 0; i < 16; i++) {
+    const x = -6 + (i % 8) * 6;
+    const z = (i < 8 ? -3.4 : 3.6) + (i % 3) * 0.4;
+    const s = 0.55 + (i % 4) * 0.28;
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), mat);
+    rock.position.set(x, terrainHeight(x, z) + s * 0.45, z);
+    rock.scale.y = 0.72;
+    scene.add(rock);
+    rockMeshes.push(rock);
+  }
+}
+function placeRover(x, dust, moving, dt) {
+  const z = Math.sin(x * 0.08) * 1.4;
+  const y = terrainHeight(x, z);
+  if (placeRover.sy == null) placeRover.sy = y;
+  placeRover.sy += (y - placeRover.sy) * 0.18;
+  rover.position.set(x, y, z);
+  rover.userData.dust = dust;
+  const step = (dt || 0.016) * 5.5;
+  if (moving && rover.userData.wheels) rover.userData.wheels.forEach((w) => { w.rotation.x += step; });
+  if (rover.userData.ball) rover.userData.ball.rotation.z = -x * 1.5;
+  if (rover.userData.hoopMat) {
+    const tint = new THREE.Color(0xd7c4a4).lerp(new THREE.Color(0x8a6244), clamp(dust, 0, 1) * 0.8);
+    rover.userData.hoopMat.color.copy(tint);
+  }
+  if (rover.userData.panelMat) {
+    const tint = new THREE.Color(0xffffff).lerp(new THREE.Color(0x8a6244), clamp(dust, 0, 1) * 0.75);
+    rover.userData.panelMat.color.copy(tint);
+    rover.userData.panelMat.emissiveIntensity = world.look.sun * (0.2 + (1 - dust) * 0.6);
+  }
+  const night = world.look.kind === "night";
+  const nuclear = world.look.kind === "nuke" || world.look.kind === "warm" || world.look.kind === "drill";
+  if (fillLight) {
+    fillLight.position.set(x, y + 1.4, z);
+    fillLight.intensity = night ? 2.4 : (world.look.kind === "wear" ? 0.7 : (nuclear ? 1.1 : 0));
+  }
+  const pulse = 0.9 + Math.sin(performance.now() * 0.0016) * 0.05;
+  if (glowCore) glowCore.material.opacity = nuclear ? pulse : 0;
+  if (glowHeat) {
+    const on = night || world.look.kind === "wear";
+    glowHeat.material.opacity = on ? 0.72 : 0;
+    glowHeat.scale.set(1.5, 1.5, 1);
+  }
+  blowDust(x, z, moving);
+}
+placeRover.sy = null;
+function blowDust(x, z, moving) {
+  const pos = dustPts.pos;
+  const wind = world.look.wind;
+  const night = world.look.kind === "night";
+  for (let i = 0; i < dustPts.count; i++) {
+    let px = pos[i * 3], py = pos[i * 3 + 1], pz = pos[i * 3 + 2];
+    px += (night ? 0.015 : 0.06 + wind * 0.16);
+    if (!night) py += Math.sin(px * 0.4 + i) * 0.008;
+    if (world.look.kind === "storm") {
+      const spin = i * 0.15 + performance.now() * 0.0015;
+      px += Math.cos(spin) * 0.03;
+      pz += Math.sin(spin) * 0.03;
+    }
+    if (px > x + 24) px -= 46;
+    if (px < x - 24) px += 46;
+    if (py > 8) py = 0.15;
+    if (py < 0.05) py = 0.2;
+    if (pz > z + 18) pz -= 36;
+    if (pz < z - 18) pz += 36;
+    pos[i * 3] = px; pos[i * 3 + 1] = py; pos[i * 3 + 2] = pz;
+  }
+  dustPts.pts.geometry.attributes.position.needsUpdate = true;
+  const puff = puffPts.pos;
+  for (let i = 0; i < puffPts.count; i++) {
+    puff[i * 3 + 1] += 0.03;
+    puff[i * 3] -= 0.04;
+    if (!moving || puff[i * 3 + 1] > 1.4) {
+      puff[i * 3] = x - 1.2 + Math.random() * 0.4;
+      puff[i * 3 + 1] = 0.15 + Math.random() * 0.2;
+      puff[i * 3 + 2] = z + (Math.random() - 0.5) * 1.3;
+    }
+  }
+  puffPts.pts.material.opacity = moving ? 0.4 : 0.05;
+  puffPts.pts.geometry.attributes.position.needsUpdate = true;
+}
+
+function needLine(m) {
+  if (m.needYears) return "Needed: " + m.needYears + " years and " + m.needKm + " km.";
+  return "Needed: " + m.needDays + " Mars days and " + m.needKm + " km.";
+}
+function loadMission() {
+  const m = MISSIONS[current];
+  play = null;
+  placeRover.sy = null;
+  document.getElementById("kicker").textContent = "Mission " + (current + 1) + " of " + MISSIONS.length + " · Chinese space agency";
+  document.getElementById("title").textContent = m.title;
+  document.getElementById("detailBtn").textContent = "Mission " + (current + 1) + " · " + m.title;
+  document.getElementById("need").textContent = needLine(m);
+  document.getElementById("live").classList.add("hide");
+  document.getElementById("nextReady").classList.add("hide");
+  hideTip();
+  const box = document.getElementById("sliders");
+  box.innerHTML = "";
+  m.sliders.forEach((s) => {
+    const start = keepVals && keepVals[s.key] != null ? keepVals[s.key] : s.value;
+    const row = document.createElement("div");
+    row.className = "slide";
+    row.innerHTML = "<label>" + s.label + " <span id='v-" + s.key + "'></span></label><input id='s-" + s.key + "' type='range' min='" + s.min + "' max='" + s.max + "' step='" + s.step + "' value='" + start + "'>";
+    box.appendChild(row);
+    document.getElementById("s-" + s.key).addEventListener("input", forecast);
+    const show = () => showTip(s.label, s.tip, row);
+    row.addEventListener("mouseenter", show);
+    row.addEventListener("focusin", show);
+    row.addEventListener("mouseleave", (ev) => { if (!row.contains(ev.relatedTarget)) hideTip(); });
+    row.addEventListener("focusout", (ev) => { if (!row.contains(ev.relatedTarget)) hideTip(); });
+  });
+  document.getElementById("go").disabled = false;
+  document.getElementById("go").textContent = "Launch";
+  document.getElementById("hint").textContent = "Miss the time or the distance and this try fails. You still pay for the rover, and the grant does not grow. Drag the view to look around.";
+  applySky(m);
+  forecast();
+  frameOrbit();
+  if (!introDone && current === 0 && !keepVals) openIntro();
+  else openBrief();
+}
+function showTip(label, text, row) {
+  const box = document.getElementById("tipBox");
+  document.getElementById("tipLabel").textContent = label;
+  document.getElementById("tipText").textContent = text;
+  box.classList.remove("hide");
+  const r = row.getBoundingClientRect();
+  const panel = document.getElementById("panel").getBoundingClientRect();
+  let left = panel.right + 12;
+  let top = Math.max(14, r.top - 6);
+  if (left + box.offsetWidth > window.innerWidth - 10) {
+    left = Math.max(10, panel.left);
+    top = Math.min(panel.bottom + 10, window.innerHeight - box.offsetHeight - 12);
+  }
+  if (top + box.offsetHeight > window.innerHeight - 10) top = Math.max(10, window.innerHeight - box.offsetHeight - 10);
+  box.style.left = left + "px";
+  box.style.top = top + "px";
+}
+function hideTip() {
+  document.getElementById("tipBox").classList.add("hide");
+}
+const INTRO_PARAS = [
+  "You are a scientist at the Chinese space agency. You are in charge of power for seven Mars rovers. You choose the parts, and you decide how each rover uses its power.",
+  "Each rover has a different job. There is no single right design. The score is how long the rover lasts, times how far it travels. A higher score brings a larger grant for the next rover.",
+  "The parts cost money. Money left over can be saved. If a rover costs more than you have, the rest is borrowed, and that is debt.",
+  "Every mission needs a time and a distance. Miss either one and you still pay for the rover. The grant does not grow, and you try that mission again."
+];
+function openIntro() {
+  const box = document.getElementById("introParas");
+  box.innerHTML = "";
+  const nodes = INTRO_PARAS.map((text) => {
+    const p = document.createElement("p");
+    p.textContent = text;
+    box.appendChild(p);
+    return p;
+  });
+  typeNodes(nodes);
+  document.getElementById("intro").classList.remove("hide");
+}
+function forecast() {
+  const m = MISSIONS[current];
+  const vals = readVals();
+  m.sliders.forEach((s) => {
+    document.getElementById("v-" + s.key).textContent = vals[s.key] + (s.unit || "");
+  });
+  const preview = m.run(vals);
+  refreshHud(preview.cost);
+  if (worldOk && !play) {
+    makeRover(m.kind, vals);
+    placeRover(0, preview.dust0, false, 0.016);
+    planMood(vals);
+  }
+}
+function planMood(vals) {
+  const kind = MISSIONS[current].kind;
+  if (kind === "ball") {
+    if (vals.s >= 4) setMood("🙂", "A smaller ball sheds dust. It also catches less wind.");
+    else if (vals.s <= 2) setMood("😐", "A large ball catches the wind, and it catches the dust.");
+    else setMood("🙂", "Pulling the ball tighter sheds dust, and it catches less wind.");
+  } else if (kind === "nuke") setMood("🙂", "The instruments use power as well as the wheels. Switch them off and the kilometres hardly count.");
+  else if (kind === "drill") setMood("🙂", "Drill time and the drive to the next hole share one pack.");
+  else if (kind === "night") setMood("😴", "Drag the view to look around. The orange glow is the night heater.");
+  else setMood("🙂", "Drag the view to look around the rover.");
+}
+function timeWords(res) {
+  if (res.unit === "year") {
+    return res.span + (res.span === 1 ? " year" : " years") + ", about " + res.sols.toLocaleString() + " Mars days";
+  }
+  return res.sols + (res.sols === 1 ? " Mars day" : " Mars days");
+}
+function setMood(face, say) {
+  if (setMood.last === face + say) return;
+  setMood.last = face + say;
+  document.getElementById("moodFace").textContent = face;
+  const el = document.getElementById("moodSay");
+  el.textContent = "";
+  quipState = { el: el, full: say, i: 0, acc: 0 };
+}
+function paintMood(res, u) {
+  const kind = MISSIONS[current].kind;
+  const bat = res.bat0 + (res.bat1 - res.bat0) * u;
+  if (kind === "storm") setMood(bat < 25 ? "😟" : "😶", bat < 25 ? "The battery is running down under this brown sky." : "The sun is only a faint glow behind the dust.");
+  else if (kind === "night") setMood(res.m1 < 20 ? "🥶" : "😴", res.m1 < 20 ? "The night is too cold for the computer." : "The night heater is the only warmth.");
+  else if (kind === "nuke") setMood(u > 0.7 ? "😐" : "🙂", u > 0.7 ? "The nuclear pack is getting weaker." : "The pack is warm, and the stars are out.");
+  else if (kind === "drill") setMood(res.m1 > 70 ? "😬" : "🙂", res.m1 > 70 ? "The drill is using a lot of the pack." : "The drill and the pack are sharing the power.");
+  else if (kind === "ball") setMood(u > 0.6 ? "😬" : "😄", u > 0.6 ? "Dust is sticking in the ribs." : "The wind is rolling the ball.");
+  else if (kind === "ridge") setMood(bat < 20 ? "😟" : "🙂", bat < 20 ? "The climb is using up the battery." : "The wheels are working up the ridge.");
+  else setMood(u > 0.65 ? "😷" : "🙂", u > 0.65 ? "Dust is covering the glass." : "Sunlight is on the panels.");
+}
+function openBrief() {
+  const m = MISSIONS[current];
+  document.getElementById("briefKicker").textContent = "Mission " + (current + 1) + " of " + MISSIONS.length;
+  document.getElementById("briefTitle").textContent = m.title;
+  document.getElementById("briefArt").src = m.art;
+  document.getElementById("briefArt").alt = m.title + " on Mars";
+  const box = document.getElementById("briefParas");
+  box.innerHTML = "";
+  const nodes = [];
+  m.brief.forEach((text) => {
+    const p = document.createElement("p");
+    p.textContent = text;
+    box.appendChild(p);
+    nodes.push(p);
+  });
+  const need = document.createElement("p");
+  need.textContent = needLine(m);
+  box.appendChild(need);
+  nodes.push(need);
+  typeNodes(nodes);
+  document.getElementById("shade").classList.remove("hide");
+}
+const TIER_NAME = { fail: "Complete failure", below: "Below expectation", ok: "Mission accomplished", great: "Excellent", miracle: "A miracle" };
+const TIER_ART = { fail: "art/end-fail.webp", below: "art/end-below.webp", ok: "art/end-done.webp", great: "art/end-excellent.webp", miracle: "art/end-miracle.webp" };
+function judge(res, m) {
+  const gotTime = res.unit === "year" ? res.span : res.sols;
+  const needTime = res.unit === "year" ? m.needYears : m.needDays;
+  const dayRatio = gotTime / needTime;
+  const kmRatio = res.km / m.needKm;
+  let id = "ok";
+  if (dayRatio < 0.5 || kmRatio < 0.5) id = "fail";
+  else if (dayRatio < 1 || kmRatio < 1) id = "below";
+  else if (dayRatio >= 2 && kmRatio >= 2) id = "miracle";
+  else if (dayRatio >= 1.45 && kmRatio >= 1.45) id = "great";
+  return { id, passed: id === "ok" || id === "great" || id === "miracle", dayRatio, kmRatio, gotTime, needTime };
+}
+function meterHtml(label, got, need, ratio, unit) {
+  const pct = clamp(ratio / 2, 0, 1) * 100;
+  const cls = ratio >= 2 ? "high" : (ratio >= 1 ? "met" : "");
+  return "<div class='meter'><div class='meter-top'><span>" + label + "</span><b>" + got + " / " + need + unit + "</b></div><div class='scale'><i class='" + cls + "' style='width:" + pct.toFixed(1) + "%'></i><em></em></div></div>";
+}
+function showResult(res) {
+  const m = MISSIONS[current];
+  const tier = judge(res, m);
+  const passed = tier.passed;
+  pendingGrant = passed && current < MISSIONS.length - 1 ? grantFrom(res.score, m.ref) : missionBudget;
+  const timeLabel = res.unit === "year" ? "Years" : "Mars days";
+  const ladder = ["fail", "below", "ok", "great", "miracle"].map((id) => "<span class='" + (id === tier.id ? "on" : "") + "'>" + (id === "fail" ? "Failure" : id === "below" ? "Below" : id === "ok" ? "Goal" : id === "great" ? "Excellent" : "Miracle") + "</span>").join("");
+  let nextLine;
+  if (!passed) nextLine = "That is short of what this mission needs. The rover is paid for. There is no new grant. Try again.";
+  else if (current < MISSIONS.length - 1) nextLine = "The Chinese space agency sets the next grant at " + formatMoney(pendingGrant) + ".";
+  else nextLine = "That was the last mission.";
+  const report = document.getElementById("report");
+  report.classList.remove("hide");
+  report.innerHTML = "<div class='popup'><img class='art' src='" + TIER_ART[tier.id] + "' alt='" + TIER_NAME[tier.id] + "'><p class='kicker'>Mission report</p><h2>" + TIER_NAME[tier.id] + "</h2>" + meterHtml(timeLabel, tier.gotTime, tier.needTime, tier.dayRatio, "") + meterHtml("Distance", res.km, m.needKm, tier.kmRatio, " km") + "<div class='ladder'>" + ladder + "</div><p>The rover lasted " + timeWords(res) + " and travelled " + res.km + " km. " + res.line + "</p><p>The score is " + res.score.toLocaleString() + ". That is Mars days times kilometres. " + nextLine + "</p><button type='button' id='nextMission'>" + (passed ? (current < MISSIONS.length - 1 ? "Next mission" : "See the ending") : "Try again") + "</button></div>";
+  historyPending = { title: m.title, sols: res.sols, km: res.km, score: res.score, unit: res.unit, span: res.span, tier: TIER_NAME[tier.id] };
+  document.getElementById("nextMission").addEventListener("click", () => {
+    clickSfx();
+    if (passed) advance();
+    else retry();
+  });
+  paintMood(res, 1);
+  camMode = "hold";
+  stopDrive();
+  resultSfx(passed);
+}
+function retry() {
+  document.getElementById("report").classList.add("hide");
+  keepVals = readVals();
+  loadMission();
+}
+function advance() {
+  document.getElementById("report").classList.add("hide");
+  history.push(historyPending);
+  totalScore += historyPending.score;
+  bankLeftover();
+  keepVals = null;
+  if (current >= MISSIONS.length - 1) { showEnd(); return; }
+  missionBudget = pendingGrant;
+  current += 1;
+  loadMission();
+}
+function campaignStanding() {
+  let refSum = 0;
+  MISSIONS.forEach((m) => { refSum += m.ref; });
+  const ratio = refSum ? totalScore / refSum : 1;
+  let pts = 0;
+  history.forEach((h) => {
+    if (h.tier === "A miracle") pts += 3;
+    else if (h.tier === "Excellent") pts += 2;
+    else pts += 1;
+  });
+  const avg = history.length ? pts / history.length : 1;
+  const byTier = avg >= 2.4 ? "outstanding" : avg >= 1.4 ? "strong" : "steady";
+  const byScore = ratio >= 1.75 ? "outstanding" : ratio >= 1.22 ? "strong" : "steady";
+  const rank = { steady: 0, strong: 1, outstanding: 2 };
+  return rank[byTier] >= rank[byScore] ? byTier : byScore;
+}
+function recordLine() {
+  let goal = 0, great = 0, miracle = 0;
+  history.forEach((h) => {
+    if (h.tier === "A miracle") miracle += 1;
+    else if (h.tier === "Excellent") great += 1;
+    else goal += 1;
+  });
+  const bits = [];
+  if (goal) bits.push(goal + " at goal");
+  if (great) bits.push(great + " excellent");
+  if (miracle) bits.push(miracle + (miracle === 1 ? " miracle" : " miracles"));
+  return "Record: " + bits.join(", ") + ".";
+}
+const ENDINGS = {
+  steady: {
+    clear: { art: "art/end-clear.webp", alt: "A rover beside a gold plaque", title: "The books are clear", line: "The rovers did each job that was asked. The grants covered the rovers, and money is left in savings." },
+    debt: { art: "art/end-debt.webp", alt: "A rover beside a cracked rock", title: "Money still owed", line: "The rovers did each job that was asked. Some of them cost more than the grants, so money is still owed." }
+  },
+  strong: {
+    clear: { art: "art/end-strong.webp", alt: "Three rovers lined up in bright sunlight", title: "A strong record", line: "Several rovers lasted longer or travelled further than the mission asked. The grants covered the cost, and money is left in savings." },
+    debt: { art: "art/end-strong-debt.webp", alt: "Three worn rovers on cracked ground", title: "A strong record", line: "Several rovers lasted longer or travelled further than the mission asked. The record is strong, and money is still owed." }
+  },
+  outstanding: {
+    clear: { art: "art/end-outstanding.webp", alt: "Four rovers under a gold sun and a teal sky", title: "An outstanding campaign", line: "The rovers lasted a long time and travelled a long way, well past what each mission asked. The books are clear." },
+    debt: { art: "art/end-outstanding-debt.webp", alt: "Four rovers on cracked ground under a red sky", title: "An outstanding campaign", line: "The rovers lasted a long time and travelled a long way, well past what each mission asked. The record is outstanding, and money is still owed." }
+  }
+};
+function showEnd() {
+  document.getElementById("report").classList.add("hide");
+  document.getElementById("shade").classList.add("hide");
+  document.getElementById("intro").classList.add("hide");
+  document.getElementById("detailBtn").classList.add("hide");
+  document.getElementById("nextReady").classList.add("hide");
+  document.getElementById("panel").style.display = "none";
+  hideTip();
+  const end = document.getElementById("ending");
+  end.classList.remove("hide");
+  const picked = ENDINGS[campaignStanding()][debt > 0 ? "debt" : "clear"];
+  const books = debt > 0
+    ? "Money still owed: " + formatMoney(debt) + "."
+    : "Savings left: " + formatMoney(savings) + ".";
+  const lines = history.map((h, i) => (i + 1) + ". " + h.title + " — " + h.tier + ", " + timeWords(h) + ", " + h.km + " km").join("<br>");
+  end.innerHTML = "<div class='popup'><img class='art' src='" + picked.art + "' alt='" + picked.alt + "'><h2>" + picked.title + "</h2><p>" + picked.line + "</p><p>Combined score " + totalScore.toLocaleString() + ". " + recordLine() + " " + books + "</p><p>" + lines + "</p></div>";
+}
+document.getElementById("go").addEventListener("click", () => {
+  if (play) return;
+  const m = MISSIONS[current];
+  const vals = readVals();
+  const res = m.run(vals);
+  spend(res.cost);
+  refreshHud(res.cost);
+  document.getElementById("go").disabled = true;
+  document.getElementById("go").textContent = "Travelling";
+  document.getElementById("live").classList.remove("hide");
+  document.getElementById("b1n").textContent = res.lifeName;
+  document.getElementById("lifeNote").textContent = res.lifeNote;
+  const extra = res.meter !== "Dust" && res.meter !== "Dust on shell";
+  document.getElementById("b3row").classList.toggle("hide", !extra);
+  if (extra) document.getElementById("b3n").textContent = res.meter;
+  m.sliders.forEach((s) => { document.getElementById("s-" + s.key).disabled = true; });
+  document.getElementById("shade").classList.add("hide");
+  hideTip();
+  makeRover(m.kind, vals);
+  blendFrom = camera.position.clone();
+  blendLook = orbitTarget();
+  blendT = 0;
+  camMode = "blend";
+  orbit.enabled = false;
+  play = { res, t: 0 };
+  showLive(res, 0, 0.016);
+  launchSfx();
+});
+function showLive(res, u, dt) {
+  const kmNow = Math.round(res.km * u * 10) / 10;
+  const dust = res.dust0 + (res.dust1 - res.dust0) * u;
+  const x = res.km > 0 ? Math.min(40, (kmNow / res.km) * Math.min(36, res.km * 1.1)) : 0;
+  placeRover(x, dust, u > 0.02 && u < 0.98 && res.km > 0.2, dt);
+  const bat = res.bat0 + (res.bat1 - res.bat0) * u;
+  const dura = 100 - (res.dust0 + (res.dust1 - res.dust0) * u) * 100;
+  const meter = res.m0 + (res.m1 - res.m0) * u;
+  document.getElementById("b1").style.width = clamp(bat, 0, 100) + "%";
+  document.getElementById("b2").style.width = clamp(dura, 0, 100) + "%";
+  document.getElementById("b1v").textContent = lifeWord(bat);
+  document.getElementById("b2v").textContent = duraWord(dura);
+  const extra = document.getElementById("b3");
+  if (extra) {
+    extra.style.width = clamp(meter, 0, 100) + "%";
+    document.getElementById("b3v").textContent = Math.round(meter);
+  }
+  if (res.unit === "year") {
+    const y = res.span * u;
+    document.getElementById("clock").textContent = "Year " + y.toFixed(1);
+  } else {
+    document.getElementById("clock").textContent = "Mars day " + Math.floor(res.sols * u);
+  }
+  document.getElementById("meters").textContent = kmNow + " km";
+  paintMood(res, u);
+  offerNext(res, u);
+}
+function targetsMet(res, u) {
+  const m = MISSIONS[current];
+  const timeNow = res.unit === "year" ? res.span * u : res.sols * u;
+  const needTime = res.unit === "year" ? m.needYears : m.needDays;
+  return timeNow >= needTime && res.km * u >= m.needKm;
+}
+function offerNext(res, u) {
+  if (!targetsMet(res, u)) return;
+  const btn = document.getElementById("nextReady");
+  btn.textContent = current < MISSIONS.length - 1 ? "Next mission" : "See the ending";
+  btn.classList.remove("hide");
+}
+function orbitTarget() {
+  const y = placeRover.sy == null ? 0.8 : placeRover.sy + 0.75;
+  return new THREE.Vector3(rover ? rover.position.x : 0, y, rover ? rover.position.z : 0);
+}
+function applyOrbit() {
+  const y = placeRover.sy == null ? 0.8 : placeRover.sy + 0.7;
+  const target = new THREE.Vector3(0.2, y, 0);
+  const sp = Math.sin(orbit.phi);
+  camera.position.set(
+    target.x + orbit.radius * sp * Math.sin(orbit.theta),
+    target.y + orbit.radius * Math.cos(orbit.phi),
+    target.z + orbit.radius * sp * Math.cos(orbit.theta)
+  );
+  camera.lookAt(target);
+}
+function frameOrbit() {
+  orbit.theta = 0.62;
+  orbit.phi = 0.96;
+  orbit.radius = MISSIONS[current].kind === "ball" ? 7.2 : 12.5;
+  orbit.enabled = true;
+  camMode = "orbit";
+  applyOrbit();
+}
+function bindOrbit() {
+  const el = renderer.domElement;
+  el.addEventListener("pointerdown", (e) => {
+    if (!orbit.enabled || camMode !== "orbit") return;
+    orbit.dragging = true;
+    orbit.lx = e.clientX;
+    orbit.ly = e.clientY;
+    el.setPointerCapture(e.pointerId);
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!orbit.dragging) return;
+    orbit.theta -= (e.clientX - orbit.lx) * 0.008;
+    orbit.phi = clamp(orbit.phi + (e.clientY - orbit.ly) * 0.006, 0.38, 1.32);
+    orbit.lx = e.clientX;
+    orbit.ly = e.clientY;
+    applyOrbit();
+  });
+  el.addEventListener("pointerup", () => { orbit.dragging = false; });
+  el.addEventListener("pointercancel", () => { orbit.dragging = false; });
+  el.addEventListener("wheel", (e) => {
+    if (camMode !== "orbit") return;
+    e.preventDefault();
+    orbit.radius = clamp(orbit.radius + e.deltaY * 0.012, 4.5, 22);
+    applyOrbit();
+  }, { passive: false });
+}
+function updateCamera(dt) {
+  if (camMode === "orbit" || camMode === "hold" || !rover) return;
+  const x = rover.position.x;
+  const z = rover.position.z;
+  const y = placeRover.sy == null ? rover.position.y : placeRover.sy;
+  const ball = world.look.kind === "ball";
+  camWant.set(x - (ball ? 4.2 : 6.4), y + (ball ? 2.2 : 2.8), z + (ball ? 3.4 : 5.2));
+  lookAt.set(x + (ball ? 1.2 : 2.4), y + 0.85, z);
+  if (camMode === "blend") {
+    blendT += dt;
+    const k = clamp(blendT / 1.35, 0, 1);
+    const e = k * k * (3 - 2 * k);
+    camera.position.lerpVectors(blendFrom, camWant, e);
+    blendTmp.copy(blendLook).lerp(lookAt, e);
+    camera.lookAt(blendTmp);
+    if (k >= 1) camMode = "follow";
+  } else if (camMode === "follow") {
+    camera.position.lerp(camWant, Math.min(0.28, 1 - Math.pow(0.001, dt)));
+    camera.lookAt(lookAt);
+  }
+}
+function loop() {
+  requestAnimationFrame(loop);
+  if (!worldOk) return;
+  const dt = Math.min(0.05, animClock.getDelta());
+  if (play) {
+    play.t += dt;
+    const u = Math.min(1, play.t / 14);
+    showLive(play.res, u, dt);
+    updateCamera(dt);
+    if (u >= 1) {
+      const res = play.res;
+      play = null;
+      showResult(res);
+    }
+  } else if (rover && camMode !== "hold") {
+    placeRover(rover.position.x, rover.userData.dust == null ? 0.15 : rover.userData.dust, false, dt);
+  }
+  stepType(dt);
+  stepQuip(dt);
+  renderer.render(scene, camera);
+}
+window.addEventListener("resize", () => {
+  if (!renderer) return;
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+document.getElementById("nextReady").addEventListener("click", () => {
+  ensureAudio();
+  clickSfx();
+  if (play) {
+    const res = play.res;
+    play = null;
+    showResult(res);
+    return;
+  }
+  if (!document.getElementById("report").classList.contains("hide")) advance();
+});
+document.getElementById("detailBtn").addEventListener("click", () => {
+  ensureAudio();
+  clickSfx();
+  if (!introDone) return;
+  openBrief();
+});
+document.getElementById("briefOk").addEventListener("click", () => {
+  ensureAudio();
+  clickSfx();
+  document.getElementById("shade").classList.add("hide");
+  typeState = null;
+});
+document.getElementById("introOk").addEventListener("click", () => {
+  ensureAudio();
+  clickSfx();
+  introDone = true;
+  document.getElementById("intro").classList.add("hide");
+  typeState = null;
+  openBrief();
+});
+document.getElementById("panel").addEventListener("scroll", hideTip);
+let audioCtx = null;
+let typeState = null;
+let quipState = null;
+let driveNodes = null;
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function clickSfx() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(740, t);
+  gain.gain.setValueAtTime(0.028, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.06);
+}
+function typeTick(ch) {
+  if (!audioCtx || audioCtx.state !== "running") return;
+  if (!ch || !/[A-Za-z0-9]/.test(ch)) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const filter = audioCtx.createBiquadFilter();
+  const gain = audioCtx.createGain();
+  const notes = [659.25, 783.99, 880, 987.77];
+  const freq = notes[(Math.random() * notes.length) | 0] * (0.97 + Math.random() * 0.06);
+  osc.type = "square";
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(Math.max(200, freq * 0.78), t + 0.03);
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(1100, t);
+  filter.Q.setValueAtTime(1.2, t);
+  gain.gain.setValueAtTime(0.035, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.032);
+  osc.connect(filter).connect(gain).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t + 0.04);
+}
+function noiseBuffer(seconds) {
+  const ctx = ensureAudio();
+  if (!ctx) return null;
+  const len = Math.floor(ctx.sampleRate * seconds);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  return buf;
+}
+function startDrive() {
+  stopDrive();
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(1.5);
+  src.loop = true;
+  const low = ctx.createBiquadFilter();
+  low.type = "lowpass";
+  low.frequency.value = world.look.kind === "ball" || world.look.kind === "storm" ? 900 : 240;
+  const gain = ctx.createGain();
+  gain.gain.value = world.look.kind === "storm" ? 0.045 : 0.03;
+  src.connect(low).connect(gain).connect(ctx.destination);
+  src.start();
+  driveNodes = { src: src, gain: gain };
+}
+function stopDrive() {
+  if (!driveNodes) return;
+  const ctx = audioCtx;
+  const now = ctx ? ctx.currentTime : 0;
+  try {
+    driveNodes.gain.gain.cancelScheduledValues(now);
+    driveNodes.gain.gain.setValueAtTime(driveNodes.gain.gain.value, now);
+    driveNodes.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+    driveNodes.src.stop(now + 0.28);
+  } catch (e) {}
+  driveNodes = null;
+}
+function launchSfx() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(160, t);
+  osc.frequency.exponentialRampToValueAtTime(480, t + 0.4);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.05, t + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.52);
+  startDrive();
+}
+function resultSfx(passed) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const notes = passed ? [523.25, 659.25, 783.99] : [392, 349.23, 293.66];
+  notes.forEach((freq, i) => {
+    const t = ctx.currentTime + i * 0.12;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = passed ? "triangle" : "sawtooth";
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  });
+}
+function typeNodes(nodes) {
+  const full = nodes.map((node) => node.textContent);
+  nodes.forEach((node) => { node.textContent = ""; });
+  typeState = { nodes: nodes, full: full, ni: 0, ci: 0, acc: 0 };
+}
+function stepType(dt) {
+  if (!typeState) return;
+  typeState.acc += Math.min(dt, 0.05) * 1000;
+  while (typeState && typeState.acc >= 20) {
+    typeState.acc -= 20;
+    while (typeState.ni < typeState.nodes.length && typeState.ci >= typeState.full[typeState.ni].length) {
+      typeState.ni += 1;
+      typeState.ci = 0;
+    }
+    if (typeState.ni >= typeState.nodes.length) { typeState = null; return; }
+    const ch = typeState.full[typeState.ni][typeState.ci];
+    typeState.nodes[typeState.ni].textContent += ch;
+    typeTick(ch);
+    typeState.ci += 1;
+  }
+}
+function stepQuip(dt) {
+  if (!quipState) return;
+  quipState.acc += Math.min(dt, 0.05) * 1000;
+  while (quipState && quipState.acc >= 20) {
+    quipState.acc -= 20;
+    if (quipState.i >= quipState.full.length) { quipState = null; return; }
+    const ch = quipState.full[quipState.i];
+    quipState.el.textContent += ch;
+    if (!typeState) typeTick(ch);
+    quipState.i += 1;
+  }
+}
+let animClock = { getDelta: function () { return 0.016; } };
+if (!window.THREE) document.getElementById("hint").textContent = "The picture needs the internet once. Connect, then refresh.";
+else { animClock = new THREE.Clock(); boot(); }
+</script>
+</body>
+</html>

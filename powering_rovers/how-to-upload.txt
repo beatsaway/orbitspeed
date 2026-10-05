@@ -1,0 +1,63 @@
+Rover missions
+
+Open index.html in a browser. The page needs the internet once, so it can load the 3D library.
+
+The pictures sit in the art folder, saved as WebP. Keep that folder next to index.html.
+
+To put this on another GitHub repo:
+1. Open the other repo on github.com.
+2. Click Add file, then Upload files.
+3. Drag this whole rover_missions folder onto the page. Include index.html, how-to-upload.txt, and the art folder.
+4. Commit the upload.
+
+After that, open index.html from the repo to play.
+
+What 6 simple true false questions  can we ask students after the game?
+What 6 simple mc questions  can we ask students after the game?
+
+Six true or false questions:
+
+The score is how many Mars days the rover lasts, times how many kilometres it travels. True
+A bigger battery lasts longer, and it also costs more and adds weight. True
+In a dust storm, extra solar panels help a lot because the sun is still strong. False. The sky is brown and the sun is weak, so the battery does most of the work.
+Set the kilometres in the storm to zero and the rover still travels, it just travels slowly. False. It waits, and it does not travel.
+A night heater that is too small lets the cold reach the computer. False is wrong — this one is True. Nights fall to about −130°C.
+If the instruments on the nuclear rover are switched off, almost none of the drive counts. True
+Six multiple-choice questions:
+
+What happens if the rover misses the time or the distance?
+
+A. You still pay for the rover, and the grant does not grow.
+B. The agency gives a larger grant.
+C. The rover is free to try again.
+D. The score is doubled.
+Why can a very long drive each day stop a solar rover early?
+
+A. The wheels fall off.
+B. The drive uses the battery faster than the panels can keep up.
+C. The night becomes warmer.
+D. The grant is spent on the sun.
+On the ridge, what is the drawback of bigger wheels and a stronger motor?
+
+A. They make the rover lighter.
+B. They clean dust off the glass.
+C. They use more power, so a small battery may not last the climb.
+D. They turn the rover into a wind ball.
+What happens to the nuclear pack as the years pass?
+
+A. It gets stronger.
+B. It gets weaker.
+C. It starts to need sunlight.
+D. It stops heating the rover on day one.
+Why does a long drill, plus a long drive between holes, put the mission at risk?
+
+A. The wind cannot roll the ball.
+B. The drill and the drive share one pack, so the pack can run out early.
+C. Solar panels overheat.
+D. The rover no longer needs a grant.
+What does a higher Shrink number do to the wind ball?
+
+A. It only makes the ball catch more wind.
+B. It makes the ball smaller, so dust hits less of it, and it also catches less wind.
+C. It adds a night heater.
+D. It pays off any debt.
