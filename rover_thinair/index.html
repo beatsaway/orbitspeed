@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thin air</title>
+<style>
+  :root { --ink:#172033; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; overflow:hidden; background:#1a0e0c; color:#f4efe6; font-family:"Segoe UI", sans-serif; }
+  canvas { display:block; position:fixed; inset:0; z-index:0; }
+  #vignette { position:fixed; inset:0; z-index:1; pointer-events:none; background:radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.42) 100%); }
+  #detailBtn {
+    position:fixed; z-index:5; top:14px; left:50%; transform:translateX(-50%);
+    padding:6px 14px; border:1px solid #2a6a88; border-radius:999px;
+    background:rgba(8,9,12,.9); color:#f4efe6; font:inherit; font-size:.85rem; cursor:pointer;
+  }
+  #panel { position:fixed; z-index:4; top:14px; left:14px; width:min(340px, 94vw); max-height:calc(100vh - 28px); overflow:auto; background:rgba(16,36,63,.92); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:14px 14px 12px; }
+  .kicker { margin:0; letter-spacing:.12em; text-transform:uppercase; font-size:.72rem; color:#e7b197; font-weight:700; }
+  h1 { margin:4px 0 6px; font-size:1.4rem; }
+  .rule { margin:0 0 8px; font-size:.98rem; line-height:1.35; color:#f0c14a; font-weight:700; }
+  .story { margin:0 0 8px; font-size:.98rem; line-height:1.4; }
+  .choice { display:block; width:100%; margin-top:8px; padding:10px 12px; border:0; border-radius:12px; background:#fff; color:var(--ink); font:700 .98rem "Segoe UI", sans-serif; text-align:left; line-height:1.35; cursor:pointer; }
+  .choice:disabled { cursor:default; opacity:.55; }
+  .choice.on { box-shadow:inset 0 0 0 3px #c47a12; }
+  .choice.good { background:#1d5a34; color:#e7ffef; opacity:1; }
+  button.solid { border:0; border-radius:999px; padding:10px 16px; font:700 1rem "Segoe UI", sans-serif; cursor:pointer; background:#fff; color:var(--ink); }
+  #confirmBtn { display:none; width:100%; margin-top:10px; position:sticky; bottom:0; }
+  #confirmBtn.show { display:block; }
+  .problem-art { width:100%; height:132px; object-fit:cover; border-radius:12px; margin:0 0 8px; display:block; background:#1a100c; border:1px solid rgba(255,255,255,.12); }
+  #hud { position:fixed; z-index:4; top:14px; right:16px; width:min(280px, 46vw); background:rgba(16,36,63,.92); border:1px solid rgba(255,255,255,.14); border-radius:16px; padding:12px; }
+  .row { display:flex; justify-content:space-between; gap:10px; margin:3px 0; font-size:.92rem; }
+  .row span { color:#e7d7c8; }
+  .row b { font-variant-numeric:tabular-nums; }
+  .row b.bad { color:#ff8b8b; }
+  .row b.ok { color:#86efac; }
+  .air { color:#f0c14a; }
+  .bar { display:grid; grid-template-columns:78px 1fr 84px; gap:6px; align-items:center; font-size:.82rem; margin:5px 0; }
+  .track { height:10px; background:rgba(0,0,0,.35); border-radius:99px; overflow:hidden; }
+  .fill { height:100%; width:0; border-radius:99px; }
+  .fill.conduct { background:linear-gradient(90deg, #8eb8d4, #eef3f7); }
+  .fill.conduct.shut { background:#8d7468; }
+  .fill.kg { background:#e0b07a; }
+  .fill.pow { background:#8eb4d4; }
+  #shade, #brief, #result, #ending { position:fixed; inset:0; z-index:8; background:rgba(7,17,28,.72); display:flex; align-items:center; justify-content:center; }
+  #shade.hide, #brief.hide, #result.hide, #ending.hide { display:none; }
+  .popup { background:#071018; border:1px solid #2a6a88; border-radius:16px; padding:16px; width:min(480px, 92vw); max-height:min(88vh, 760px); overflow:auto; line-height:1.45; }
+  .popup h2 { margin:0 0 8px; font-size:1.35rem; }
+  .popup p { margin:0 0 8px; }
+  .popup button { width:100%; margin-top:8px; }
+  .popup img.art { width:100%; height:150px; object-fit:cover; border-radius:12px; margin:0 0 10px; display:block; background:#1a100c; }
+  #tipBox.hide { display:none; }
+  #tipBox {
+    position:fixed; z-index:6; width:min(280px, 92vw); pointer-events:none;
+    background:#fff; color:var(--ink); border-radius:14px; padding:10px 12px;
+    box-shadow:0 8px 20px rgba(0,0,0,.28); font-size:.95rem; font-weight:600; line-height:1.35;
+  }
+  #tipBox b { display:block; margin-bottom:3px; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:#8a4b2a; }
+  #tipDeltas { display:flex; flex-direction:column; gap:2px; margin-top:8px; padding-top:6px; border-top:1px solid rgba(23,32,51,.12); font-variant-numeric:tabular-nums; }
+  #mood { position:fixed; z-index:5; right:16px; bottom:14px; display:flex; align-items:flex-end; gap:8px; pointer-events:none; }
+  #moodSay { margin:0 0 18px; max-width:240px; background:#fff; color:var(--ink); border-radius:16px 16px 4px 16px; padding:10px 12px; font-size:1rem; font-weight:700; line-height:1.3; }
+  #moodFace { font-size:84px; line-height:1; filter:drop-shadow(0 8px 12px rgba(0,0,0,.35)); }
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+<button type="button" id="detailBtn">Problem 1 · Heat</button>
+<div id="panel">
+  <p class="kicker" id="kicker">Problem 1 of 7</p>
+  <h1 id="title">Heat that cannot leave</h1>
+  <img id="problemArt" class="problem-art" alt="A rover with heat trapped in its computer" src="art/01-heat.webp">
+  <p class="rule" id="ask">Choose how the computer loses its heat.</p>
+  <div id="choices"></div>
+  <button class="solid" type="button" id="confirmBtn">Confirm</button>
+</div>
+<div id="hud">
+  <div class="row"><span>Air</span><b class="air">About 1% of Earth</b></div>
+  <div class="bar"><span title="How easily heat moves. Not the temperature.">Conduct</span><div class="track"><div class="fill conduct" id="conductBar" style="width:82%"></div></div><b id="conductVal">High</b></div>
+  <div class="bar"><span>Weight</span><div class="track"><div class="fill kg" id="kgBar"></div></div><b id="kgVal">Light</b></div>
+  <div class="bar"><span>Power</span><div class="track"><div class="fill pow" id="powBar"></div></div><b id="powVal">Easy</b></div>
+  <div class="row"><span>Grant</span><b id="grant"></b></div>
+  <div class="row"><span>Spent</span><b id="cost"></b></div>
+  <div class="row"><span>Debt</span><b id="debt"></b></div>
+</div>
+<div id="mood">
+  <p id="moodSay">Four designs. Select one to see it on the rover.</p>
+  <div id="moodFace">🙂</div>
+</div>
+<div id="tipBox" class="hide"><b id="tipLabel">Tip</b><span id="tipText"></span><div id="tipDeltas"></div></div>
+<div id="shade">
+  <div class="popup">
+    <p class="kicker">Mars yard</p>
+    <h2>Thin air</h2>
+    <p>The air on Mars is about 1% as thick as the air on Earth. Each problem has four designs. Hover a design to read what it does. Select one to see it on the rover, then press Confirm.</p>
+    <p>The grant is ¥52,000,000. The meters are conductivity, weight, and power. Conductivity is how easily heat moves. Mars can be hot or cold, so that meter is not the temperature. At the end you see how many Mars days the rover lasted, how far it travelled, and what stopped it.</p>
+    <button class="solid" type="button" id="introOk">Begin</button>
+  </div>
+</div>
+<div id="brief" class="hide">
+  <div class="popup">
+    <p class="kicker" id="briefKicker"></p>
+    <img id="briefArt" class="art" alt="">
+    <h2 id="briefTitle"></h2>
+    <div id="briefBody"></div>
+    <button class="solid" type="button" id="briefOk">Close</button>
+  </div>
+</div>
+<div id="result" class="hide">
+  <div class="popup">
+    <p class="kicker" id="resultKicker"></p>
+    <h2 id="resultTitle"></h2>
+    <p id="resultBody"></p>
+    <p id="resultExtra"></p>
+    <button class="solid" type="button" id="resultOk">Try again</button>
+  </div>
+</div>
+<div id="ending" class="hide"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const GRANT0 = 52;
+const BASE = { heat: 22, kg: 160, watts: 28 };
+const PROBLEMS = [
+  {
+    title: "Heat that cannot leave",
+    chip: "Heat",
+    part: "radiator",
+    short: "Heat",
+    art: "art/01-heat.webp",
+    alt: "A rover with heat trapped in its computer",
+    ask: "Choose how the computer loses its heat.",
+    face: "🥵",
+    quip: "The computer is cooking. This air will not carry that heat.",
+    story: [
+      "The computer makes heat when it works. On Earth a fan blows air across it, and the air carries the heat away.",
+      "Mars air is about 1% as thick, so a fan moves almost no air. In a vacuum it moves none. The heat stays in the box."
+    ],
+    choices: [
+      { text: "A big fan", look: "fan", tip: "Very cheap. A big fan still has almost no air to push, so the computer stays hot, and the motor uses more power.", cost: 1, heat: 16, kg: 2, watts: 8, fit: false, face: "😓", quip: "That fan is loud. The thin air barely moves." },
+      { text: "An electric cooler", look: "cooler", tip: "The cooler can pull heat off the computer, but only by using a lot of power. The heat it dumps still sits on the rover.", cost: 4, heat: 3, kg: 5, watts: 20, fit: false, face: "⚡", quip: "The cooler hums. The battery is paying for it." },
+      { text: "A heavy metal block", look: "block", tip: "The metal soaks up heat, so the computer stays cooler. The block is heavy, so the rover has more to pull.", cost: 5, heat: 4, kg: 42, watts: 1, fit: true, face: "😮", quip: "That block can hold heat. It is also a lot to drag." },
+      { text: "Radiator fins", look: "fins", tip: "Costs more. Heat leaves as infrared light, so it does not need air. Little extra weight, and almost no extra power.", cost: 7, heat: 1, kg: 8, watts: 1, fit: true, face: "😎", quip: "Fins up. The heat can glow off into space." }
+    ]
+  },
+  {
+    title: "Dust on the glass",
+    chip: "Dust",
+    part: "brush",
+    short: "Dust",
+    art: "art/02-dust.webp",
+    alt: "A rover whose solar panels are covered in dust",
+    ask: "Choose how to clear dust off the solar panels.",
+    face: "😷",
+    quip: "The glass is dusty. Nothing out here is blowing it off.",
+    story: [
+      "The wheels throw dust onto the glass. On Earth a fan, or the wind, would blow that dust off.",
+      "Air this thin gives a small fan almost nothing to push. Until the glass is clear, the panels make less power."
+    ],
+    choices: [
+      { text: "Wait for the wind", look: "wind", tip: "Very cheap. The wind may never come. Dusty panels make less power, so the battery has to cover the gap.", cost: 1, heat: 3, kg: 0, watts: 14, fit: false, face: "🙄", quip: "We can wait. The battery cannot." },
+      { text: "A fan on the glass", look: "panfan", tip: "The fan uses a lot of power. In air this thin it pushes almost no dust off the glass.", cost: 3, heat: 4, kg: 3, watts: 16, fit: false, face: "😤", quip: "The fan spins. The dust stays put." },
+      { text: "A thick cover to lift off", look: "cover", tip: "A thick cover keeps dust off, then the crew lifts it. It works, and it adds a lot of weight.", cost: 4, heat: 2, kg: 44, watts: 2, fit: false, face: "🏋️", quip: "That cover works. Lifting it is a workout." },
+      { text: "A brush on each panel", look: "brush", tip: "A brush on each panel pushes the dust off. It does not need wind. A little weight, a little power.", cost: 6, heat: 1, kg: 6, watts: 2, fit: true, face: "✨", quip: "Swipe, swipe. The glass can see the sun." }
+    ]
+  },
+  {
+    title: "Wheels that need no air",
+    chip: "Wheels",
+    part: "wheels",
+    short: "Wheels",
+    art: "art/03-wheels.webp",
+    alt: "A rover with large air-filled tires",
+    ask: "Choose a wheel for thin air.",
+    face: "😬",
+    quip: "Those tires are full of air. Out here, air wants out.",
+    story: [
+      "An air-filled tire works because the air inside pushes out. On Earth the outside air pushes back.",
+      "Outside the rover the air is only about 1% of that push. A leak empties the tire, and a flat tire is dead weight."
+    ],
+    choices: [
+      { text: "Air tires, filled extra full", look: "wheels", wheel: "air", tip: "Very cheap. More air makes the outward push stronger. A leak still flattens the tire, and then the rover drags dead weight.", cost: 1, heat: 2, kg: 38, watts: 6, fit: false, face: "😟", quip: "More air in the tire. A leak still empties it." },
+      { text: "Huge solid metal drums", look: "wheels", wheel: "drum", tip: "Solid metal will not puncture. The drums add a lot of weight, so the rover is harder to pull.", cost: 5, heat: 2, kg: 52, watts: 2, fit: true, face: "😮", quip: "Those drums will not go flat. They are a lot of metal." },
+      { text: "A motor in every wheel", look: "wheels", wheel: "motor", tip: "A motor in each wheel grips well. Together they drink a lot of power.", cost: 5, heat: 4, kg: 14, watts: 22, fit: true, face: "⚡", quip: "Six motors. The battery felt that." },
+      { text: "Light metal mesh wheels", look: "wheels", wheel: "mesh", tip: "Costs more. Metal mesh does not hold air, so a puncture cannot flatten it. Not too heavy, and almost no extra power.", cost: 7, heat: 1, kg: 12, watts: 1, fit: true, face: "😄", quip: "Mesh wheels. No air inside to lose." }
+    ]
+  },
+  {
+    title: "Oil that boils away",
+    chip: "Joints",
+    part: "joints",
+    short: "Joints",
+    art: "art/04-oil.webp",
+    alt: "Oil turning to vapor on a rover wheel joint",
+    ask: "Choose what keeps each wheel joint turning.",
+    face: "🫠",
+    quip: "That oil is turning into a little cloud.",
+    story: [
+      "A liquid boils at a lower temperature when the air pressure is low. Oil on an open joint turns to vapor and leaves.",
+      "The joint then grinds and makes heat. This is worse in a vacuum, where there is no air pressure at all."
+    ],
+    choices: [
+      { text: "A bigger tank of oil", look: "oiltank", tip: "Very cheap. More oil still turns to vapor in thin air. Dry metal then grinds and makes heat.", cost: 1, heat: 14, kg: 4, watts: 2, fit: false, face: "🥵", quip: "More oil. It still boils away." },
+      { text: "A heavy sealed housing", look: "housing", tip: "A thick housing keeps the lubricant in. The housing is heavy.", cost: 4, heat: 3, kg: 40, watts: 1, fit: true, face: "🏋️", quip: "The joint is sealed in a brick." },
+      { text: "A heater on the joint", look: "jheater", tip: "A heater can keep oil from thickening, but it uses power the whole time, and it adds heat to the rover.", cost: 4, heat: 5, kg: 6, watts: 18, fit: true, face: "🔥", quip: "Warm oil. The heater never sleeps." },
+      { text: "A dry film on the joint", look: "film", tip: "Costs more. A dry lubricant is a solid film. It does not boil away, and it is light.", cost: 6, heat: 1, kg: 4, watts: 1, fit: true, face: "😎", quip: "Dry film. Nothing there to boil." }
+    ]
+  },
+  {
+    title: "Ice that vanishes",
+    chip: "Ice",
+    part: "box",
+    short: "Ice",
+    art: "art/05-ice.webp",
+    alt: "A rover scoop holding a block of ice",
+    ask: "Choose how to keep the ice sample.",
+    face: "🧊",
+    quip: "The ice is shrinking. It is not melting.",
+    story: [
+      "Ice does not have to melt. If the air is thin enough, ice turns straight from solid to vapor.",
+      "A scoop of ice left in the open shrinks away. The sample is gone before it reaches the lab."
+    ],
+    choices: [
+      { text: "Leave it on the open scoop", look: "scoop", tip: "Very cheap. Ice in the open turns straight to vapor. Chasing it with a fan uses power and does not save the sample.", cost: 1, heat: 8, kg: 1, watts: 12, fit: false, face: "😬", quip: "The scoop is open. There goes the ice." },
+      { text: "A big steel freezer", look: "steelbox", tip: "A big steel box can keep the ice. It is very heavy, and the cooler inside uses some power.", cost: 5, heat: 2, kg: 48, watts: 6, fit: true, face: "😮", quip: "A steel freezer. The rover felt that." },
+      { text: "An electric freezer, run hard", look: "efreezer", tip: "An electric freezer can hold the ice. It uses a lot of power, and the heat it dumps stays on the rover.", cost: 4, heat: 8, kg: 12, watts: 22, fit: true, face: "⚡", quip: "The freezer roars. So does the heat it dumps." },
+      { text: "A small sealed cold box", look: "coldbox", tip: "Costs more. The lid traps the vapor, and the box stays cold. A little weight and a little power.", cost: 6, heat: 2, kg: 8, watts: 3, fit: true, face: "😌", quip: "Lid shut. The ice stays ice." }
+    ]
+  },
+  {
+    title: "Getting down",
+    chip: "Landing",
+    part: "chute",
+    short: "Landing",
+    art: "art/06-landing.webp",
+    alt: "A rover hanging under a parachute above Mars",
+    ask: "Choose how the rover slows down for landing.",
+    face: "🪂",
+    quip: "Still falling. An Earth parachute is a napkin out here.",
+    story: [
+      "A parachute needs air to slow a fall. Mars has some air, about 1% of Earth, so a parachute can work, but only if it is huge.",
+      "That parachute still cannot finish the landing. The last of the speed needs rockets. On the Moon a parachute cannot help at all."
+    ],
+    choices: [
+      { text: "An Earth-sized parachute", look: "chute", chute: 0.55, tip: "Cheap. An Earth parachute does not catch enough of this thin air. The hard hit bends the frame and jars the computer.", cost: 2, heat: 6, kg: 22, watts: 2, fit: false, face: "😵", quip: "That chute is too small. The landing will be rude." },
+      { text: "A giant parachute only", look: "chute", chute: 1.45, tip: "A very large parachute can use the thin air. The cloth and lines add a lot of weight, and it still cannot finish the landing alone.", cost: 6, heat: 1, kg: 44, watts: 1, fit: true, face: "😮", quip: "A huge chute. Packing it is a job." },
+      { text: "Rockets only, no parachute", look: "rockets", tip: "Rockets do not need air, so they can land the rover. They cost a lot, and the engines pour heat into the frame.", cost: 8, heat: 12, kg: 18, watts: 4, fit: false, face: "🔥", quip: "All rockets. The frame can feel the heat." },
+      { text: "A huge chute, then small rockets", look: ["chute", "rockets"], chute: 1.25, rocket: "small", tip: "Costs the most. The huge chute cuts most of the speed. Small rockets do the last, slow part.", cost: 9, heat: 3, kg: 18, watts: 2, fit: true, face: "😎", quip: "Big chute first. Rockets only for the last bit." }
+    ]
+  },
+  {
+    title: "A flyer in thin air",
+    chip: "Flyer",
+    part: "flyer",
+    short: "Flyer",
+    art: "art/07-flyer.webp",
+    alt: "A small helicopter beside a Mars rover",
+    ask: "Choose blades that can fly in this thin air.",
+    face: "🚁",
+    quip: "Ordinary blades are shoving almost nothing down.",
+    story: [
+      "A helicopter stays up by pushing air down. In air this thin, ordinary drone blades do not push enough air.",
+      "Spinning them harder uses power and makes heat. In a vacuum the blades would push nothing at all."
+    ],
+    choices: [
+      { text: "Earth blades, spun a little faster", look: "flyer", flyer: "short", tip: "Cheap. Short blades in thin air push too little. Spinning them harder uses a lot of power and makes heat.", cost: 2, heat: 8, kg: 6, watts: 24, fit: true, face: "😓", quip: "Faster spin. Still not enough air." },
+      { text: "Long blades on a heavy frame", look: "flyer", flyer: "heavy", tip: "Long blades meet more air. This frame is heavy, so the flyer is harder to lift and the rover carries that weight.", cost: 5, heat: 3, kg: 38, watts: 10, fit: true, face: "🏋️", quip: "Long blades, and a frame like a brick." },
+      { text: "Tiny blades, spun extremely fast", look: "flyer", flyer: "tiny", tip: "Very fast spin uses a lot of power and dumps heat. Short blades still do not catch enough thin air.", cost: 4, heat: 10, kg: 5, watts: 26, fit: true, face: "⚡", quip: "Those blades are a blur. The battery is not amused." },
+      { text: "Long light blades, two rotors", look: "flyer", flyer: "long", tip: "Costs more. Long light blades, spun fast, push enough thin air to lift a small flyer. Some power, not a crisis.", cost: 7, heat: 3, kg: 8, watts: 8, fit: true, face: "😄", quip: "Long and light. That is how you push thin air." }
+    ]
+  }
+];
+
+let current = 0;
+let heat = BASE.heat;
+let kg = BASE.kg;
+let watts = BASE.watts;
+let grant = GRANT0;
+let savings = 0;
+let debt = 0;
+let spent = 0;
+let locked = false;
+let popupMode = "next";
+let selected = -1;
+let preview = null;
+const picks = [];
+const committed = [];
+const world = { amp: 1, ridge: 0.6 };
+const orbit = { enabled: true, dragging: false, lx: 0, ly: 0, theta: 0.85, phi: 1.02, radius: 9.2 };
+const glowMaps = {};
+let solarMap = null;
+let renderer, scene, camera, rover, ground, skyMesh, sunLight, hemi, sunSprite, starPoints;
+let dustPts, puffPts, rocks = [];
+let driveT = 0;
+
+function hash(x, z, salt) {
+  let n = Math.imul(x + salt * 13, 374761393) + Math.imul(z + salt * 29, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+function fade(t) { return t * t * (3 - 2 * t); }
+function valueNoise(x, z, salt) {
+  const x0 = Math.floor(x), z0 = Math.floor(z);
+  const tx = fade(x - x0), tz = fade(z - z0);
+  const a = hash(x0, z0, salt), b = hash(x0 + 1, z0, salt), c = hash(x0, z0 + 1, salt), d = hash(x0 + 1, z0 + 1, salt);
+  return a + (b - a) * tx + (c - a) * tz + (a - b - c + d) * tx * tz;
+}
+function terrainHeight(x, z) {
+  const broad = valueNoise(x * 0.03, z * 0.03, 11);
+  const mid = valueNoise(x * 0.08, z * 0.08, 17);
+  const fine = valueNoise(x * 0.18, z * 0.18, 23);
+  let h = ((broad - 0.5) * 6.2 + (mid - 0.5) * 2.8 + (fine - 0.5) * 0.9) * world.amp;
+  const ridge = valueNoise(x * 0.02 + 4, z * 0.02, 29);
+  h += clamp((ridge - 0.45) / 0.08, 0, 1) * 3.6 * world.ridge;
+  return h;
+}
+function glowTex(core, edge) {
+  const key = core + edge;
+  if (glowMaps[key]) return glowMaps[key];
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grd.addColorStop(0, core);
+  grd.addColorStop(0.45, edge);
+  grd.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+  const map = new THREE.CanvasTexture(c);
+  map.encoding = THREE.sRGBEncoding;
+  glowMaps[key] = map;
+  return map;
+}
+function solarTex() {
+  if (solarMap) return solarMap;
+  const c = document.createElement("canvas");
+  c.width = 256;
+  c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "#0c2044";
+  g.fillRect(0, 0, 256, 128);
+  for (let x = 6; x < 256; x += 28) {
+    for (let y = 6; y < 128; y += 24) {
+      g.fillStyle = "#1d4e9c";
+      g.fillRect(x, y, 22, 16);
+      g.strokeStyle = "#b7e4ff";
+      g.lineWidth = 1;
+      g.strokeRect(x + 0.5, y + 0.5, 21, 15);
+    }
+  }
+  solarMap = new THREE.CanvasTexture(c);
+  solarMap.encoding = THREE.sRGBEncoding;
+  return solarMap;
+}
+function makePoints(count, color, size, opacity) {
+  const pos = new Float32Array(count * 3);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    color, size, transparent: true, opacity, depthWrite: false, fog: false
+  }));
+  return { pts, pos, count };
+}
+
+function boot() {
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
+  document.body.prepend(renderer.domElement);
+  scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0xc47855, 0.012);
+  camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 220);
+  skyMesh = new THREE.Mesh(new THREE.SphereGeometry(140, 28, 18), new THREE.MeshBasicMaterial({ color: 0xc47855, side: THREE.BackSide }));
+  scene.add(skyMesh);
+  hemi = new THREE.HemisphereLight(0xffc49a, 0x6a3018, 0.72);
+  scene.add(hemi);
+  sunLight = new THREE.DirectionalLight(0xffd2a0, 1.15);
+  sunLight.position.set(18, 28, 8);
+  scene.add(sunLight);
+  sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex("#fff6d0", "#ff9a3c"), fog: false, transparent: true, depthWrite: false }));
+  sunSprite.scale.set(22, 22, 1);
+  sunSprite.position.set(-24, 22, -16);
+  scene.add(sunSprite);
+  const stars = [];
+  for (let i = 0; i < 380; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const e = (Math.random() - 0.15) * 1.2;
+    const r = 90;
+    stars.push(Math.cos(a) * Math.cos(e) * r, Math.sin(e) * r + 8, Math.sin(a) * Math.cos(e) * r);
+  }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(stars, 3));
+  starPoints = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xfff6e8, size: 0.55, transparent: true, opacity: 0.35, depthWrite: false, fog: false }));
+  scene.add(starPoints);
+
+  const groundGeo = new THREE.PlaneGeometry(120, 120, 56, 56);
+  groundGeo.rotateX(-Math.PI / 2);
+  groundGeo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(groundGeo.attributes.position.count * 3), 3));
+  ground = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true }));
+  scene.add(ground);
+  shapeGround();
+  plantRocks();
+
+  dustPts = makePoints(520, 0xe0b48a, 0.18, 0.55);
+  scene.add(dustPts.pts);
+  puffPts = makePoints(90, 0xd7a07a, 0.26, 0.5);
+  scene.add(puffPts.pts);
+  scatterDust(0, 0);
+  makeRover();
+  renderer.domElement.style.touchAction = "none";
+  bindOrbit();
+  applyOrbit();
+  loop();
+}
+function shapeGround() {
+  const pos = ground.geometry.attributes.position;
+  const col = ground.geometry.attributes.color;
+  const low = new THREE.Color(0x8a4632);
+  const mid = new THREE.Color(0xc47855);
+  const high = new THREE.Color(0xe0b08a);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const h = terrainHeight(pos.getX(i), pos.getZ(i));
+    pos.setY(i, h);
+    const t = clamp((h + 2) / 8, 0, 1);
+    c.copy(t < 0.5 ? low : mid).lerp(t < 0.5 ? mid : high, t < 0.5 ? t * 2 : (t - 0.5) * 2);
+    col.setXYZ(i, c.r, c.g, c.b);
+  }
+  pos.needsUpdate = true;
+  col.needsUpdate = true;
+  ground.geometry.computeVertexNormals();
+}
+function plantRocks() {
+  rocks.forEach((rock) => scene.remove(rock));
+  rocks = [];
+  const mat = new THREE.MeshStandardMaterial({ color: 0x9a5340, roughness: 1, flatShading: true });
+  for (let i = 0; i < 18; i++) {
+    const x = -14 + (i % 6) * 5.5 + (i % 3) * 0.4;
+    const z = (i < 9 ? -6.5 : 6.2) + (i % 4) * 0.35;
+    const s = 0.35 + (i % 4) * 0.22;
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), mat);
+    rock.position.set(x, terrainHeight(x, z) + s * 0.35, z);
+    rock.scale.y = 0.7;
+    rock.rotation.y = i;
+    scene.add(rock);
+    rocks.push(rock);
+  }
+}
+function scatterDust(x, z) {
+  const pos = dustPts.pos;
+  for (let i = 0; i < dustPts.count; i++) {
+    pos[i * 3] = x + (Math.random() - 0.5) * 40;
+    pos[i * 3 + 1] = 0.3 + Math.random() * 5;
+    pos[i * 3 + 2] = z + (Math.random() - 0.5) * 32;
+  }
+  dustPts.pts.geometry.attributes.position.needsUpdate = true;
+}
+function makeAxialFan(radius, ringMat, bladeMat) {
+  const fan = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, Math.max(0.012, radius * 0.1), 8, 22), ringMat);
+  ring.rotation.x = Math.PI / 2;
+  const blades = new THREE.Group();
+  for (let i = 0; i < 5; i++) {
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(radius * 0.9, Math.max(0.012, radius * 0.07), radius * 0.26), bladeMat);
+    blade.position.x = radius * 0.42;
+    blade.rotation.y = 0.7;
+    const arm = new THREE.Group();
+    arm.rotation.y = (i / 5) * Math.PI * 2;
+    arm.add(blade);
+    blades.add(arm);
+  }
+  blades.add(new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.2, radius * 0.2, radius * 0.16, 10), ringMat));
+  const guardA = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.85, 0.012, radius * 0.05), bladeMat);
+  const guardB = new THREE.Mesh(new THREE.BoxGeometry(radius * 0.05, 0.012, radius * 1.85), bladeMat);
+  guardA.position.y = radius * 0.1;
+  guardB.position.y = radius * 0.1;
+  fan.add(ring, blades, guardA, guardB);
+  fan.userData.blades = blades;
+  return fan;
+}
+function buildKits(roverGroup, spots, panels) {
+  const foil = new THREE.MeshStandardMaterial({ color: 0xd5dde6, metalness: 0.7, roughness: 0.28 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b1f24, metalness: 0.4, roughness: 0.5 });
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0x2c3138, metalness: 0.35, roughness: 0.4 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xe6c36a, metalness: 0.55, roughness: 0.32 });
+  const steel = new THREE.MeshStandardMaterial({ color: 0x8b949e, metalness: 0.72, roughness: 0.28 });
+  const sockMat = new THREE.MeshStandardMaterial({ color: 0xf0c14a, roughness: 0.6, side: THREE.DoubleSide });
+  const iceMat = new THREE.MeshStandardMaterial({ color: 0xe7fbff, emissive: 0x9fdfff, emissiveIntensity: 0.35, roughness: 0.12, transparent: true, opacity: 0.92 });
+  const coldMat = new THREE.MeshStandardMaterial({ color: 0x8fcec0, roughness: 0.45, metalness: 0.12 });
+  const lidMat = new THREE.MeshStandardMaterial({ color: 0xd7fff4, roughness: 0.35, emissive: 0x7ee0ff, emissiveIntensity: 0.2 });
+  const heaterMat = new THREE.MeshStandardMaterial({ color: 0xff7a3a, emissive: 0xff4d1a, emissiveIntensity: 0.4, roughness: 0.4 });
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xffb25a });
+  const finMat = new THREE.MeshStandardMaterial({ color: 0xd7dee6, metalness: 0.62, roughness: 0.3, emissive: 0xb7c9d6, emissiveIntensity: 0.08 });
+  const coverMat = new THREE.MeshStandardMaterial({ color: 0x3a342c, roughness: 0.72, metalness: 0.15 });
+  const looks = {};
+  function park(name, obj, x, y, z) {
+    obj.position.set(x, y, z);
+    obj.visible = false;
+    roverGroup.add(obj);
+    looks[name] = obj;
+    return obj;
+  }
+  park("fan", makeAxialFan(0.3, foil, bladeMat), 0, 0.9, -0.22);
+  const cooler = new THREE.Group();
+  cooler.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.36), dark));
+  const coldPlate = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.04, 0.28), coldMat);
+  coldPlate.position.y = 0.11;
+  cooler.add(coldPlate);
+  for (let i = 0; i < 6; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.16, 0.3), foil);
+    fin.position.set(-0.16 + i * 0.06, 0.02, -0.24);
+    cooler.add(fin);
+  }
+  const little = makeAxialFan(0.11, foil, bladeMat);
+  little.position.set(0.24, 0.18, 0);
+  cooler.add(little);
+  cooler.userData.blades = little.userData.blades;
+  park("cooler", cooler, 0, 0.98, -0.28);
+  const block = new THREE.Group();
+  block.add(new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.34, 0.48), steel));
+  const strapA = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.045, 0.06), dark);
+  strapA.position.z = -0.1;
+  const strapB = strapA.clone();
+  strapB.position.z = 0.12;
+  block.add(strapA, strapB);
+  park("block", block, 0, 1.0, -0.26);
+  const radiator = new THREE.Group();
+  for (let i = 0; i < 7; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.5, 0.7), finMat);
+    fin.position.set(-0.36 + i * 0.12, 0.3, 0);
+    radiator.add(fin);
+  }
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.05, 0.1), foil);
+  rail.position.set(0, 0.04, 0);
+  radiator.add(rail);
+  park("fins", radiator, 0, 0.78, -1.2);
+  const wind = new THREE.Group();
+  wind.add(new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.34, 6), foil));
+  const cloth = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.46, 8), sockMat);
+  cloth.rotation.z = Math.PI / 2;
+  cloth.position.set(0.24, 0.12, 0);
+  wind.add(cloth);
+  wind.userData.cloth = cloth;
+  park("wind", wind, 0.28, 1.58, 0.55);
+  const panfan = new THREE.Group();
+  const fanBlades = [];
+  panels.forEach((wing) => {
+    const unit = makeAxialFan(0.18, foil, bladeMat);
+    unit.position.copy(wing.position);
+    unit.position.y += 0.1;
+    unit.rotation.z = wing.rotation.z;
+    panfan.add(unit);
+    fanBlades.push(unit.userData.blades);
+  });
+  panfan.userData.blades = fanBlades;
+  panfan.visible = false;
+  roverGroup.add(panfan);
+  looks.panfan = panfan;
+  const cover = new THREE.Group();
+  panels.forEach((wing) => {
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(1.22, 0.08, 1.44), coverMat);
+    plate.position.copy(wing.position);
+    plate.position.y += 0.08;
+    plate.rotation.z = wing.rotation.z;
+    const handle = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.05, 0.07), foil);
+    handle.position.copy(plate.position);
+    handle.position.y += 0.07;
+    cover.add(plate, handle);
+  });
+  cover.visible = false;
+  roverGroup.add(cover);
+  looks.cover = cover;
+  const bristleMat = new THREE.MeshStandardMaterial({ color: 0x2a160e, roughness: 0.85 });
+  const brush = new THREE.Group();
+  [-1, 1].forEach((side) => {
+    const wiper = new THREE.Group();
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.07, 0.1), bristleMat);
+    bar.position.set(side * 0.12, 0.07, 0);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.04, 0.05), foil);
+    arm.position.set(side * -0.28, 0.05, 0);
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.04, 0.24, 8), foil);
+    post.position.set(side * -0.46, -0.04, 0);
+    wiper.add(bar, arm, post);
+    wiper.position.set(side * 1.22, 1.1, 0);
+    brush.add(wiper);
+  });
+  brush.visible = false;
+  roverGroup.add(brush);
+  looks.brush = brush;
+  const oiltank = new THREE.Group();
+  const puffs = [];
+  spots.forEach((p) => {
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.16, 8), dark);
+    can.position.set(p[0], 0.62, p[1]);
+    const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.24, 5), foil);
+    hose.position.set(p[0], 0.44, p[1]);
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: 0xe6e0d6, transparent: true, opacity: 0.45, depthWrite: false }));
+    puff.position.set(p[0], 0.74, p[1]);
+    oiltank.add(can, hose, puff);
+    puffs.push(puff);
+  });
+  oiltank.userData.puffs = puffs;
+  oiltank.visible = false;
+  roverGroup.add(oiltank);
+  looks.oiltank = oiltank;
+  const housing = new THREE.Group();
+  const film = new THREE.Group();
+  const jheater = new THREE.Group();
+  spots.forEach((p) => {
+    const sign = Math.sign(p[0]) || 1;
+    const x = p[0] - sign * 0.14;
+    const house = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.2, 10), steel);
+    house.rotation.z = Math.PI / 2;
+    house.position.set(x, 0.28, p[1]);
+    housing.add(house);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.012, 8, 16), gold);
+    ring.rotation.y = Math.PI / 2;
+    ring.position.set(x, 0.28, p[1]);
+    film.add(ring);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 8, 16), heaterMat);
+    band.rotation.y = Math.PI / 2;
+    band.position.set(x, 0.28, p[1]);
+    jheater.add(band);
+  });
+  jheater.userData.mat = heaterMat;
+  [housing, film, jheater].forEach((obj) => {
+    obj.visible = false;
+    roverGroup.add(obj);
+  });
+  looks.housing = housing;
+  looks.film = film;
+  looks.jheater = jheater;
+  const scoop = new THREE.Group();
+  const pan = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.05, 0.3), foil);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.16, 0.04), foil);
+  back.position.set(0, 0.08, -0.13);
+  const ice = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.12), iceMat);
+  ice.position.y = 0.1;
+  scoop.add(pan, back, ice);
+  scoop.userData.ice = ice;
+  park("scoop", scoop, 0, 0.5, 1.22);
+  function coldCrate(big) {
+    const box = new THREE.Group();
+    const s = big ? 1.4 : 1;
+    const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5 * s, 0.28 * s, 0.38 * s), big ? steel : coldMat);
+    const lid = new THREE.Mesh(new THREE.BoxGeometry(0.54 * s, 0.05, 0.42 * s), big ? foil : lidMat);
+    lid.position.y = 0.16 * s;
+    const latch = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.04), gold);
+    latch.position.set(0, 0.08 * s, 0.2 * s);
+    box.add(crate, lid, latch);
+    return box;
+  }
+  park("steelbox", coldCrate(true), 0, 1.0, 0.28);
+  const coldbox = coldCrate(false);
+  const frost = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.012, 0.16), iceMat);
+  frost.position.y = 0.2;
+  coldbox.add(frost);
+  park("coldbox", coldbox, 0, 0.96, 0.28);
+  const efreezer = coldCrate(false);
+  for (let i = 0; i < 5; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.1, 0.02), foil);
+    fin.position.set(0, 0.08, -0.24 - i * 0.04);
+    efreezer.add(fin);
+  }
+  const dumpFan = makeAxialFan(0.1, foil, bladeMat);
+  dumpFan.rotation.x = Math.PI / 2;
+  dumpFan.position.set(0.24, 0.12, -0.32);
+  efreezer.add(dumpFan);
+  efreezer.userData.blades = dumpFan.userData.blades;
+  park("efreezer", efreezer, 0, 0.98, 0.28);
+  const rockets = new THREE.Group();
+  const flames = [];
+  [[-0.48, -0.72], [0.48, -0.72], [-0.48, 0.55], [0.48, 0.55]].forEach((p) => {
+    const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 0.16, 8), dark);
+    bell.position.set(p[0], 0.22, p[1]);
+    const flame = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.2, 8), flameMat);
+    flame.rotation.x = Math.PI;
+    flame.position.set(p[0], 0.08, p[1]);
+    rockets.add(bell, flame);
+    flames.push(flame);
+  });
+  rockets.userData.flames = flames;
+  rockets.visible = false;
+  roverGroup.add(rockets);
+  looks.rockets = rockets;
+  return { looks, finMat };
+}
+function makeRover() {
+  const g = new THREE.Group();
+  const shell = new THREE.MeshStandardMaterial({ color: 0xf4f7fb, metalness: 0.25, roughness: 0.38 });
+  const foil = new THREE.MeshStandardMaterial({ color: 0xd5dde6, metalness: 0.7, roughness: 0.28 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x1b1f24, metalness: 0.4, roughness: 0.5 });
+  const rubber = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.92 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x9fd7ff, emissive: 0x123044, emissiveIntensity: 0.6, roughness: 0.15 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.38, 2.05), shell);
+  body.position.y = 0.62;
+  body.castShadow = true;
+  const belly = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.12, 1.55), foil);
+  belly.position.y = 0.4;
+  g.add(body, belly);
+
+  const wheels = [];
+  const wheelGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.18, 16);
+  wheelGeo.rotateZ(Math.PI / 2);
+  const drumMat = new THREE.MeshStandardMaterial({ color: 0x8d969e, metalness: 0.66, roughness: 0.3 });
+  const motorMat = new THREE.MeshStandardMaterial({ color: 0x2a2e34, metalness: 0.55, roughness: 0.38 });
+  const spots = [[-0.78, 0.72], [0.78, 0.72], [-0.86, 0], [0.86, 0], [-0.78, -0.72], [0.78, -0.72]];
+  spots.forEach((p) => {
+    const wheel = new THREE.Group();
+    wheel.position.set(p[0], 0.28, p[1]);
+    const tire = new THREE.Mesh(wheelGeo, rubber);
+    wheel.add(tire);
+    const metal = new THREE.Group();
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.03, 8, 20), foil);
+    rim.rotation.y = Math.PI / 2;
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.12, 10), foil);
+    hub.rotation.z = Math.PI / 2;
+    metal.add(rim, hub);
+    for (let lug = 0; lug < 8; lug++) {
+      const a = (lug / 8) * Math.PI * 2;
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.2, 0.03), foil);
+      spoke.position.set(0, Math.cos(a) * 0.11, Math.sin(a) * 0.11);
+      spoke.rotation.x = -a;
+      const grouser = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.11), dark);
+      grouser.position.set(0, Math.cos(a) * 0.3, Math.sin(a) * 0.3);
+      grouser.rotation.x = -a;
+      metal.add(spoke, grouser);
+    }
+    metal.visible = false;
+    wheel.add(metal);
+    const drum = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.3, 14), drumMat);
+    drum.rotation.z = Math.PI / 2;
+    drum.visible = false;
+    const motor = new THREE.Group();
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.2, 10), motorMat);
+    can.rotation.z = Math.PI / 2;
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.05, 8), foil);
+    cap.rotation.z = Math.PI / 2;
+    const side = Math.sign(p[0]) || 1;
+    can.position.x = -side * 0.04;
+    cap.position.x = -side * 0.14;
+    motor.add(can, cap);
+    motor.visible = false;
+    wheel.add(drum, motor);
+    wheel.userData.tire = tire;
+    wheel.userData.mesh = metal;
+    wheel.userData.drum = drum;
+    wheel.userData.motor = motor;
+    const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.32, 6), foil);
+    strut.position.set(p[0] * 0.82, 0.46, p[1]);
+    g.add(strut, wheel);
+    wheels.push(wheel);
+  });
+
+  const panelMat = new THREE.MeshStandardMaterial({
+    map: solarTex(), color: 0xffffff, metalness: 0.45, roughness: 0.25, emissive: 0x123a78, emissiveIntensity: 0.35
+  });
+  const panels = [];
+  [-1, 1].forEach((side) => {
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.045, 1.35), panelMat);
+    wing.position.set(side * 1.25, 1.02, 0.05);
+    wing.rotation.z = side * -0.08;
+    wing.castShadow = true;
+    g.add(wing);
+    panels.push(wing);
+  });
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.055, 0.85, 8), shell);
+  mast.position.set(0, 1.15, 0.72);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.2), dark);
+  head.position.set(0, 1.62, 0.78);
+  g.add(mast, head);
+  [-0.09, 0.09].forEach((x) => {
+    const eye = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.06, 8), glass);
+    eye.rotation.x = Math.PI / 2;
+    eye.position.set(x, 1.62, 0.9);
+    g.add(eye);
+  });
+
+  const kits = buildKits(g, spots, panels);
+
+  const chute = new THREE.Group();
+  const cloth = new THREE.MeshStandardMaterial({ color: 0xf0c14a, side: THREE.DoubleSide, roughness: 0.55 });
+  const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.35, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2.05), cloth);
+  chute.add(canopy);
+  const cord = new THREE.MeshStandardMaterial({ color: 0xf4f7fb, roughness: 0.6 });
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const x1 = Math.cos(a) * 1.22;
+    const z1 = Math.sin(a) * 1.22;
+    const line = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 2.35, 5), cord);
+    line.position.set(x1 * 0.5, -1.05, z1 * 0.5);
+    line.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-x1, -2.2, -z1).normalize());
+    chute.add(line);
+  }
+  chute.visible = false;
+  scene.add(chute);
+
+  const flyer = new THREE.Group();
+  const flyerBody = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.14, 0.24), shell);
+  flyer.add(flyerBody);
+  flyer.userData.body = flyerBody;
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8), foil);
+  neck.position.y = 0.15;
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.02, 0.2), panelMat);
+  deck.position.y = 0.08;
+  flyer.add(neck, deck);
+  const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf7f4ea, metalness: 0.15, roughness: 0.35 });
+  const rotors = [];
+  [[0.32, 2.2], [0.2, 1.75]].forEach((spec) => {
+    const rotor = new THREE.Group();
+    rotor.position.y = spec[0];
+    rotor.add(new THREE.Mesh(new THREE.BoxGeometry(spec[1], 0.018, 0.07), bladeMat));
+    const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 8), foil);
+    rotor.add(cap);
+    flyer.add(rotor);
+    rotors.push(rotor);
+  });
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach((s) => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.32, 5), foil);
+    leg.position.set(s[0] * 0.14, -0.18, s[1] * 0.08);
+    leg.rotation.z = s[0] * -0.4;
+    leg.rotation.x = s[1] * 0.2;
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 6), dark);
+    foot.position.set(s[0] * 0.2, -0.32, s[1] * 0.11);
+    flyer.add(leg, foot);
+  });
+  flyer.visible = false;
+  scene.add(flyer);
+
+  g.rotation.y = Math.PI / 2;
+  g.userData.wheels = wheels;
+  g.userData.panelMat = panelMat;
+  g.userData.panels = panels;
+  g.userData.looks = kits.looks;
+  g.userData.finMat = kits.finMat;
+  g.userData.chute = chute;
+  g.userData.flyer = flyer;
+  g.userData.rotors = rotors;
+  rover = g;
+  scene.add(rover);
+}
+function choiceLooks(c) {
+  return Array.isArray(c.look) ? c.look : [c.look];
+}
+function setWheelStyle(style) {
+  rover.userData.wheels.forEach((wheel) => {
+    const u = wheel.userData;
+    u.tire.visible = style === "rubber" || style === "air" || style === "motor";
+    if (style === "air") u.tire.scale.set(1.06, 1.38, 1.38);
+    else if (style === "motor") u.tire.scale.set(0.9, 0.9, 0.9);
+    else u.tire.scale.set(1, 1, 1);
+    u.mesh.visible = style === "mesh";
+    u.drum.visible = style === "drum";
+    u.motor.visible = style === "motor";
+  });
+}
+function configureFlyer(kind) {
+  const flyer = rover.userData.flyer;
+  const rotors = rover.userData.rotors;
+  const heavy = kind === "heavy";
+  flyer.userData.body.scale.set(heavy ? 1.55 : 1, heavy ? 1.4 : 1, heavy ? 1.5 : 1);
+  const span = { short: 0.52, heavy: 1.05, tiny: 0.32, long: 1 };
+  rotors[0].scale.set(span[kind] || 1, 1, 1);
+  rotors[1].visible = kind === "long";
+  rotors[1].scale.set(0.9, 1, 1);
+  flyer.userData.spin = kind === "tiny" ? 48 : kind === "short" ? 32 : kind === "heavy" ? 12 : 18;
+}
+function popIn(obj, target, reveal) {
+  obj.visible = true;
+  obj.userData.revealTo = target;
+  if (reveal) {
+    obj.userData.reveal = 0.25;
+    obj.scale.setScalar(target * 0.25);
+  } else {
+    obj.userData.reveal = 1;
+    obj.scale.setScalar(target);
+  }
+}
+function hideAllKits() {
+  const looks = rover.userData.looks;
+  Object.keys(looks).forEach((key) => {
+    looks[key].visible = false;
+    looks[key].scale.setScalar(1);
+    looks[key].userData.reveal = 1;
+  });
+  rover.userData.chute.visible = false;
+  rover.userData.chute.scale.setScalar(1);
+  rover.userData.chute.userData.reveal = 1;
+  rover.userData.flyer.visible = false;
+  rover.userData.flyer.scale.setScalar(1);
+  rover.userData.flyer.userData.reveal = 1;
+  setWheelStyle("rubber");
+}
+function presentChoice(c, reveal) {
+  choiceLooks(c).forEach((name) => {
+    if (name === "wheels") {
+      setWheelStyle(c.wheel || "rubber");
+      return;
+    }
+    if (name === "chute") {
+      popIn(rover.userData.chute, c.chute || 1, reveal);
+      return;
+    }
+    if (name === "flyer") {
+      configureFlyer(c.flyer || "long");
+      popIn(rover.userData.flyer, 1, reveal);
+      return;
+    }
+    const target = name === "rockets" && c.rocket === "small" ? 0.55 : 1;
+    popIn(rover.userData.looks[name], target, reveal);
+  });
+}
+function applyVisuals() {
+  if (!rover) return;
+  hideAllKits();
+  committed.forEach((c) => presentChoice(c, false));
+  if (preview) presentChoice(preview, true);
+}
+function grow(obj, dt) {
+  if (!obj || !obj.visible) return;
+  const shown = obj.userData.reveal || 0;
+  if (shown >= 1) return;
+  obj.userData.reveal = Math.min(1, shown + dt * 1.7);
+  obj.scale.setScalar((obj.userData.revealTo || 1) * obj.userData.reveal);
+}
+function spinBlades(node, dt, speed) {
+  if (!node || !node.visible || !node.userData.blades) return;
+  const blades = node.userData.blades;
+  if (Array.isArray(blades)) blades.forEach((item) => { item.rotation.y += dt * speed; });
+  else blades.rotation.y += dt * speed;
+}
+function glassIsClear() {
+  const list = committed.slice();
+  if (preview) list.push(preview);
+  return list.some((c) => choiceLooks(c).indexOf("brush") >= 0 || choiceLooks(c).indexOf("cover") >= 0);
+}
+function tickKits(dt) {
+  const looks = rover.userData.looks;
+  spinBlades(looks.fan, dt, 14);
+  spinBlades(looks.cooler, dt, 18);
+  spinBlades(looks.panfan, dt, 16);
+  spinBlades(looks.efreezer, dt, 22);
+  if (looks.wind.visible) looks.wind.userData.cloth.rotation.z = Math.PI / 2 + Math.sin(driveT * 1.2) * 0.22;
+  if (looks.scoop.visible) {
+    const k = 0.28 + 0.72 * (0.5 + 0.5 * Math.sin(driveT * 1.3));
+    looks.scoop.userData.ice.scale.setScalar(k);
+  }
+  if (looks.oiltank.visible) {
+    looks.oiltank.userData.puffs.forEach((puff, i) => {
+      const t = (driveT * 0.45 + i * 0.17) % 1;
+      puff.position.y = 0.7 + t * 0.42;
+      puff.material.opacity = 0.5 * (1 - t);
+    });
+  }
+  if (looks.jheater.visible) looks.jheater.userData.mat.emissiveIntensity = 0.25 + Math.sin(driveT * 5) * 0.2;
+  if (looks.fins.visible) rover.userData.finMat.emissiveIntensity = 0.06 + Math.sin(driveT * 2) * 0.03;
+  if (looks.rockets.visible) {
+    looks.rockets.userData.flames.forEach((flame, i) => {
+      flame.scale.y = 0.8 + Math.sin(driveT * 28 + i) * 0.22;
+    });
+  }
+  if (looks.brush.visible) {
+    const sweep = Math.sin(driveT * 1.6) * 0.5;
+    looks.brush.children.forEach((wiper) => { wiper.position.z = sweep; });
+  }
+  Object.keys(looks).forEach((key) => grow(looks[key], dt));
+  grow(rover.userData.chute, dt);
+  grow(rover.userData.flyer, dt);
+  const dust = current < 1 ? 0.04 : (glassIsClear() ? 0.08 : 0.72);
+  const tint = new THREE.Color(0xffffff).lerp(new THREE.Color(0x8a6244), dust);
+  rover.userData.panelMat.color.copy(tint);
+  rover.userData.panelMat.emissiveIntensity = 0.15 + (1 - dust) * 0.55;
+}
+function stepScene(dt) {
+  driveT += dt;
+  const x = Math.sin(driveT * 0.35) * 3.2;
+  const z = Math.cos(driveT * 0.22) * 1.4;
+  const y = terrainHeight(x, z);
+  rover.position.set(x, y, z);
+  const ahead = terrainHeight(x + 0.6, z);
+  rover.rotation.x = clamp((ahead - y) * -0.35, -0.25, 0.25);
+  rover.rotation.y = Math.PI / 2;
+  const spin = dt * 5.2;
+  rover.userData.wheels.forEach((wheel) => { wheel.rotation.x += spin; });
+  tickKits(dt);
+  const chute = rover.userData.chute;
+  if (chute.visible) {
+    const reach = chute.scale.y || 1;
+    chute.position.set(x - 0.2, y + 0.75 + reach * 2.15, z);
+    chute.rotation.z = Math.sin(driveT * 0.8) * 0.06;
+    chute.rotation.x = Math.sin(driveT * 0.5) * 0.04;
+  }
+  const flyer = rover.userData.flyer;
+  if (flyer.visible) {
+    flyer.position.set(x + 2.6, y + 1.85 + Math.sin(driveT * 2.2) * 0.1, z + 0.2);
+    const rotors = rover.userData.rotors;
+    const speed = flyer.userData.spin || 18;
+    rotors[0].rotation.y += dt * speed;
+    if (rotors[1].visible) rotors[1].rotation.y -= dt * speed * 0.92;
+  }
+  fallDust(x, z, dt);
+  blowPuff(x, z, y);
+  if (!orbit.dragging) applyOrbit();
+}
+function fallDust(x, z, dt) {
+  const pos = dustPts.pos;
+  for (let i = 0; i < dustPts.count; i++) {
+    let px = pos[i * 3];
+    let py = pos[i * 3 + 1];
+    let pz = pos[i * 3 + 2];
+    px += 0.01 + Math.sin(i + driveT) * 0.004;
+    py -= 0.22 * dt;
+    if (py < terrainHeight(px, pz) + 0.08 || px > x + 22) {
+      px = x + (Math.random() - 0.5) * 28;
+      py = 1.2 + Math.random() * 4.5;
+      pz = z + (Math.random() - 0.5) * 22;
+    }
+    pos[i * 3] = px;
+    pos[i * 3 + 1] = py;
+    pos[i * 3 + 2] = pz;
+  }
+  dustPts.pts.geometry.attributes.position.needsUpdate = true;
+}
+function blowPuff(x, z, y) {
+  const puff = puffPts.pos;
+  for (let i = 0; i < puffPts.count; i++) {
+    puff[i * 3 + 1] += 0.02;
+    puff[i * 3] -= 0.03;
+    if (puff[i * 3 + 1] > y + 1.1) {
+      puff[i * 3] = x - 0.8 + Math.random() * 0.5;
+      puff[i * 3 + 1] = y + 0.2 + Math.random() * 0.15;
+      puff[i * 3 + 2] = z + (Math.random() - 0.5) * 1.2;
+    }
+  }
+  puffPts.pts.geometry.attributes.position.needsUpdate = true;
+}
+function applyOrbit() {
+  if (!rover) return;
+  const target = new THREE.Vector3(rover.position.x, rover.position.y + 0.85, rover.position.z);
+  const sp = Math.sin(orbit.phi);
+  camera.position.set(
+    target.x + orbit.radius * sp * Math.sin(orbit.theta),
+    target.y + orbit.radius * Math.cos(orbit.phi),
+    target.z + orbit.radius * sp * Math.cos(orbit.theta)
+  );
+  camera.lookAt(target);
+}
+function bindOrbit() {
+  const el = renderer.domElement;
+  el.addEventListener("pointerdown", (e) => {
+    if (!orbit.enabled) return;
+    orbit.dragging = true;
+    orbit.lx = e.clientX;
+    orbit.ly = e.clientY;
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!orbit.dragging) return;
+    orbit.theta -= (e.clientX - orbit.lx) * 0.008;
+    orbit.phi = clamp(orbit.phi + (e.clientY - orbit.ly) * 0.006, 0.35, 1.35);
+    orbit.lx = e.clientX;
+    orbit.ly = e.clientY;
+    applyOrbit();
+  });
+  el.addEventListener("pointerup", () => { orbit.dragging = false; });
+  el.addEventListener("pointercancel", () => { orbit.dragging = false; });
+  el.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    orbit.radius = clamp(orbit.radius + e.deltaY * 0.01, 5, 18);
+    applyOrbit();
+  }, { passive: false });
+}
+
+function formatMoney(mil) {
+  const n = Math.round(mil * 1000000);
+  const abs = "¥" + Math.abs(n).toLocaleString();
+  return n < 0 ? "−" + abs : abs;
+}
+function signed(n) {
+  const body = Math.abs(n).toLocaleString();
+  return n < 0 ? "−" + body : "+" + body;
+}
+function effectLines(c) {
+  const lines = ["Cost " + formatMoney(c.cost)];
+  if (c.heat) lines.push("Conduct " + signed(-c.heat));
+  if (c.kg) lines.push("Weight " + signed(c.kg) + " kg");
+  if (c.watts) lines.push("Power " + signed(c.watts) + " W");
+  return lines;
+}
+const moneyShown = { grant: GRANT0, spent: 0, debt: 0 };
+let moneyAnim = null;
+function paintMoney(g, s, d) {
+  document.getElementById("grant").textContent = formatMoney(g);
+  document.getElementById("grant").className = g <= 0.001 ? "bad" : "";
+  document.getElementById("cost").textContent = formatMoney(s);
+  document.getElementById("debt").textContent = formatMoney(d);
+  document.getElementById("debt").className = d > 0.001 ? "bad" : "ok";
+}
+function startMoneyTween() {
+  moneyAnim = {
+    t: 0,
+    dur: 0.9,
+    from: { grant: moneyShown.grant, spent: moneyShown.spent, debt: moneyShown.debt },
+    to: { grant: grant, spent: spent, debt: debt }
+  };
+}
+function stepMoney(dt) {
+  if (!moneyAnim) return;
+  moneyAnim.t = Math.min(1, moneyAnim.t + dt / moneyAnim.dur);
+  const k = 1 - Math.pow(1 - moneyAnim.t, 3);
+  moneyShown.grant = moneyAnim.from.grant + (moneyAnim.to.grant - moneyAnim.from.grant) * k;
+  moneyShown.spent = moneyAnim.from.spent + (moneyAnim.to.spent - moneyAnim.from.spent) * k;
+  moneyShown.debt = moneyAnim.from.debt + (moneyAnim.to.debt - moneyAnim.from.debt) * k;
+  paintMoney(moneyShown.grant, moneyShown.spent, moneyShown.debt);
+  if (moneyAnim.t < 1) return;
+  moneyShown.grant = moneyAnim.to.grant;
+  moneyShown.spent = moneyAnim.to.spent;
+  moneyShown.debt = moneyAnim.to.debt;
+  paintMoney(moneyShown.grant, moneyShown.spent, moneyShown.debt);
+  moneyAnim = null;
+}
+function conductWord(n) {
+  if (n < 36) return "High";
+  if (n < 56) return "Fair";
+  if (n < 76) return "Low";
+  return "Shut";
+}
+function weightWord(n) {
+  if (n < 230) return "Light";
+  if (n < 310) return "Solid";
+  if (n < 400) return "Heavy";
+  return "Too heavy";
+}
+function powerWord(n) {
+  if (n < 52) return "Easy";
+  if (n < 78) return "Busy";
+  if (n < 105) return "Hungry";
+  return "Starving";
+}
+function spend(amount) {
+  let left = amount;
+  spent += amount;
+  if (grant >= left) { grant -= left; return; }
+  left -= grant;
+  grant = 0;
+  if (savings >= left) { savings -= left; return; }
+  left -= savings;
+  savings = 0;
+  debt += left;
+}
+function bankLeftover() {
+  if (grant <= 0) return;
+  if (debt > 0) {
+    const pay = Math.min(debt, grant);
+    debt -= pay;
+    grant -= pay;
+  }
+  savings += grant;
+  grant = 0;
+}
+function refreshHud() {
+  const heatEl = document.getElementById("conductVal");
+  const kgEl = document.getElementById("kgVal");
+  const powEl = document.getElementById("powVal");
+  const conductBar = document.getElementById("conductBar");
+  heatEl.textContent = conductWord(heat);
+  kgEl.textContent = weightWord(kg);
+  powEl.textContent = powerWord(watts);
+  heatEl.className = heat >= 56 ? "bad" : "";
+  kgEl.className = kg >= 400 ? "bad" : "";
+  powEl.className = watts >= 105 ? "bad" : "";
+  conductBar.style.width = clamp(100 - heat / 120 * 100, 6, 100) + "%";
+  conductBar.classList.toggle("shut", heat >= 76);
+  document.getElementById("kgBar").style.width = clamp(kg / 520 * 100, 4, 100) + "%";
+  document.getElementById("powBar").style.width = clamp(watts / 180 * 100, 4, 100) + "%";
+  if (moneyAnim) return;
+  moneyShown.grant = grant;
+  moneyShown.spent = spent;
+  moneyShown.debt = debt;
+  paintMoney(grant, spent, debt);
+}
+function setMood(face, say) {
+  document.getElementById("moodFace").textContent = face;
+  document.getElementById("moodSay").textContent = say;
+}
+function showTip(c, row) {
+  const box = document.getElementById("tipBox");
+  document.getElementById("tipLabel").textContent = c.text;
+  document.getElementById("tipText").textContent = c.tip;
+  const deltas = document.getElementById("tipDeltas");
+  deltas.replaceChildren();
+  effectLines(c).forEach((line) => {
+    const item = document.createElement("span");
+    item.textContent = line;
+    deltas.appendChild(item);
+  });
+  box.classList.remove("hide");
+  const r = row.getBoundingClientRect();
+  const panel = document.getElementById("panel").getBoundingClientRect();
+  let left = panel.right + 12;
+  let top = Math.max(14, r.top - 6);
+  if (left + box.offsetWidth > window.innerWidth - 10) {
+    left = Math.max(10, panel.left);
+    top = Math.min(panel.bottom + 10, window.innerHeight - box.offsetHeight - 12);
+  }
+  if (top + box.offsetHeight > window.innerHeight - 10) top = Math.max(10, window.innerHeight - box.offsetHeight - 10);
+  box.style.left = left + "px";
+  box.style.top = top + "px";
+}
+function hideTip() {
+  document.getElementById("tipBox").classList.add("hide");
+}
+function renderProblem() {
+  const p = PROBLEMS[current];
+  locked = false;
+  selected = -1;
+  preview = null;
+  applyVisuals();
+  document.getElementById("kicker").textContent = "Problem " + (current + 1) + " of " + PROBLEMS.length;
+  document.getElementById("title").textContent = p.title;
+  document.getElementById("ask").textContent = p.ask;
+  document.getElementById("problemArt").src = p.art;
+  document.getElementById("problemArt").alt = p.alt;
+  document.getElementById("detailBtn").textContent = "Problem " + (current + 1) + " · " + p.chip;
+  const confirmBtn = document.getElementById("confirmBtn");
+  confirmBtn.classList.remove("show");
+  confirmBtn.disabled = false;
+  const choices = document.getElementById("choices");
+  choices.innerHTML = "";
+  p.choices.forEach((c, i) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "choice";
+    button.textContent = c.text;
+    button.addEventListener("click", () => selectChoice(i));
+    const show = () => showTip(c, button);
+    button.addEventListener("mouseenter", show);
+    button.addEventListener("focus", show);
+    button.addEventListener("mouseleave", hideTip);
+    button.addEventListener("blur", hideTip);
+    choices.appendChild(button);
+  });
+  refreshHud();
+  setMood(p.face, p.quip);
+}
+function selectChoice(i) {
+  if (locked) return;
+  clickSfx();
+  hideTip();
+  selected = i;
+  preview = PROBLEMS[current].choices[i];
+  applyVisuals();
+  document.querySelectorAll("#choices .choice").forEach((el, idx) => {
+    el.classList.toggle("on", idx === i);
+  });
+  const confirmBtn = document.getElementById("confirmBtn");
+  confirmBtn.classList.add("show");
+  confirmBtn.disabled = false;
+  setMood(preview.face, preview.quip);
+}
+function openBrief() {
+  const p = PROBLEMS[current];
+  document.getElementById("briefKicker").textContent = "Problem " + (current + 1) + " of " + PROBLEMS.length;
+  document.getElementById("briefArt").src = p.art;
+  document.getElementById("briefArt").alt = p.alt;
+  document.getElementById("briefTitle").textContent = p.title;
+  document.getElementById("briefBody").innerHTML = p.story.map((t) => "<p class=\"story\">" + t + "</p>").join("");
+  document.getElementById("brief").classList.remove("hide");
+}
+function openPopup(mode, kicker, title, body, extra, label) {
+  popupMode = mode;
+  document.getElementById("resultKicker").textContent = kicker;
+  document.getElementById("resultTitle").textContent = title;
+  document.getElementById("resultBody").textContent = body;
+  const extraEl = document.getElementById("resultExtra");
+  extraEl.textContent = extra;
+  extraEl.hidden = !extra;
+  document.getElementById("resultOk").textContent = label;
+  document.getElementById("result").classList.remove("hide");
+}
+function confirmChoice() {
+  if (locked || !preview || !document.getElementById("result").classList.contains("hide")) return;
+  clickSfx();
+  hideTip();
+  const problem = PROBLEMS[current];
+  const c = preview;
+  locked = true;
+  document.querySelectorAll("#choices .choice").forEach((el, idx) => {
+    el.disabled = true;
+    el.classList.toggle("good", idx === selected);
+  });
+  document.getElementById("confirmBtn").disabled = true;
+  heat += c.heat;
+  kg += c.kg;
+  watts += c.watts;
+  spend(c.cost);
+  startMoneyTween();
+  committed.push(c);
+  preview = null;
+  applyVisuals();
+  picks.push({ short: problem.short, text: c.text, cost: c.cost });
+  refreshHud();
+  setMood(c.face, c.quip);
+  resultSfx(true);
+  const last = current >= PROBLEMS.length - 1;
+  openPopup(
+    "next",
+    "Built on the rover",
+    c.text,
+    c.tip,
+    "Conduct " + conductWord(heat).toLowerCase() + " · " + kg + " kg · " + watts + " W. Paid " + formatMoney(c.cost) + ".",
+    last ? "See the ending" : "Next problem"
+  );
+}
+function missionOutcome() {
+  const sh = clamp((heat - 28) / 55, 0, 1.45);
+  const sk = clamp((kg - 200) / 170, 0, 1.45);
+  const sw = clamp((watts - 46) / 70, 0, 1.45);
+  const life = Math.max(sh, sw);
+  let days = Math.round(150 * (1 - 0.78 * Math.min(life, 1.2)));
+  days = clamp(days, 3, 170);
+  const daily = clamp(0.2 - sk * 0.12, 0.015, 0.22);
+  const km = Math.round(days * daily * 10) / 10;
+  const ranked = [{ id: "heat", s: sh }, { id: "weight", s: sk }, { id: "power", s: sw }].sort((a, b) => b.s - a.s);
+  let kind = "clear";
+  if (ranked[0].s >= 0.42) kind = ranked[0].id;
+  if (ranked[0].s >= 0.42 && ranked[1].s >= 0.9) kind = "rough";
+  return { days, km, kind };
+}
+const ENDINGS = {
+  clear: {
+    art: "art/end-clear.jpg",
+    alt: "A rover beside a gold plaque",
+    title: "Still rolling",
+    line: "Heat, weight, and power stayed in bounds. The rover wore out slowly, still able to move."
+  },
+  heat: {
+    art: "art/end-heat.jpg",
+    alt: "A rover with a glowing hot computer",
+    title: "The computer cooked",
+    line: "Waste heat could not conduct out through this thin air. The computer quit, and the rover stopped."
+  },
+  weight: {
+    art: "art/end-close.jpg",
+    alt: "A rover beside a heavy pile of parts",
+    title: "Too heavy to keep going",
+    line: "The parts piled on. The wheels sank, and the rover could not travel."
+  },
+  power: {
+    art: "art/end-power.jpg",
+    alt: "A rover with dark solar panels",
+    title: "The battery went dark",
+    line: "The parts drank more power than the dusty panels could give back. The battery emptied."
+  },
+  rough: {
+    art: "art/end-debt.jpg",
+    alt: "A worn rover on cracked ground",
+    title: "Too many crises",
+    line: "Heat, weight, and power all went too far. The rover broke down early."
+  }
+};
+function finish() {
+  bankLeftover();
+  refreshHud();
+  const got = missionOutcome();
+  const picked = ENDINGS[got.kind];
+  const books = debt > 0
+    ? "Money still owed: " + formatMoney(debt) + "."
+    : "Savings left: " + formatMoney(savings) + ".";
+  const travel = "It lasted " + got.days + " Mars days and travelled " + got.km + " km.";
+  const lines = picks.map((p, i) => "<p>" + (i + 1) + ". <b>" + p.short + ".</b> " + p.text + ". " + formatMoney(p.cost) + "</p>").join("");
+  document.getElementById("panel").style.display = "none";
+  document.getElementById("detailBtn").style.display = "none";
+  hideTip();
+  setMood(got.kind === "clear" ? "😄" : "😵", travel);
+  document.getElementById("ending").innerHTML = "<div class=\"popup\"><img class=\"art\" src=\"" + picked.art + "\" alt=\"" + picked.alt + "\"><p class=\"kicker\">Mars yard</p><h2>" + picked.title + "</h2><p>" + travel + " " + picked.line + "</p><p>Conduct " + conductWord(heat).toLowerCase() + " · " + kg + " kg · " + watts + " W. " + books + "</p>" + lines + "<button class=\"solid\" type=\"button\" id=\"again\">Start again</button></div>";
+  document.getElementById("ending").classList.remove("hide");
+  document.getElementById("again").addEventListener("click", () => {
+    clickSfx();
+    document.getElementById("ending").classList.add("hide");
+    document.getElementById("panel").style.display = "";
+    document.getElementById("detailBtn").style.display = "";
+    current = 0;
+    heat = BASE.heat;
+    kg = BASE.kg;
+    watts = BASE.watts;
+    grant = GRANT0;
+    savings = 0;
+    debt = 0;
+    spent = 0;
+    moneyAnim = null;
+    moneyShown.grant = GRANT0;
+    moneyShown.spent = 0;
+    moneyShown.debt = 0;
+    picks.length = 0;
+    committed.length = 0;
+    preview = null;
+    selected = -1;
+    applyVisuals();
+    renderProblem();
+  });
+}
+
+document.getElementById("confirmBtn").addEventListener("click", () => confirmChoice());
+document.getElementById("introOk").addEventListener("click", () => {
+  ensureAudio();
+  clickSfx();
+  document.getElementById("shade").classList.add("hide");
+  renderProblem();
+});
+document.getElementById("detailBtn").addEventListener("click", () => {
+  clickSfx();
+  openBrief();
+});
+document.getElementById("briefOk").addEventListener("click", () => {
+  clickSfx();
+  document.getElementById("brief").classList.add("hide");
+});
+document.getElementById("resultOk").addEventListener("click", () => {
+  clickSfx();
+  document.getElementById("result").classList.add("hide");
+  if (popupMode !== "next") return;
+  if (current < PROBLEMS.length - 1) {
+    current += 1;
+    renderProblem();
+    return;
+  }
+  finish();
+});
+let audioCtx = null;
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function clickSfx() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(740, t);
+  gain.gain.setValueAtTime(0.028, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.06);
+}
+function resultSfx(passed) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const notes = passed ? [523.25, 659.25, 783.99] : [392, 349.23, 293.66];
+  notes.forEach((freq, i) => {
+    const t = ctx.currentTime + i * 0.12;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = passed ? "triangle" : "sawtooth";
+    osc.frequency.setValueAtTime(freq, t);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  });
+}
+
+const clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, clock.getDelta());
+  if (rover) stepScene(dt);
+  stepMoney(dt);
+  renderer.render(scene, camera);
+}
+window.addEventListener("resize", () => {
+  if (!renderer) return;
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+if (window.THREE) boot();
+</script>
+</body>
+</html>
