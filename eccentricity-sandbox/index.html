@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eccentricity sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+        canvas { display: block; }
+        #panel {
+            position: fixed; top: 22px; left: 22px; z-index: 6;
+            width: min(340px, calc(100vw - 44px));
+            padding: 18px 18px 16px;
+            background: rgba(8, 9, 12, 0.72);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            margin: 0 0 6px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 40px; letter-spacing: 0.04em; line-height: 1;
+        }
+        .lead { margin: 0 0 4px; color: var(--dim); font-size: 14px; line-height: 1.4; }
+        #eqNav { display: flex; gap: 16px; margin: 10px 0 14px; }
+        #eqNav button {
+            background: none; border: 0; padding: 0; cursor: pointer;
+            color: var(--dim); font-family: Outfit, system-ui, sans-serif; font-size: 15px;
+        }
+        #eqNav button.on { color: var(--ink); }
+        #controls { display: flex; flex-direction: column; gap: 14px; }
+        #controls[hidden] { display: none; }
+        .slide label { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; }
+        .slide .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 28px; line-height: 1; }
+        .slide .sym sub { font-style: normal; font-size: 0.62em; }
+        .slide .num { font-variant-numeric: tabular-nums; color: var(--dim); }
+        input[type=range] { width: 100%; margin-top: 8px; accent-color: #f3ecdf; }
+        .dots { margin: 12px 0 0; color: var(--dim); font-size: 13px; line-height: 1.4; }
+        #formula {
+            position: fixed; z-index: 4; left: 50%; top: 46%;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            display: flex; flex-direction: column; align-items: flex-start; gap: 18px;
+            user-select: none; pointer-events: none;
+        }
+        #formula .row { display: none; flex-direction: column; align-items: flex-start; gap: 18px; }
+        #formula .row.show { display: flex; }
+        .eqline { display: flex; align-items: center; gap: 0.28em; }
+        .mean {
+            margin: 0; max-width: 420px;
+            display: flex; flex-direction: column; gap: 6px;
+            font-family: Outfit, system-ui, sans-serif;
+            font-size: 17px; font-weight: 400; line-height: 1.35; color: var(--dim);
+        }
+        .mean p { margin: 0; }
+        .op { font-family: "Cormorant Garamond", Georgia, serif; font-size: 56px; color: var(--dim); }
+        .const {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 500; font-size: 48px;
+            color: rgba(243, 236, 223, 0.38); cursor: default;
+        }
+        button.var, .ghost {
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-style: italic; font-weight: 600; line-height: 0.85;
+            font-size: 64px; color: rgba(243, 236, 223, 0.42);
+            background: transparent; border: 0; padding: 0.04em 0.08em;
+            border-radius: 10px;
+        }
+        button.var { cursor: pointer; pointer-events: auto; transition: text-shadow 0.2s ease, color 0.2s ease; }
+        button.var sub, .ghost sub { font-size: 0.48em; font-style: normal; }
+        button.var:hover, button.var.on, .ghost.on { color: #fff8ee; }
+        button.var.on, .ghost.on {
+            text-shadow: 0 0 10px rgba(243, 236, 223, 0.95), 0 0 24px rgba(243, 236, 223, 0.55);
+        }
+        button.var.pulse, .ghost.pulse { animation: swell 0.7s ease 2; }
+        @keyframes swell {
+            0%, 100% { transform: scale(1); }
+            45% { transform: scale(1.18); }
+        }
+        .frac { display: flex; flex-direction: column; align-items: center; }
+        .top, .bot { display: flex; align-items: flex-end; }
+        .bar { align-self: stretch; height: 3px; margin: 0.12em 0; background: var(--ink); border-radius: 2px; }
+        #qCard {
+            position: fixed; top: 22px; right: 22px; z-index: 6;
+            width: min(300px, calc(100vw - 44px));
+            padding: 16px 16px 14px;
+            background: rgba(8, 9, 12, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .qstep { color: var(--dim); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+        .qtext { font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; line-height: 1.15; margin-bottom: 14px; }
+        .qbtns { display: flex; gap: 8px; }
+        .qbtns button, #nextQ {
+            flex: 1; padding: 10px 12px; border-radius: 999px; cursor: pointer;
+            font-family: Outfit, system-ui, sans-serif; font-size: 14px;
+        }
+        #trueBtn, #falseBtn {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28);
+        }
+        #nextQ { border: 0; background: #f3ecdf; color: #16140f; }
+        #qAfter { display: none; }
+        #qAfter.show { display: block; }
+        #qAsk.hide { display: none; }
+        #qAfter .verdict { font-weight: 500; margin-bottom: 6px; }
+        #qAfter .verdict.ok { color: #d7eccf; }
+        #qAfter .verdict.no { color: #f0c2b2; }
+        #tryText { color: var(--dim); line-height: 1.4; }
+        #nextQ, #playLink { width: 100%; margin-top: 12px; box-sizing: border-box; text-align: center; }
+        #playLink {
+            display: none; text-decoration: none; padding: 10px 12px; border-radius: 999px;
+            background: #f3ecdf; color: #16140f; font-family: Outfit, system-ui, sans-serif; font-size: 14px;
+        }
+        #playLink.show { display: block; }
+        @media (max-width: 1100px) {
+            #qCard { top: auto; bottom: 16px; right: 16px; width: min(300px, calc(100vw - 32px)); }
+        }
+    </style>
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+    <div id="panel">
+        <h1>Eccentricity</h1>
+        <p class="lead">Click two letters. Move one, and the other follows.</p>
+        <div id="eqNav">
+            <button type="button" data-eq="0" data-name="shape">Shape</button>
+            <button type="button" data-eq="1" data-name="size">Size</button>
+            <button type="button" data-eq="2" data-name="height">Height</button>
+        </div>
+        <div id="controls" hidden></div>
+        <p class="dots">Gold dot: near point. Blue dot: far point.</p>
+    </div>
+
+    <div id="formula" aria-label="Eccentricity equations">
+        <div class="row show">
+            <div class="eqline">
+                <button type="button" class="var" data-id="e">e</button>
+                <span class="op">=</span>
+                <span class="frac">
+                    <span class="top">
+                        <button type="button" class="var" data-id="ra">r<sub>a</sub></button>
+                        <span class="op">−</span>
+                        <button type="button" class="var" data-id="rp">r<sub>p</sub></button>
+                    </span>
+                    <span class="bar"></span>
+                    <span class="bot">
+                        <span class="ghost" data-id="ra">r<sub>a</sub></span>
+                        <span class="op">+</span>
+                        <span class="ghost" data-id="rp">r<sub>p</sub></span>
+                    </span>
+                </span>
+            </div>
+            <div class="mean">
+                <p>e is the eccentricity. 0 is a circle. Closer to 1 is a long oval.</p>
+                <p>r<sub>p</sub> is the near distance from Earth’s centre.</p>
+                <p>r<sub>a</sub> is the far distance from Earth’s centre.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="eqline">
+                <button type="button" class="var" data-id="a">a</button>
+                <span class="op">=</span>
+                <span class="frac">
+                    <span class="top">
+                        <button type="button" class="var" data-id="rp">r<sub>p</sub></button>
+                        <span class="op">+</span>
+                        <button type="button" class="var" data-id="ra">r<sub>a</sub></button>
+                    </span>
+                    <span class="bar"></span>
+                    <span class="bot"><span class="const">2</span></span>
+                </span>
+            </div>
+            <div class="mean">
+                <p>a is the half-length of the oval.</p>
+                <p>It sits halfway between the near distance and the far distance.</p>
+                <p>r<sub>p</sub> is the near distance. r<sub>a</sub> is the far distance.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="eqline">
+                <button type="button" class="var" data-id="hp">h<sub>p</sub></button>
+                <span class="op">=</span>
+                <button type="button" class="var" data-id="rp">r<sub>p</sub></button>
+                <span class="op">−</span>
+                <span class="const" title="Earth’s radius, 6,371 km">R</span>
+            </div>
+            <div class="eqline">
+                <button type="button" class="var" data-id="ha">h<sub>a</sub></button>
+                <span class="op">=</span>
+                <button type="button" class="var" data-id="ra">r<sub>a</sub></button>
+                <span class="op">−</span>
+                <span class="const" title="Earth’s radius, 6,371 km">R</span>
+            </div>
+            <div class="mean">
+                <p>h<sub>p</sub> is how high the low point is above the ground.</p>
+                <p>h<sub>a</sub> is how high the high point is above the ground.</p>
+                <p>R is Earth’s radius, 6,371 km. It does not change.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="qCard">
+        <div id="qAsk">
+            <div class="qstep" id="qStep">Question 1 of 8</div>
+            <div class="qtext" id="qText"></div>
+            <div class="qbtns">
+                <button type="button" id="trueBtn">True</button>
+                <button type="button" id="falseBtn">False</button>
+            </div>
+        </div>
+        <div id="qAfter">
+            <div class="verdict" id="verdict"></div>
+            <div id="tryText"></div>
+            <button type="button" id="nextQ">Next question</button>
+            <a id="playLink" href="../eccentricity-researcher/index.html">Play Eccentricity Researcher</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from "three";
+        import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+        const R = 6371;
+        const SPEC = {
+            e: { lo: 0, hi: 0.92, step: 0.001, digits: 3, unit: "", name: "eccentricity" },
+            rp: { lo: 6371, hi: 42000, step: 1, digits: 0, unit: "km", name: "near distance" },
+            ra: { lo: 6371, hi: 80000, step: 1, digits: 0, unit: "km", name: "far distance" },
+            a: { lo: 6371, hi: 60000, step: 1, digits: 0, unit: "km", name: "half-length" },
+            hp: { lo: 0, hi: 36000, step: 1, digits: 0, unit: "km", name: "low height" },
+            ha: { lo: 0, hi: 74000, step: 1, digits: 0, unit: "km", name: "high height" }
+        };
+        const state = { R: R, rp: 7000, ra: 9000, e: 0.125, a: 8000, hp: 629, ha: 2629 };
+        const picked = [];
+        const baseline = {};
+
+        const questions = [
+            { text: "A circle has eccentricity 0.", answer: true, vars: ["e", "ra"], try: "On Shape, pick e and ra. Lower ra until it meets rp. e becomes 0." },
+            { text: "A bigger gap between the near point and the far point makes a bigger eccentricity.", answer: true, vars: ["e", "ra"], try: "On Shape, pick e and ra. Raise ra. e grows." },
+            { text: "An orbit that comes back around the planet can have eccentricity bigger than 1.", answer: false, vars: ["e", "ra"], try: "On Shape, pick e and ra. Push e up. The oval gets very long, and e stays below 1." },
+            { text: "The half-length a is the average of the near distance and the far distance.", answer: true, vars: ["a", "rp"], try: "On Size, pick a and rp. Raise rp. a rises with it." },
+            { text: "If the far point moves out and the near point stays, a gets bigger.", answer: true, vars: ["a", "ra"], try: "On Size, pick a and ra. Raise ra. a gets bigger." },
+            { text: "The low height is the near distance minus Earth’s radius.", answer: true, vars: ["hp", "rp"], try: "On Height, pick hp and rp. Raise rp. hp rises by the same amount." },
+            { text: "A higher far point, with the same near point, makes the orbit rounder.", answer: false, vars: ["e", "ra"], try: "On Shape, pick e and ra. Raise ra. e gets bigger, so the oval is longer, not rounder." },
+            { text: "If the near distance equals Earth’s radius, the low height is zero and the craft meets the ground.", answer: true, vars: ["hp", "rp"], try: "On Height, pick hp and rp. Lower rp toward R. hp falls toward 0." }
+        ];
+        let qIndex = 0;
+
+        function sync() {
+            if (state.rp < R) state.rp = R;
+            if (state.ra < state.rp) state.ra = state.rp;
+            const sum = state.ra + state.rp;
+            state.e = sum > 0 ? (state.ra - state.rp) / sum : 0;
+            state.a = (state.rp + state.ra) / 2;
+            state.hp = state.rp - R;
+            state.ha = state.ra - R;
+        }
+        function solve(src) {
+            const dst = picked.find((id) => id !== src);
+            if (src === "hp") state.rp = R + state.hp;
+            if (src === "ha") state.ra = R + state.ha;
+            if (src === "e") {
+                const e = Math.min(0.92, Math.max(0, state.e));
+                state.e = e;
+                if (dst === "a") {
+                    state.rp = state.a * (1 - e);
+                    state.ra = state.a * (1 + e);
+                } else if (dst === "ra" || dst === "ha") {
+                    state.ra = state.rp * (1 + e) / (1 - e);
+                } else {
+                    state.rp = state.ra * (1 - e) / (1 + e);
+                }
+            }
+            if (src === "a") {
+                const e = Math.min(0.92, Math.max(0, state.e));
+                if (dst === "e") {
+                    state.rp = state.a * (1 - e);
+                    state.ra = state.a * (1 + e);
+                } else if (dst === "rp" || dst === "hp") {
+                    state.rp = 2 * state.a - state.ra;
+                } else if (dst === "ra" || dst === "ha") {
+                    state.ra = 2 * state.a - state.rp;
+                } else {
+                    state.rp = state.a * (1 - e);
+                    state.ra = state.a * (1 + e);
+                }
+            }
+            sync();
+        }
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x07080c);
+        const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(0, 6, 16);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+        renderer.setSize(innerWidth, innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enablePan = false;
+        controls.target.set(0, 0, 0);
+        let camDist = camera.position.length();
+
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for (let i = 0; i < 900; i++) starPos.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400);
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.35, transparent: true, opacity: 0.55 })));
+
+        const VIEW = 2.4;
+        const planet = new THREE.Mesh(new THREE.SphereGeometry(VIEW, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.72 }));
+        scene.add(planet);
+        const air = new THREE.Mesh(new THREE.SphereGeometry(VIEW * 1.04, 32, 32), new THREE.MeshBasicMaterial({ color: 0x9eb8c9, transparent: true, opacity: 0.14 }));
+        scene.add(air);
+        const N = 180;
+        function makeLine(color, opacity) {
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((N + 1) * 3), 3));
+            const mat = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: opacity });
+            const line = new THREE.Line(geo, mat);
+            scene.add(line);
+            return line;
+        }
+        const orbit = makeLine(0xf3ecdf, 0.95);
+        const round = makeLine(0xf3ecdf, 0.28);
+        const nearDot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color: 0xe2c27a, roughness: 0.35 }));
+        const farDot = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color: 0x8eb4d6, roughness: 0.35 }));
+        const craft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 10), new THREE.MeshStandardMaterial({ color: 0xfff6ea, roughness: 0.3 }));
+        scene.add(nearDot, farDot, craft);
+        scene.add(new THREE.AmbientLight(0xf3ecdf, 0.4));
+        const sun = new THREE.DirectionalLight(0xfff6ea, 1.35);
+        sun.position.set(18, 12, 10);
+        scene.add(sun);
+        let satTh = 0.4;
+
+        function fillLoop(line, radiusAt) {
+            const arr = line.geometry.attributes.position.array;
+            const scale = VIEW / R;
+            for (let i = 0; i <= N; i++) {
+                const th = (i / N) * Math.PI * 2;
+                const r = radiusAt(th) * scale;
+                arr[i * 3] = Math.cos(th) * r;
+                arr[i * 3 + 1] = 0;
+                arr[i * 3 + 2] = Math.sin(th) * r;
+            }
+            line.geometry.attributes.position.needsUpdate = true;
+        }
+        function placeScene() {
+            const scale = VIEW / R;
+            const e = Math.min(0.92, Math.max(0, state.e));
+            const a = state.a;
+            fillLoop(orbit, (th) => a * (1 - e * e) / (1 + e * Math.cos(th)));
+            fillLoop(round, () => state.rp);
+            nearDot.position.set(state.rp * scale, 0, 0);
+            farDot.position.set(-state.ra * scale, 0, 0);
+        }
+        function wantedDist() {
+            const far = VIEW * state.ra / R;
+            return Math.max(8, Math.min(90, far * 2.15 + 3.2));
+        }
+
+        function bounds(id) {
+            const s = SPEC[id];
+            let lo = s.lo, hi = s.hi;
+            if (id === "rp" || id === "a") lo = R;
+            if (id === "ra") lo = Math.max(lo, state.rp);
+            if (id === "ha") lo = Math.max(lo, state.hp);
+            if (lo > hi) lo = hi;
+            return { lo, hi };
+        }
+        function shown(id) { return state[id]; }
+        function format(id) {
+            const s = SPEC[id];
+            const v = shown(id);
+            const num = s.digits ? v.toFixed(s.digits) : Math.round(v).toLocaleString();
+            return s.unit ? num + " " + s.unit : num;
+        }
+        function label(id) {
+            if (id === "rp") return "r<sub>p</sub>";
+            if (id === "ra") return "r<sub>a</sub>";
+            if (id === "hp") return "h<sub>p</sub>";
+            if (id === "ha") return "h<sub>a</sub>";
+            return id;
+        }
+
+        function placeFormula() {
+            const el = document.getElementById("formula");
+            const panel = document.getElementById("panel").getBoundingClientRect();
+            const q = document.getElementById("qCard");
+            const qOn = q && getComputedStyle(q).display !== "none";
+            const qb = qOn ? q.getBoundingClientRect() : null;
+            let left = 20, right = innerWidth - 20, top = 24, bottom = innerHeight - 24;
+            if (innerWidth >= 1100) {
+                left = Math.max(left, panel.right + 36);
+                if (qb) right = Math.min(right, qb.left - 28);
+            } else {
+                top = Math.max(top, panel.bottom + 16);
+                if (qb) bottom = Math.min(bottom, qb.top - 16);
+            }
+            const roomW = Math.max(40, right - left);
+            const roomH = Math.max(40, bottom - top);
+            el.style.left = ((left + right) / 2) + "px";
+            el.style.top = ((top + bottom) / 2) + "px";
+            el.style.transform = "translate(-50%, -50%)";
+            const rect = el.getBoundingClientRect();
+            const fitScale = Math.min(roomW / Math.max(rect.width, 1), roomH / Math.max(rect.height, 1));
+            const s = Math.min(1.05, fitScale);
+            el.style.transform = "translate(-50%, -50%) scale(" + s.toFixed(3) + ")";
+        }
+        const drawn = {};
+        function easeLetters(dt) {
+            const glide = 1 - Math.exp(-Math.max(dt, 0.001) * 8);
+            let layout = false;
+            document.querySelectorAll("button.var, .ghost").forEach((el) => {
+                const id = el.dataset.id;
+                const rest = 64;
+                let target = rest;
+                if (picked.includes(id) && baseline[id]) {
+                    const scaled = Math.pow(Math.max(state[id] / baseline[id], 0.05), 0.9);
+                    target = rest * Math.min(2.05, Math.max(0.7, scaled));
+                }
+                if (drawn[id] == null) drawn[id] = target;
+                const next = Math.abs(target - drawn[id]) < 0.2 ? target : drawn[id] + (target - drawn[id]) * glide;
+                if (Math.abs(next - drawn[id]) > 0.04) layout = true;
+                drawn[id] = next;
+                el.style.fontSize = next.toFixed(2) + "px";
+                el.classList.toggle("on", picked.includes(id));
+            });
+            if (layout) placeFormula();
+        }
+        function sizeSymbols() {
+            document.querySelectorAll("button.var, .ghost").forEach((el) => {
+                el.classList.toggle("on", picked.includes(el.dataset.id));
+            });
+            placeFormula();
+        }
+        function renderControls() {
+            const box = document.getElementById("controls");
+            if (picked.length < 2) {
+                box.hidden = true;
+                box.innerHTML = "";
+                return;
+            }
+            box.hidden = false;
+            box.innerHTML = picked.map((id) => {
+                const s = SPEC[id];
+                const b = bounds(id);
+                return `<div class="slide"><label><span class="sym">${label(id)}</span><span class="num">${format(id)}</span></label><input type="range" data-id="${id}" min="${b.lo}" max="${b.hi}" step="${s.step}" value="${shown(id)}" aria-label="${s.name}"></div>`;
+            }).join("");
+            box.querySelectorAll("input").forEach((input) => {
+                input.addEventListener("input", () => {
+                    const id = input.dataset.id;
+                    state[id] = parseFloat(input.value);
+                    solve(id);
+                    paint();
+                });
+            });
+        }
+        function paint() {
+            document.querySelectorAll("#controls input").forEach((input) => {
+                const id = input.dataset.id;
+                const b = bounds(id);
+                input.min = String(b.lo);
+                input.max = String(b.hi);
+                input.value = String(Math.min(b.hi, Math.max(b.lo, shown(id))));
+                input.parentElement.querySelector(".num").textContent = format(id);
+            });
+            sizeSymbols();
+            placeScene();
+        }
+
+        document.querySelectorAll("button.var").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const id = btn.dataset.id;
+                const i = picked.indexOf(id);
+                if (i >= 0) picked.splice(i, 1);
+                else {
+                    if (picked.length >= 2) picked.shift();
+                    picked.push(id);
+                }
+                renderControls();
+                Object.keys(baseline).forEach((k) => delete baseline[k]);
+                picked.forEach((k) => { baseline[k] = Math.abs(state[k]) < 1e-6 ? 1 : state[k]; });
+                sizeSymbols();
+            });
+        });
+
+        const qAsk = document.getElementById("qAsk");
+        const qAfter = document.getElementById("qAfter");
+        function showQuestion() {
+            const q = questions[qIndex];
+            document.getElementById("qStep").textContent = "Question " + (qIndex + 1) + " of " + questions.length;
+            document.getElementById("qText").textContent = q.text;
+            qAsk.classList.remove("hide");
+            qAfter.classList.remove("show");
+            document.getElementById("playLink").classList.remove("show");
+        }
+        function eqFor(ids) {
+            const rows = [...document.querySelectorAll("#formula .row")];
+            let best = 0, score = -1;
+            rows.forEach((row, i) => {
+                const have = new Set([...row.querySelectorAll("[data-id]")].map((b) => b.dataset.id));
+                const s = ids.filter((id) => have.has(id)).length;
+                if (s > score) { score = s; best = i; }
+            });
+            return best;
+        }
+        function showEq(i) {
+            document.querySelectorAll("#formula .row").forEach((row, n) => row.classList.toggle("show", n === i));
+            document.querySelectorAll("#eqNav button").forEach((btn, n) => btn.classList.toggle("on", n === i));
+            const name = document.querySelector("#eqNav button.on");
+            if (name) {
+                const url = new URL(location.href);
+                url.searchParams.set("eq", name.dataset.name);
+                history.replaceState(null, "", url);
+            }
+            const ids = new Set([...document.querySelectorAll("#formula .row.show [data-id]")].map((b) => b.dataset.id));
+            for (let k = picked.length - 1; k >= 0; k--) if (!ids.has(picked[k])) picked.splice(k, 1);
+            renderControls();
+            Object.keys(baseline).forEach((k) => delete baseline[k]);
+            picked.forEach((k) => { baseline[k] = Math.abs(state[k]) < 1e-6 ? 1 : state[k]; });
+            sizeSymbols();
+        }
+        document.querySelectorAll("#eqNav button").forEach((btn) => {
+            btn.addEventListener("click", () => showEq(Number(btn.dataset.eq)));
+        });
+        function pulse(ids) {
+            showEq(eqFor(ids));
+            document.querySelectorAll(".pulse").forEach((el) => el.classList.remove("pulse"));
+            ids.forEach((id) => {
+                document.querySelectorAll('[data-id="' + id + '"]').forEach((el) => {
+                    if (!el.classList.contains("var") && !el.classList.contains("ghost")) return;
+                    void el.offsetWidth;
+                    el.classList.add("pulse");
+                });
+            });
+        }
+        function answer(choice) {
+            const q = questions[qIndex];
+            const ok = choice === q.answer;
+            const verdict = document.getElementById("verdict");
+            verdict.textContent = ok ? "That's right." : "Not quite.";
+            verdict.className = "verdict " + (ok ? "ok" : "no");
+            document.getElementById("tryText").textContent = q.try;
+            const last = qIndex >= questions.length - 1;
+            document.getElementById("nextQ").hidden = last;
+            document.getElementById("playLink").classList.toggle("show", last);
+            qAsk.classList.add("hide");
+            qAfter.classList.add("show");
+            pulse(q.vars);
+        }
+        document.getElementById("trueBtn").onclick = () => answer(true);
+        document.getElementById("falseBtn").onclick = () => answer(false);
+        document.getElementById("nextQ").onclick = () => {
+            qIndex++;
+            showQuestion();
+        };
+
+        let lastT = 0;
+        function frame(now) {
+            requestAnimationFrame(frame);
+            const t = now || performance.now();
+            const dt = lastT ? Math.min(0.05, (t - lastT) / 1000) : 0.016;
+            lastT = t;
+            easeLetters(dt);
+            const e = Math.min(0.92, Math.max(0, state.e));
+            const rNow = state.a * (1 - e * e) / (1 + e * Math.cos(satTh));
+            satTh += dt * 0.55 * (state.rp / Math.max(rNow, 1)) ** 2;
+            const scale = VIEW / R;
+            craft.position.set(Math.cos(satTh) * rNow * scale, 0, Math.sin(satTh) * rNow * scale);
+            const want = wantedDist();
+            camDist += (want - camDist) * 0.08;
+            const dir = camera.position.clone().sub(controls.target);
+            if (dir.lengthSq() < 1e-6) dir.set(0, 0.35, 1);
+            dir.setLength(camDist);
+            camera.position.copy(controls.target).add(dir);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        window.addEventListener("resize", () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+            placeFormula();
+        });
+        sync();
+        const asked = new URLSearchParams(location.search).get("eq");
+        const startEq = [...document.querySelectorAll("#eqNav button")].findIndex((b) => b.dataset.name === asked);
+        showEq(startEq >= 0 ? startEq : 0);
+        placeScene();
+        showQuestion();
+        frame();
+    </script>
+</body>
+</html>

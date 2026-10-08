@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eccentricity Researcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #f3ecdf;
+            --dim: rgba(243, 236, 223, 0.62);
+            --line: rgba(243, 236, 223, 0.16);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+        canvas { display: block; }
+        #panel {
+            position: fixed; top: 22px; left: 22px; z-index: 6;
+            width: min(380px, calc(100vw - 44px));
+            max-height: calc(100vh - 168px); overflow: auto;
+            padding: 18px 18px 16px;
+            background: rgba(8, 9, 12, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .step { color: var(--dim); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+        h1 {
+            margin: 4px 0 2px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 36px; letter-spacing: 0.03em; line-height: 1;
+        }
+        .year { color: var(--dim); margin: 0 0 10px; }
+        .mission-art, .veil-art {
+            display: block; width: 100%; object-fit: cover; border-radius: 12px;
+            margin: 0 0 12px; background: #10141c;
+        }
+        .mission-art { height: 132px; }
+        .veil-art { height: 196px; }
+        .veil-art[hidden] { display: none; }
+        .story { margin: 0 0 12px; line-height: 1.45; font-size: 15px; }
+        .known { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }
+        .chip {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            width: 100%; padding: 8px 12px; border-radius: 12px; cursor: grab;
+            background: rgba(243, 236, 223, 0.06); border: 1px solid var(--line);
+            color: var(--ink); font-family: Outfit, system-ui, sans-serif; font-size: 15px;
+        }
+        .chip .sym { font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 26px; line-height: 1; }
+        .chip .sym sub { font-style: normal; font-size: 0.62em; }
+        .chip .num { color: var(--dim); font-variant-numeric: tabular-nums; }
+        .drag-note { margin: -4px 0 10px; color: var(--dim); font-size: 13px; }
+        .ask { font-family: "Cormorant Garamond", Georgia, serif; font-size: 26px; line-height: 1.15; margin: 0 0 10px; }
+        .entry { display: flex; gap: 8px; }
+        .entry input {
+            flex: 1; min-width: 0; padding: 10px 12px; border-radius: 999px;
+            border: 1px solid rgba(243, 236, 223, 0.28); background: transparent; color: var(--ink);
+            font-family: Outfit, system-ui, sans-serif; font-size: 16px;
+        }
+        .entry input.drop { border-color: #ffe9a8; box-shadow: 0 0 0 3px rgba(255, 233, 168, 0.28); }
+        .entry button, .eqs button, #veil button {
+            padding: 10px 14px; border-radius: 999px; cursor: pointer; border: 0;
+            background: #f3ecdf; color: #16140f; font-family: Outfit, system-ui, sans-serif; font-size: 14px;
+        }
+        .eqs { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+        .eqs button {
+            background: transparent; color: var(--ink);
+            border: 1px solid rgba(243, 236, 223, 0.28);
+        }
+        .eqs button.on { color: #16140f; background: #f3ecdf; }
+        .hint { margin: 8px 0 0; color: var(--dim); font-size: 13px; line-height: 1.4; }
+        #hud {
+            position: fixed; top: 22px; right: 22px; z-index: 6;
+            width: min(220px, calc(100vw - 44px));
+            padding: 14px 16px;
+            background: rgba(8, 9, 12, 0.78);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        #hud .row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; }
+        #hud span { color: var(--dim); }
+        #hud b { font-weight: 500; font-variant-numeric: tabular-nums; }
+        #hud b.bad { color: #f0c2b2; }
+        #veil {
+            position: fixed; inset: 0; z-index: 20;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(7, 8, 12, 0.72); padding: 22px;
+        }
+        #veil.hide { display: none; }
+        #veil .card {
+            width: min(520px, 100%);
+            padding: 22px 22px 18px;
+            background: #12141a;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+        }
+        #veil h2 {
+            margin: 0 0 8px;
+            font-family: "Cormorant Garamond", Georgia, serif;
+            font-weight: 500; font-size: 36px;
+        }
+        #veil p { margin: 0 0 8px; line-height: 1.45; color: var(--dim); }
+        #veil .log { color: var(--ink); }
+        #veil button { margin-top: 12px; }
+        #eqBar {
+            position: fixed; left: 16px; bottom: 14px; z-index: 12;
+            display: flex; align-items: flex-end; gap: 8px;
+        }
+        #eqPanel {
+            padding: 6px; border-radius: 14px;
+            background: rgba(8, 9, 12, 0.9); border: 1px solid var(--line);
+            backdrop-filter: blur(10px);
+        }
+        .eq {
+            display: block; width: 100%; margin: 0; padding: 5px 10px;
+            background: transparent; color: var(--dim); border: 0; border-radius: 8px;
+            font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 20px;
+            cursor: pointer; text-align: left; line-height: 1.15;
+        }
+        .eq sub { font-style: normal; font-size: 0.68em; }
+        .eq.on, .eq:hover { color: var(--ink); background: rgba(243, 236, 223, 0.08); }
+        #calcToggle {
+            width: 46px; height: 46px; padding: 0; border-radius: 12px; cursor: pointer;
+            border: 1px solid var(--line); background: rgba(8, 9, 12, 0.9); font-size: 22px;
+        }
+        #calcPad {
+            display: none; position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+            width: 220px; padding: 8px; z-index: 18; cursor: grab; touch-action: none;
+            background: rgba(8, 9, 12, 0.94); border: 1px solid var(--line); border-radius: 14px;
+            backdrop-filter: blur(10px);
+        }
+        #calcPad.open { display: block; }
+        #calcPad.drop { border-color: #ffe9a8; }
+        .calc-top { display: flex; gap: 4px; margin-bottom: 6px; }
+        #calcScreen {
+            flex: 1; min-height: 32px; padding: 6px 8px; text-align: right; cursor: grab;
+            background: rgba(7, 8, 12, 0.55); border: 1px solid var(--line); border-radius: 8px;
+            color: var(--ink); font-variant-numeric: tabular-nums; font-size: 15px;
+            overflow: hidden; word-break: break-all;
+        }
+        #calcClose {
+            width: 32px; border: 0; border-radius: 8px; cursor: pointer;
+            background: rgba(243, 236, 223, 0.12); color: var(--ink);
+        }
+        .calc-keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .calc-keys button {
+            padding: 7px 0; border: 0; border-radius: 8px; cursor: pointer;
+            background: rgba(243, 236, 223, 0.08); color: var(--ink);
+            font-family: Outfit, system-ui, sans-serif; font-size: 13px;
+        }
+        .calc-keys button.op { background: rgba(243, 236, 223, 0.16); }
+        .calc-keys button.go { background: #f3ecdf; color: #16140f; grid-column: 1 / -1; }
+        .calc-keys button.warn { background: rgba(240, 194, 178, 0.2); color: #f0c2b2; }
+        .calc-keys button.pressed { transform: scale(0.92); }
+        #comment {
+            position: fixed; right: 16px; bottom: 16px; z-index: 12;
+            max-width: min(320px, calc(100vw - 360px));
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 14px; border-radius: 16px;
+            background: rgba(8, 9, 12, 0.9); border: 1px solid var(--line);
+            backdrop-filter: blur(10px);
+        }
+        #comment .emoji { font-size: 42px; line-height: 1; }
+        #commentText { font-size: 15px; line-height: 1.35; }
+        #coach, #calcGuideShow { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 30; }
+        #coach {
+            width: min(380px, calc(100vw - 24px));
+            padding: 12px 14px 8px; border-radius: 14px; text-align: center;
+            background: rgba(8, 9, 12, 0.94); border: 1px solid #ffe9a8;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+        }
+        #coachFormula { margin: 0 0 6px; color: #ffe9a8; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 22px; }
+        #coachText { margin: 0 0 10px; line-height: 1.4; }
+        #coachNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        #coachBack, #coachNext, #calcGuideShow, #calcGuideHide {
+            border-radius: 999px; padding: 6px 12px; font-family: Outfit, system-ui, sans-serif; font-size: 14px; cursor: pointer;
+        }
+        #coachBack, #calcGuideShow { background: transparent; color: #ffe9a8; border: 1px solid #ffe9a8; }
+        #coachNext { background: #f3ecdf; color: #16140f; border: 0; }
+        #coachBack:disabled { opacity: 0.35; cursor: default; }
+        #coachCount { color: var(--dim); font-size: 13px; }
+        #calcGuideHide { margin-top: 6px; background: transparent; color: var(--dim); border: 0; }
+        #coachSpots { position: fixed; inset: 0; pointer-events: none; z-index: 28; }
+        .coach-spot {
+            position: fixed; pointer-events: none; border: 2px solid #ffe9a8; border-radius: 10px;
+            box-shadow: 0 0 0 4px rgba(255, 233, 168, 0.25);
+        }
+        #dragGhost {
+            position: fixed; z-index: 40; pointer-events: none;
+            padding: 6px 12px; border-radius: 999px; background: #f3ecdf; color: #16140f;
+            font-family: "Cormorant Garamond", Georgia, serif; font-size: 20px;
+            transform: translate(-50%, -140%);
+        }
+        #dragGhost[hidden] { display: none; }
+        @media (max-width: 800px) {
+            #comment { max-width: min(220px, 46vw); }
+            #coach, #calcGuideShow { top: 8px; }
+        }
+    </style>
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+</head>
+<body>
+    <div id="panel">
+        <div class="step" id="step">Path 1 of 6</div>
+        <h1 id="title">Dongfanghong-1</h1>
+        <p class="year" id="year">1970</p>
+        <img id="missionArt" class="mission-art" alt="Dongfanghong-1" src="art/m1-dongfanghong.jpg">
+        <p class="story" id="story"></p>
+        <p class="drag-note">Drag a number onto the calculator.</p>
+        <div class="known" id="known"></div>
+        <p class="ask" id="ask"></p>
+        <div class="entry">
+            <input id="ans" inputmode="decimal" autocomplete="off" aria-label="Your number">
+            <button type="button" id="check">Check</button>
+        </div>
+    </div>
+    <div id="hud">
+        <div class="row"><span>Grant</span><b id="grant"></b></div>
+        <div class="row"><span id="leftLabel">Left</span><b id="left"></b></div>
+    </div>
+    <div id="eqBar">
+        <div id="eqPanel">
+            <button type="button" class="eq" data-eq="shape">e = (r<sub>a</sub> − r<sub>p</sub>) / (r<sub>a</sub> + r<sub>p</sub>)</button>
+            <button type="button" class="eq" data-eq="size">a = (r<sub>p</sub> + r<sub>a</sub>) / 2</button>
+            <button type="button" class="eq" data-eq="height">h<sub>p</sub> = r<sub>p</sub> − R &nbsp; h<sub>a</sub> = r<sub>a</sub> − R</button>
+        </div>
+        <button type="button" id="calcToggle" title="Calculator">🧮</button>
+    </div>
+    <div id="calcPad" class="open" aria-hidden="false">
+        <div class="calc-top">
+            <div id="calcScreen" tabindex="0">0</div>
+            <button type="button" id="calcClose" title="Close">×</button>
+        </div>
+        <div class="calc-keys">
+            <button type="button" data-calc="ans">Ans</button>
+            <button type="button" data-calc="sto">Sto</button>
+            <button type="button" data-calc="rcl">Rcl</button>
+            <button type="button" data-calc="C" class="warn">C</button>
+            <button type="button" data-calc="7">7</button>
+            <button type="button" data-calc="8">8</button>
+            <button type="button" data-calc="9">9</button>
+            <button type="button" data-calc="/" class="op">÷</button>
+            <button type="button" data-calc="4">4</button>
+            <button type="button" data-calc="5">5</button>
+            <button type="button" data-calc="6">6</button>
+            <button type="button" data-calc="*" class="op">×</button>
+            <button type="button" data-calc="1">1</button>
+            <button type="button" data-calc="2">2</button>
+            <button type="button" data-calc="3">3</button>
+            <button type="button" data-calc="-" class="op">−</button>
+            <button type="button" data-calc="0">0</button>
+            <button type="button" data-calc=".">.</button>
+            <button type="button" data-calc="bs">⌫</button>
+            <button type="button" data-calc="+" class="op">+</button>
+            <button type="button" data-calc="=" class="go">=</button>
+        </div>
+    </div>
+    <div id="comment"><span class="emoji">🛰️</span><span id="commentText">Cream path is the real orbit. Pale path is the number you type.</span></div>
+    <div id="coach" hidden>
+        <p id="coachFormula"></p>
+        <p id="coachText"></p>
+        <div id="coachNav">
+            <button type="button" id="coachBack">Back</button>
+            <span id="coachCount">1 / 8</span>
+            <button type="button" id="coachNext">Next</button>
+        </div>
+        <button type="button" id="calcGuideHide">Hide</button>
+    </div>
+    <button type="button" id="calcGuideShow" hidden>Show steps</button>
+    <div id="coachSpots"></div>
+    <div id="dragGhost" hidden></div>
+    <div id="veil">
+        <div class="card">
+            <img id="veilArt" class="veil-art" alt="" src="art/intro.jpg">
+            <h2 id="veilTitle">Six paths</h2>
+            <p id="veilBody">Work out one number for each orbit. Drag the distances onto the calculator. The steps show the order. A wrong try costs ¥3,000,000.</p>
+            <button type="button" id="veilOk">Begin</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from "three";
+
+        const R = 6371;
+        const MISSIONS = [
+            {
+                name: "Dongfanghong-1", year: "1970", ask: "e", eq: "shape", art: "art/m1-dongfanghong.jpg",
+                story: "The first satellite should stay the same height all the way around. The near distance and the far distance are the same.",
+                face: "🛰️", say: "A circle. The near side and the far side match.",
+                nums: [{ sym: "rp", label: "r<sub>p</sub>", value: 6771 }, { sym: "ra", label: "r<sub>a</sub>", value: 6771 }],
+                prompt: "What is the eccentricity?",
+                answer: 0, tol: 0.01, rp: 6771, ra: 6771,
+                hint: "The top of the fraction is the gap. A circle has no gap, so e is 0."
+            },
+            {
+                name: "Shenzhou-5", year: "2003", ask: "e", eq: "shape", art: "art/m2-shenzhou.jpg",
+                story: "The crew ship comes closer on one side of Earth and farther on the other.",
+                face: "🚀", say: "A short oval. One side is a little farther.",
+                nums: [{ sym: "rp", label: "r<sub>p</sub>", value: 7000 }, { sym: "ra", label: "r<sub>a</sub>", value: 9000 }],
+                prompt: "What is the eccentricity?",
+                answer: 0.125, tol: 0.01, rp: 7000, ra: 9000,
+                hint: "Subtract the near distance from the far distance. Divide that gap by the sum of the two distances."
+            },
+            {
+                name: "Tianzhou-1", year: "2017", ask: "a", eq: "size", art: "art/m3-tianzhou.jpg",
+                story: "The cargo ship flies a wider oval. The half-length sits halfway between the near point and the far point.",
+                face: "📦", say: "Add the two distances, then split that in half.",
+                nums: [{ sym: "rp", label: "r<sub>p</sub>", value: 8000 }, { sym: "ra", label: "r<sub>a</sub>", value: 12000 }],
+                prompt: "What is a, in km?",
+                answer: 10000, tol: 50, rp: 8000, ra: 12000,
+                hint: "Add the two distances and divide by 2."
+            },
+            {
+                name: "Chang'e-1", year: "2007", ask: "e", eq: "shape", art: "art/m4-change.jpg",
+                story: "The Moon ship stretches a long way out, then comes back close to Earth.",
+                face: "🌙", say: "A long oval. The far side stretches well out.",
+                nums: [{ sym: "rp", label: "r<sub>p</sub>", value: 7000 }, { sym: "ra", label: "r<sub>a</sub>", value: 21000 }],
+                prompt: "What is the eccentricity?",
+                answer: 0.5, tol: 0.02, rp: 7000, ra: 21000,
+                hint: "The gap is 14,000 km. The sum of the two distances is 28,000 km."
+            },
+            {
+                name: "Gaofen-4", year: "2015", ask: "hp", eq: "height", art: "art/m5-gaofen.jpg",
+                story: "You have the distance from the centre. The report wants the height above the ground.",
+                face: "📏", say: "Height is the near distance minus Earth's radius.",
+                nums: [{ sym: "R", label: "R", value: 6371 }, { sym: "rp", label: "r<sub>p</sub>", value: 6871 }],
+                prompt: "How many km above the ground is the low point?",
+                answer: 500, tol: 15, rp: 6871, ra: 7871,
+                hint: "Take the near distance and subtract R."
+            },
+            {
+                name: "Queqiao", year: "2018", ask: "ha", eq: "height", art: "art/m6-queqiao.jpg",
+                story: "The relay sits very far on one side. The report wants that high point as a height above the ground.",
+                face: "📡", say: "The high point is the far distance minus Earth's radius.",
+                nums: [{ sym: "R", label: "R", value: 6371 }, { sym: "ra", label: "r<sub>a</sub>", value: 16371 }],
+                prompt: "How many km above the ground is the high point?",
+                answer: 10000, tol: 40, rp: 7371, ra: 16371,
+                hint: "Take the far distance and subtract R."
+            }
+        ];
+
+        let index = 0;
+        let budget = 18;
+        let tries = 0;
+        let started = false;
+        let busy = false;
+        const history = [];
+        const GRANT0 = 18;
+
+        function formatMoney(mil) {
+            const n = Math.round(mil * 1000000);
+            const abs = "¥" + Math.abs(n).toLocaleString();
+            return n < 0 ? "−" + abs : abs;
+        }
+        function paintMoney() {
+            document.getElementById("grant").textContent = formatMoney(GRANT0);
+            const left = document.getElementById("left");
+            const label = document.getElementById("leftLabel");
+            if (budget < 0) {
+                label.textContent = "Debt";
+                left.textContent = formatMoney(-budget);
+                left.className = "bad";
+            } else {
+                label.textContent = "Left";
+                left.textContent = formatMoney(budget);
+                left.className = "";
+            }
+        }
+        function showMission() {
+            const m = MISSIONS[index];
+            document.getElementById("step").textContent = "Path " + (index + 1) + " of " + MISSIONS.length;
+            document.getElementById("title").textContent = m.name;
+            document.getElementById("year").textContent = m.year;
+            const missionArt = document.getElementById("missionArt");
+            missionArt.src = m.art;
+            missionArt.alt = m.name;
+            document.getElementById("story").textContent = m.story;
+            document.getElementById("known").innerHTML = m.nums.map((n) =>
+                `<button type="button" class="chip" data-sym="${n.sym}" data-num="${n.value}"><span class="sym">${n.label}</span><span class="num">${n.value.toLocaleString()} km</span></button>`
+            ).join("");
+            document.getElementById("ask").textContent = m.prompt;
+            document.getElementById("ans").value = "";
+            document.querySelectorAll("#eqPanel .eq").forEach((btn) => btn.classList.toggle("on", btn.dataset.eq === m.eq));
+            if (started) {
+                comment(m.face, m.say);
+                syncGuide();
+            }
+            tries = 0;
+            trueRp = m.rp;
+            trueRa = m.ra;
+            ghostOn = false;
+            placeScene();
+        }
+        function readAnswer() {
+            const raw = document.getElementById("ans").value.replace(/,/g, "").replace(/km/gi, "").trim();
+            if (!raw) return null;
+            const n = Number(raw);
+            return Number.isFinite(n) ? n : null;
+        }
+        function ghostRadii(m, n) {
+            if (m.ask === "e") {
+                const e = Math.min(0.92, Math.max(0, n));
+                return { rp: m.rp, ra: m.rp * (1 + e) / Math.max(0.08, 1 - e) };
+            }
+            if (m.ask === "a") {
+                const e = (m.ra - m.rp) / (m.ra + m.rp);
+                const a = Math.max(R, n);
+                return { rp: Math.max(R, a * (1 - e)), ra: Math.max(R, a * (1 + e)) };
+            }
+            if (m.ask === "hp") {
+                const rp = Math.max(R, R + n);
+                return { rp, ra: Math.max(m.ra, rp) };
+            }
+            const ra = Math.max(m.rp, R + n);
+            return { rp: m.rp, ra };
+        }
+        function setVeilArt(src) {
+            const img = document.getElementById("veilArt");
+            if (!src) {
+                img.hidden = true;
+                return;
+            }
+            img.hidden = false;
+            img.src = src;
+        }
+        function veil(title, body, button, log) {
+            setVeilArt(null);
+            document.getElementById("veilTitle").textContent = title;
+            document.getElementById("veilBody").textContent = body;
+            const card = document.querySelector("#veil .card");
+            let extra = card.querySelector(".log");
+            if (log) {
+                if (!extra) {
+                    extra = document.createElement("p");
+                    extra.className = "log";
+                    card.insertBefore(extra, document.getElementById("veilOk"));
+                }
+                extra.textContent = log;
+            } else if (extra) extra.remove();
+            document.getElementById("veilOk").textContent = button;
+            document.getElementById("veil").classList.remove("hide");
+            busy = true;
+        }
+        function finish() {
+            const first = history.filter((h) => h.tries === 1).length;
+            const owed = budget < 0;
+            const title = owed ? "Money still owed" : (first === MISSIONS.length ? "A clean record" : "The paths are drawn");
+            const picture = owed ? "art/end-debt.jpg" : (first === MISSIONS.length ? "art/end-clean.jpg" : "art/end-drawn.jpg");
+            const money = owed
+                ? "The grant was ¥18,000,000. Wrong tries cost more than that, so " + formatMoney(-budget) + " is still owed."
+                : "The grant was ¥18,000,000. " + formatMoney(budget) + " is left.";
+            const lines = history.map((h) => h.name + ": " + h.theirs).join("  ");
+            veil(title, money + " " + first + " of " + MISSIONS.length + " were right on the first try.", "Back to the lab", lines);
+            setVeilArt(picture);
+            comment(owed ? "💸" : "📒", owed ? "The grant ran out. Money is still owed." : "The record is in. Have a look.");
+            document.getElementById("veilOk").onclick = () => { location.href = "../index.html"; };
+        }
+        function check() {
+            if (!started || busy) return;
+            const m = MISSIONS[index];
+            const n = readAnswer();
+            if (n == null) {
+                comment("✏️", "Type a number, or drag the calculator answer into the box.");
+                veil("Type a number", "Drag the calculator answer into the box, or type what you found.", "Try again");
+                return;
+            }
+            tries += 1;
+            const ok = Math.abs(n - m.answer) <= m.tol;
+            if (!ok) {
+                budget -= 3;
+                paintMoney();
+                tone(false);
+                comment("🤔", "Not yet. The steps walk through the calculator.");
+                veil("Not yet", m.hint + " This try cost ¥3,000,000.", "Try again");
+                return;
+            }
+            tone(true);
+            comment("✅", "That matches the cream path.");
+            history.push({ name: m.name, tries: tries, theirs: document.getElementById("ans").value.trim() });
+            const last = index >= MISSIONS.length - 1;
+            veil("That matches", last ? "That was the last path." : "That number matches the cream path.", last ? "See the record" : "Next path");
+            document.getElementById("veilOk").onclick = () => {
+                document.getElementById("veil").classList.add("hide");
+                busy = false;
+                document.getElementById("veilOk").onclick = closeVeil;
+                if (last) finish();
+                else {
+                    index += 1;
+                    showMission();
+                }
+            };
+        }
+        function closeVeil() {
+            document.getElementById("veil").classList.add("hide");
+            busy = false;
+        }
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x07080c);
+        const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 2000);
+        camera.position.set(4, 8, 16);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+        renderer.setSize(innerWidth, innerHeight);
+        document.body.appendChild(renderer.domElement);
+        const starGeo = new THREE.BufferGeometry();
+        const starPos = [];
+        for (let i = 0; i < 700; i++) starPos.push((Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400, (Math.random() - 0.5) * 400);
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.35, transparent: true, opacity: 0.5 })));
+        const VIEW = 2.4;
+        const rig = new THREE.Group();
+        scene.add(rig);
+        rig.add(new THREE.Mesh(new THREE.SphereGeometry(VIEW, 48, 48), new THREE.MeshStandardMaterial({ color: 0x6d8f86, roughness: 0.72 })));
+        rig.add(new THREE.Mesh(new THREE.SphereGeometry(VIEW * 1.04, 32, 32), new THREE.MeshBasicMaterial({ color: 0x9eb8c9, transparent: true, opacity: 0.14 })));
+        const N = 180;
+        function makeLine(color, opacity) {
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array((N + 1) * 3), 3));
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity }));
+            rig.add(line);
+            return line;
+        }
+        const trueLine = makeLine(0xf3ecdf, 0.95);
+        const ghostLine = makeLine(0xf0c2b2, 0.85);
+        const craft = new THREE.Mesh(new THREE.SphereGeometry(0.12, 14, 10), new THREE.MeshStandardMaterial({ color: 0xe2c27a, roughness: 0.3 }));
+        rig.add(craft);
+        scene.add(new THREE.AmbientLight(0xf3ecdf, 0.4));
+        const sun = new THREE.DirectionalLight(0xfff6ea, 1.3);
+        sun.position.set(18, 12, 10);
+        scene.add(sun);
+        let trueRp = 6771, trueRa = 6771, ghostRp = 6771, ghostRa = 6771, ghostOn = false, satTh = 0.2;
+
+        function fillLoop(line, rp, ra) {
+            const arr = line.geometry.attributes.position.array;
+            const scale = VIEW / R;
+            const a = (rp + ra) / 2;
+            const e = (ra - rp) / (ra + rp);
+            for (let i = 0; i <= N; i++) {
+                const th = (i / N) * Math.PI * 2;
+                const r = a * (1 - e * e) / (1 + e * Math.cos(th));
+                arr[i * 3] = Math.cos(th) * r * scale;
+                arr[i * 3 + 1] = 0;
+                arr[i * 3 + 2] = Math.sin(th) * r * scale;
+            }
+            line.geometry.attributes.position.needsUpdate = true;
+            line.visible = true;
+        }
+        function placeScene() {
+            fillLoop(trueLine, trueRp, trueRa);
+            if (ghostOn) fillLoop(ghostLine, ghostRp, ghostRa);
+            else ghostLine.visible = false;
+        }
+        function frame() {
+            requestAnimationFrame(frame);
+            const a = (trueRp + trueRa) / 2;
+            const e = (trueRa - trueRp) / (trueRa + trueRp);
+            const rNow = a * (1 - e * e) / (1 + e * Math.cos(satTh));
+            satTh += 0.004 * (trueRp / Math.max(rNow, 1)) ** 2;
+            const scale = VIEW / R;
+            craft.position.set(Math.cos(satTh) * rNow * scale, 0, Math.sin(satTh) * rNow * scale);
+            let left = -trueRa;
+            let right = trueRp;
+            if (ghostOn) {
+                left = Math.min(left, -ghostRa);
+                right = Math.max(right, ghostRp);
+            }
+            const mid = (left + right) / 2;
+            const half = (right - left) / 2;
+            rig.position.x = -VIEW * mid / R;
+            const dist = Math.max(10, Math.min(96, VIEW * half / R * 3.5 + 4));
+            camera.position.set(dist * 0.08, dist * 0.34, dist);
+            camera.lookAt(0, 0, 0);
+            placeCoachSpots();
+            renderer.render(scene, camera);
+        }
+
+        let audioCtx = null;
+        function tone(ok) {
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = "sine";
+                o.frequency.value = ok ? 660 : 220;
+                g.gain.value = 0.04;
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.start();
+                g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
+                o.stop(audioCtx.currentTime + 0.2);
+            } catch (err) { /* sound is optional */ }
+        }
+
+        document.getElementById("ans").addEventListener("input", () => {
+            const m = MISSIONS[index];
+            const n = readAnswer();
+            if (n == null) {
+                ghostOn = false;
+                placeScene();
+                return;
+            }
+            const g = ghostRadii(m, n);
+            const close = Math.abs(n - m.answer) <= m.tol;
+            ghostOn = !close;
+            ghostRp = g.rp;
+            ghostRa = Math.max(g.rp, g.ra);
+            placeScene();
+        });
+        document.getElementById("check").onclick = check;
+        document.getElementById("ans").addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter") check();
+        });
+        document.querySelectorAll("#eqPanel .eq").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const opened = window.open("../eccentricity-sandbox/index.html?eq=" + btn.dataset.eq, "eccentricity-sandbox");
+                if (opened) opened.focus();
+            });
+        });
+
+        let commentTimer = 0;
+        function comment(emoji, text) {
+            document.querySelector("#comment .emoji").textContent = emoji;
+            const el = document.getElementById("commentText");
+            let i = 0;
+            clearInterval(commentTimer);
+            el.textContent = "";
+            commentTimer = setInterval(() => {
+                i += 1;
+                el.textContent = text.slice(0, i);
+                if (i >= text.length) clearInterval(commentTimer);
+            }, 16);
+        }
+
+        const calcPad = document.getElementById("calcPad");
+        const calcScreen = document.getElementById("calcScreen");
+        const calcState = { acc: null, op: null, buf: "0", fresh: true, ans: null, mem: null };
+        function calcFormat(n) {
+            if (!Number.isFinite(n)) return "Error";
+            if (Math.abs(n) >= 1e10 || (Math.abs(n) > 0 && Math.abs(n) < 1e-8)) return n.toExponential(6);
+            return String(parseFloat(n.toPrecision(12)));
+        }
+        function calcRender() { calcScreen.textContent = calcState.buf; }
+        function calcClear() {
+            calcState.acc = null;
+            calcState.op = null;
+            calcState.buf = "0";
+            calcState.fresh = true;
+            calcRender();
+        }
+        function calcNum() {
+            const n = parseFloat(calcState.buf);
+            return Number.isFinite(n) ? n : 0;
+        }
+        function calcApply(a, b, op) {
+            if (op === "+") return a + b;
+            if (op === "-") return a - b;
+            if (op === "*") return a * b;
+            if (op === "/") return b === 0 ? NaN : a / b;
+            return b;
+        }
+        function calcDigit(ch) {
+            if (calcState.buf === "Error") calcClear();
+            if (ch === ".") {
+                if (calcState.fresh) { calcState.buf = "0."; calcState.fresh = false; }
+                else if (!calcState.buf.includes(".")) calcState.buf += ".";
+                calcRender();
+                return;
+            }
+            if (calcState.fresh || calcState.buf === "0") {
+                calcState.buf = ch;
+                calcState.fresh = false;
+            } else calcState.buf += ch;
+            calcRender();
+        }
+        function calcOperator(op) {
+            if (calcState.buf === "Error") calcClear();
+            const n = calcNum();
+            if (calcState.acc != null && calcState.op && !calcState.fresh) {
+                calcState.acc = calcApply(calcState.acc, n, calcState.op);
+                calcState.buf = calcFormat(calcState.acc);
+            } else calcState.acc = n;
+            calcState.op = op;
+            calcState.fresh = true;
+            calcRender();
+        }
+        function calcEquals() {
+            if (calcState.op && calcState.acc != null) {
+                const result = calcApply(calcState.acc, calcNum(), calcState.op);
+                calcState.acc = result;
+                calcState.buf = calcFormat(result);
+                if (Number.isFinite(result)) calcState.ans = result;
+                calcState.op = null;
+                calcState.fresh = true;
+                calcRender();
+            }
+        }
+        function calcDropNumber(n) {
+            if (!Number.isFinite(n)) return;
+            calcPad.classList.add("open");
+            if (calcState.buf === "Error") calcClear();
+            calcState.buf = calcFormat(n);
+            calcState.fresh = true;
+            calcRender();
+            tick();
+        }
+        function calcKey(code) {
+            const btn = calcPad.querySelector('[data-calc="' + code + '"]');
+            if (btn) {
+                btn.classList.add("pressed");
+                setTimeout(() => btn.classList.remove("pressed"), 120);
+            }
+            tick();
+            if (code >= "0" && code <= "9") calcDigit(code);
+            else if (code === ".") calcDigit(".");
+            else if (code === "+" || code === "-" || code === "*" || code === "/") calcOperator(code);
+            else if (code === "=") calcEquals();
+            else if (code === "C") calcClear();
+            else if (code === "ans") {
+                if (calcState.ans == null) return;
+                calcState.buf = calcFormat(calcState.ans);
+                calcState.fresh = true;
+                calcRender();
+            } else if (code === "sto") {
+                calcState.mem = calcNum();
+            } else if (code === "rcl") {
+                if (calcState.mem == null) return;
+                calcState.buf = calcFormat(calcState.mem);
+                calcState.fresh = true;
+                calcRender();
+            } else if (code === "bs") {
+                if (calcState.fresh || calcState.buf === "Error") { calcClear(); return; }
+                calcState.buf = calcState.buf.slice(0, -1);
+                if (!calcState.buf || calcState.buf === "-") calcState.buf = "0";
+                if (calcState.buf === "0") calcState.fresh = true;
+                calcRender();
+            }
+        }
+        function calcOpen(on) {
+            const show = on == null ? !calcPad.classList.contains("open") : on;
+            calcPad.classList.toggle("open", show);
+            calcPad.setAttribute("aria-hidden", show ? "false" : "true");
+        }
+        document.getElementById("calcToggle").onclick = () => calcOpen();
+        document.getElementById("calcClose").onclick = () => calcOpen(false);
+        calcPad.querySelectorAll(".calc-keys button").forEach((btn) => {
+            btn.addEventListener("click", () => calcKey(btn.dataset.calc));
+        });
+        let calcDrag = null;
+        calcPad.addEventListener("pointerdown", (e) => {
+            if (e.target !== calcPad) return;
+            const rect = calcPad.getBoundingClientRect();
+            calcDrag = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
+            calcPad.style.left = rect.left + "px";
+            calcPad.style.top = rect.top + "px";
+            calcPad.style.bottom = "auto";
+            calcPad.style.transform = "none";
+            calcPad.setPointerCapture(e.pointerId);
+        });
+        calcPad.addEventListener("pointermove", (e) => {
+            if (!calcDrag) return;
+            const x = Math.max(0, Math.min(innerWidth - calcPad.offsetWidth, e.clientX - calcDrag.dx));
+            const y = Math.max(0, Math.min(innerHeight - calcPad.offsetHeight, e.clientY - calcDrag.dy));
+            calcPad.style.left = x + "px";
+            calcPad.style.top = y + "px";
+        });
+        calcPad.addEventListener("pointerup", () => { calcDrag = null; });
+        calcPad.addEventListener("pointercancel", () => { calcDrag = null; });
+
+        const GUIDES = {
+            e: {
+                formula: "e = (rₐ − rₚ) / (rₐ + rₚ)",
+                steps: [
+                    { text: "Drag rₐ onto the calculator.", spots: ['[data-sym="ra"]', "#calcPad"], openCalc: true },
+                    { text: "Press +.", spots: ['[data-calc="+"]'], openCalc: true },
+                    { text: "Drag rₚ onto the calculator.", spots: ['[data-sym="rp"]', "#calcPad"], openCalc: true },
+                    { text: "Press =. That is the bottom of the fraction. Then press Sto.", spots: ['[data-calc="="]', '[data-calc="sto"]'], openCalc: true },
+                    { text: "Drag rₐ again.", spots: ['[data-sym="ra"]', "#calcPad"], openCalc: true },
+                    { text: "Press −.", spots: ['[data-calc="-"]'], openCalc: true },
+                    { text: "Drag rₚ again.", spots: ['[data-sym="rp"]', "#calcPad"], openCalc: true },
+                    { text: "Press =. That is the top of the fraction.", spots: ['[data-calc="="]'], openCalc: true },
+                    { text: "Press ÷, then Rcl, then =.", spots: ['[data-calc="/"]', '[data-calc="rcl"]', '[data-calc="="]'], openCalc: true },
+                    { text: "Drag that answer into the box.", spots: ["#calcScreen", "#ans"], openCalc: true }
+                ]
+            },
+            a: {
+                formula: "a = (rₚ + rₐ) / 2",
+                steps: [
+                    { text: "Drag rₚ onto the calculator.", spots: ['[data-sym="rp"]', "#calcPad"], openCalc: true },
+                    { text: "Press +.", spots: ['[data-calc="+"]'], openCalc: true },
+                    { text: "Drag rₐ onto the calculator.", spots: ['[data-sym="ra"]', "#calcPad"], openCalc: true },
+                    { text: "Press =.", spots: ['[data-calc="="]'], openCalc: true },
+                    { text: "Press ÷.", spots: ['[data-calc="/"]'], openCalc: true },
+                    { text: "Press 2.", spots: ['[data-calc="2"]'], openCalc: true },
+                    { text: "Press =.", spots: ['[data-calc="="]'], openCalc: true },
+                    { text: "Drag that answer into the box.", spots: ["#calcScreen", "#ans"], openCalc: true }
+                ]
+            },
+            hp: {
+                formula: "hₚ = rₚ − R",
+                steps: [
+                    { text: "Drag rₚ onto the calculator.", spots: ['[data-sym="rp"]', "#calcPad"], openCalc: true },
+                    { text: "Press −.", spots: ['[data-calc="-"]'], openCalc: true },
+                    { text: "Drag R onto the calculator.", spots: ['[data-sym="R"]', "#calcPad"], openCalc: true },
+                    { text: "Press =.", spots: ['[data-calc="="]'], openCalc: true },
+                    { text: "Drag that answer into the box.", spots: ["#calcScreen", "#ans"], openCalc: true }
+                ]
+            },
+            ha: {
+                formula: "hₐ = rₐ − R",
+                steps: [
+                    { text: "Drag rₐ onto the calculator.", spots: ['[data-sym="ra"]', "#calcPad"], openCalc: true },
+                    { text: "Press −.", spots: ['[data-calc="-"]'], openCalc: true },
+                    { text: "Drag R onto the calculator.", spots: ['[data-sym="R"]', "#calcPad"], openCalc: true },
+                    { text: "Press =.", spots: ['[data-calc="="]'], openCalc: true },
+                    { text: "Drag that answer into the box.", spots: ["#calcScreen", "#ans"], openCalc: true }
+                ]
+            }
+        };
+        let coachIndex = 0;
+        const seenGuide = new Set();
+        const coachEl = document.getElementById("coach");
+        const coachSpots = document.getElementById("coachSpots");
+        function guideNow() { return GUIDES[MISSIONS[index].ask]; }
+        function coachLive() {
+            return started && coachEl.dataset.shut !== "1" && document.getElementById("veil").classList.contains("hide");
+        }
+        function showCoachStep() {
+            const guide = guideNow();
+            const step = guide.steps[Math.min(coachIndex, guide.steps.length - 1)];
+            document.getElementById("coachFormula").textContent = guide.formula;
+            document.getElementById("coachText").textContent = step.text;
+            document.getElementById("coachCount").textContent = (coachIndex + 1) + " / " + guide.steps.length;
+            document.getElementById("coachBack").disabled = coachIndex === 0;
+            document.getElementById("coachNext").textContent = coachIndex === guide.steps.length - 1 ? "Done" : "Next";
+            if (step.openCalc) calcPad.classList.add("open");
+            placeCoachSpots();
+        }
+        function placeCoachSpots() {
+            const live = coachLive();
+            coachEl.hidden = !live;
+            document.getElementById("calcGuideShow").hidden = !(started && coachEl.dataset.shut === "1" && document.getElementById("veil").classList.contains("hide"));
+            if (!live) {
+                coachSpots.replaceChildren();
+                return;
+            }
+            const step = guideNow().steps[coachIndex];
+            while (coachSpots.childElementCount < step.spots.length) {
+                const spot = document.createElement("div");
+                spot.className = "coach-spot";
+                coachSpots.appendChild(spot);
+            }
+            while (coachSpots.childElementCount > step.spots.length) coachSpots.lastChild.remove();
+            step.spots.forEach((sel, i) => {
+                const el = document.querySelector(sel);
+                const spot = coachSpots.children[i];
+                if (!el) { spot.style.display = "none"; return; }
+                const r = el.getBoundingClientRect();
+                if (r.width < 2) { spot.style.display = "none"; return; }
+                spot.style.display = "block";
+                spot.style.left = (r.left - 4) + "px";
+                spot.style.top = (r.top - 4) + "px";
+                spot.style.width = (r.width + 8) + "px";
+                spot.style.height = (r.height + 8) + "px";
+            });
+        }
+        function syncGuide() {
+            const ask = MISSIONS[index].ask;
+            if (!seenGuide.has(ask)) {
+                seenGuide.add(ask);
+                coachEl.dataset.shut = "0";
+                coachIndex = 0;
+            } else if (coachIndex >= guideNow().steps.length) coachIndex = 0;
+            showCoachStep();
+        }
+        document.getElementById("coachBack").onclick = () => {
+            if (coachIndex > 0) coachIndex -= 1;
+            showCoachStep();
+        };
+        document.getElementById("coachNext").onclick = () => {
+            if (coachIndex < guideNow().steps.length - 1) coachIndex += 1;
+            else coachEl.dataset.shut = "1";
+            showCoachStep();
+        };
+        document.getElementById("calcGuideHide").onclick = () => {
+            coachEl.dataset.shut = "1";
+            showCoachStep();
+        };
+        document.getElementById("calcGuideShow").onclick = () => {
+            coachEl.dataset.shut = "0";
+            coachIndex = 0;
+            showCoachStep();
+        };
+
+        const dragGhost = document.getElementById("dragGhost");
+        const ansInput = document.getElementById("ans");
+        let drag = null;
+        function overBox(el, x, y) {
+            const r = el.getBoundingClientRect();
+            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+        }
+        function moveDrag(e) {
+            if (!drag) return;
+            if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) drag.moved = true;
+            dragGhost.hidden = !drag.moved;
+            dragGhost.style.left = e.clientX + "px";
+            dragGhost.style.top = e.clientY + "px";
+            const onCalc = drag.kind === "chip" && overBox(calcPad, e.clientX, e.clientY);
+            const onAns = drag.kind === "screen" && overBox(ansInput, e.clientX, e.clientY);
+            calcPad.classList.toggle("drop", onCalc);
+            ansInput.classList.toggle("drop", onAns);
+        }
+        function endDrag(e) {
+            if (!drag) return;
+            const held = drag;
+            drag = null;
+            dragGhost.hidden = true;
+            calcPad.classList.remove("drop");
+            ansInput.classList.remove("drop");
+            if (!held.moved) {
+                if (held.kind === "chip") calcDropNumber(held.n);
+                return;
+            }
+            if (held.kind === "chip" && overBox(calcPad, e.clientX, e.clientY)) calcDropNumber(held.n);
+            if (held.kind === "screen" && overBox(ansInput, e.clientX, e.clientY)) {
+                ansInput.value = calcFormat(held.n);
+                ansInput.dispatchEvent(new Event("input", { bubbles: true }));
+                tick();
+            }
+        }
+        document.getElementById("known").addEventListener("pointerdown", (e) => {
+            const chip = e.target.closest(".chip");
+            if (!chip) return;
+            e.preventDefault();
+            calcPad.classList.add("open");
+            drag = { kind: "chip", n: parseFloat(chip.dataset.num), x: e.clientX, y: e.clientY, moved: false };
+            dragGhost.textContent = chip.querySelector(".num").textContent;
+            chip.setPointerCapture(e.pointerId);
+        });
+        document.getElementById("known").addEventListener("pointermove", moveDrag);
+        document.getElementById("known").addEventListener("pointerup", endDrag);
+        calcScreen.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            drag = { kind: "screen", n: calcNum(), x: e.clientX, y: e.clientY, moved: false };
+            dragGhost.textContent = calcScreen.textContent;
+            calcScreen.setPointerCapture(e.pointerId);
+        });
+        calcScreen.addEventListener("pointermove", moveDrag);
+        calcScreen.addEventListener("pointerup", endDrag);
+
+        document.addEventListener("keydown", (e) => {
+            if (!calcPad.classList.contains("open")) return;
+            if (document.activeElement === ansInput) return;
+            if (!document.getElementById("veil").classList.contains("hide")) return;
+            const map = { Enter: "=", Backspace: "bs", Escape: "C" };
+            const key = map[e.key] || e.key;
+            if (/^[0-9.+\-*/=]$/.test(key) || key === "bs" || key === "C") {
+                e.preventDefault();
+                calcKey(key);
+            }
+        });
+
+        function tick() {
+            try {
+                audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = "sine";
+                o.frequency.value = 880;
+                g.gain.value = 0.015;
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.start();
+                o.stop(audioCtx.currentTime + 0.04);
+            } catch (err) { /* sound is optional */ }
+        }
+        document.getElementById("veilOk").onclick = () => {
+            if (!started) {
+                started = true;
+                closeVeil();
+                showMission();
+                return;
+            }
+            closeVeil();
+        };
+        paintMoney();
+        showMission();
+        frame();
+        window.addEventListener("resize", () => {
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(innerWidth, innerHeight);
+        });
+    </script>
+</body>
+</html>
