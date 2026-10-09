@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Balloon Box</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet" />
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+<style>
+  :root { --ink: #f3ecdf; --dim: rgba(243, 236, 223, 0.68); }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07080c; color: var(--ink); font-family: Outfit, system-ui, sans-serif; }
+  #view { position: fixed; inset: 0; z-index: 1; display: block; }
+  #vignette { position: fixed; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.45) 100%); }
+  .half { position: fixed; z-index: 3; pointer-events: none; }
+  body:not(.stacked) #half-a { left: 0; top: 0; width: 50%; height: 100%; }
+  body:not(.stacked) #half-b { left: 50%; top: 0; width: 50%; height: 100%; }
+  body.stacked #half-a { left: 0; top: 0; width: 100%; height: 50%; }
+  body.stacked #half-b { left: 0; top: 50%; width: 100%; height: 50%; }
+  body.solo #half-a { left: 0; top: 0; width: 100%; height: 100%; }
+  body.solo #half-b, body.solo #place-b, body.solo #split { display: none; }
+  .half.on { box-shadow: inset 0 0 0 5px #e7c56a; }
+  #split { position: fixed; z-index: 3; pointer-events: none; background: rgba(243, 236, 223, 0.28); }
+  body:not(.stacked) #split { left: 50%; top: 0; bottom: 0; width: 1px; }
+  body.stacked #split { top: 50%; left: 0; right: 0; height: 1px; }
+  .place { position: fixed; z-index: 5; margin: 0; text-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  .place h2 { margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1; }
+  .place p { margin: 6px 0 0; color: var(--ink); font-size: 18px; }
+  .place p b { color: #e7c56a; font-weight: 500; }
+  body:not(.stacked) #place-a { top: 22px; left: 22px; }
+  body:not(.stacked) #place-b { top: 22px; left: calc(50% + 22px); }
+  body.stacked #place-a { top: 16px; left: 16px; }
+  body.stacked #place-b { top: calc(50% + 14px); left: 16px; }
+  #tag { position: fixed; top: 22px; right: 22px; z-index: 6; text-align: right; text-shadow: 0 8px 24px rgba(0,0,0,0.45); }
+  #tag b { display: block; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; font-weight: 500; }
+  #tag span { color: var(--dim); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+  #dock {
+    position: fixed; z-index: 8; left: 50%; bottom: 16px; transform: translateX(-50%);
+    width: min(640px, calc(100vw - 28px)); max-height: 46vh; overflow: auto;
+    padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 10px;
+    background: rgba(8, 9, 12, 0.9); border: 1px solid rgba(243, 236, 223, 0.16); border-radius: 16px;
+    backdrop-filter: blur(10px);
+  }
+  #dock[hidden] { display: none; }
+  #prompt { margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-size: 28px; line-height: 1.15; font-weight: 500; }
+  #note { margin: 0; color: var(--dim); line-height: 1.45; font-size: 15px; min-height: 1.4em; }
+  #guess { display: flex; flex-wrap: wrap; gap: 8px; }
+  #guess[hidden], #open[hidden], #next[hidden], #quip[hidden], #card[hidden], #dock[hidden], #tag[hidden], .place[hidden] { display: none; }
+  button { font: inherit; color: var(--ink); background: transparent; border: 1px solid rgba(243, 236, 223, 0.35); border-radius: 999px; padding: 10px 14px; cursor: pointer; }
+  #guess button { flex: 1 1 calc(50% - 8px); font-size: 15px; }
+  button.on, #open, #next, #begin, #again { background: #f3ecdf; color: #1a140e; border-color: transparent; }
+  #open:disabled { opacity: 0.45; cursor: default; }
+  #quip {
+    position: fixed; right: 22px; top: 108px; z-index: 8; width: 190px; margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-size: 28px; line-height: 1.15; text-align: right;
+    text-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+  #quip[hidden] { display: none; }
+  #card {
+    position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px;
+    background: rgba(7, 8, 12, 0.78);
+  }
+  #card[hidden] { display: none; }
+  #card .box { width: min(480px, 100%); padding: 22px; background: rgba(8, 9, 12, 0.94); border: 1px solid rgba(243, 236, 223, 0.18); border-radius: 16px; }
+  #card h2 { margin: 0 0 8px; font-family: "Cormorant Garamond", Georgia, serif; font-weight: 500; font-size: 40px; }
+  #card p { margin: 0 0 14px; color: var(--dim); line-height: 1.45; }
+</style>
+</head>
+<body>
+<canvas id="view"></canvas>
+<div id="vignette"></div>
+<div id="split"></div>
+<div id="half-a" class="half"></div>
+<div id="half-b" class="half"></div>
+<div id="place-a" class="place"><h2></h2><p></p></div>
+<div id="place-b" class="place"><h2></h2><p></p></div>
+<div id="tag"><span id="step">Guess 1 of 6</span><b id="score">Right 0</b></div>
+<div id="dock">
+  <p id="prompt"></p>
+  <p id="note"></p>
+  <div id="guess"></div>
+  <button type="button" id="open" disabled>Open the boxes</button>
+  <button type="button" id="next" hidden>Next</button>
+</div>
+<p id="quip" hidden></p>
+<div id="card">
+  <div class="box">
+    <h2 id="card-title">Same balloon</h2>
+    <p id="card-body">Each balloon is filled on Earth, then sealed. The gold number is the air outside. Earth's air is 1. Then the box opens.</p>
+    <button type="button" id="begin">Begin</button>
+  </div>
+</div>
+<script type="module">
+import * as THREE from "three";
+
+const EARTH = { name: "Earth", p: 1, sky: 0x8eb6d6, ground: 0x6f8f5c, fog: 0xb7cfe2, density: 0.045 };
+const MARS = { name: "Mars", p: 0.006, sky: 0xc47855, ground: 0x8a4630, fog: 0xd49274, density: 0.07 };
+const VENUS = { name: "Venus", p: 92, sky: 0xe39a3a, ground: 0xb56a28, fog: 0xf0b15a, density: 0.16 };
+const MOON = { name: "The Moon", p: 0, sky: 0x070910, ground: 0x8b8e93, fog: 0x070910, density: 0.012, stars: true };
+const TITAN = { name: "Titan", p: 1.45, sky: 0xc9843c, ground: 0x9a6234, fog: 0xe0a060, density: 0.12 };
+const PEAK = { name: "A high mountain", p: 0.34, sky: 0xd5e8f6, ground: 0xd5ddd4, fog: 0xe4eef6, density: 0.04 };
+const SEA = { name: "The sea", p: 1, sky: 0x7eadd4, ground: 0x3e7ea8, fog: 0xb7d4ea, density: 0.05 };
+
+const ROUNDS = [
+  {
+    ask: "Which balloon gets bigger?",
+    a: EARTH, b: MARS,
+    choices: [{ id: "a", text: "Earth" }, { id: "b", text: "Mars" }],
+    answer: "b", mark: "b",
+    hint: "Both were sealed on Earth. Compare the air outside.",
+    why: "Mars has almost no air pushing back. The balloon swells, then it pops.",
+    quip: "It grew, then it gave up."
+  },
+  {
+    ask: "Which balloon gets smaller?",
+    a: EARTH, b: VENUS,
+    choices: [{ id: "a", text: "Earth" }, { id: "b", text: "Venus" }],
+    answer: "b", mark: "b",
+    hint: "Both were sealed on Earth. Compare the air outside.",
+    why: "Venus has air about 92 times thicker than Earth. It squeezes the balloon flat.",
+    quip: "Thick air wins."
+  },
+  {
+    ask: "Which one gets bigger and stays whole?",
+    a: PEAK, b: SEA,
+    choices: [{ id: "a", text: "The mountain" }, { id: "b", text: "The sea" }],
+    answer: "a", mark: "a",
+    hint: "Both were sealed on Earth. Compare the air outside.",
+    why: "The mountain has thinner air, so the balloon grows. There is still enough air to keep it whole. At the sea it stays the size it was sealed at.",
+    quip: "Bigger, and still smiling."
+  },
+  {
+    ask: "The boxes open. What happens?",
+    a: MOON, b: TITAN,
+    choices: [
+      { id: "moon", text: "Only the Moon pops" },
+      { id: "titan", text: "Only Titan pops" },
+      { id: "bothpop", text: "Both pop" },
+      { id: "bothsmall", text: "Both get smaller" }
+    ],
+    answer: "moon", mark: "a",
+    hint: "Read both numbers. Earth's air is 1.",
+    why: "The Moon has no air, so that balloon pops. Titan's air is only a little thicker than Earth's, so that balloon gets a bit smaller and stays whole.",
+    quip: "One pops. One just frowns."
+  },
+  {
+    ask: "The box opens on Titan. What happens?",
+    solo: true, a: TITAN,
+    choices: [
+      { id: "bigger", text: "It gets bigger" },
+      { id: "smaller", text: "It gets a little smaller" },
+      { id: "pop", text: "It pops" },
+      { id: "crush", text: "It gets crushed" }
+    ],
+    answer: "smaller",
+    hint: "Sealed on Earth. The gold number is the air outside.",
+    why: "Titan's air is a bit thicker than Earth's. The balloon is squeezed a little. It stays whole.",
+    quip: "A small frown."
+  },
+  {
+    ask: "The box opens on a high mountain. What happens?",
+    solo: true, a: PEAK,
+    choices: [
+      { id: "bigger", text: "It gets bigger and stays whole" },
+      { id: "pop", text: "It pops" },
+      { id: "smaller", text: "It gets smaller" },
+      { id: "crush", text: "It gets crushed" }
+    ],
+    answer: "bigger",
+    hint: "Sealed on Earth. The gold number is the air outside.",
+    why: "Air is thinner high up, so the balloon grows. There is still enough air outside to stop it popping.",
+    quip: "Room to grow."
+  },
+  {
+    ask: "The box opens on Mars. What happens?",
+    solo: true, a: MARS,
+    choices: [
+      { id: "bigger", text: "It gets bigger and stays whole" },
+      { id: "pop", text: "It pops" },
+      { id: "same", text: "It stays the same size" },
+      { id: "crush", text: "It gets crushed" }
+    ],
+    answer: "pop",
+    hint: "Sealed on Earth. The gold number is the air outside.",
+    why: "Mars has almost no air outside. The air sealed inside pushes out until the balloon pops.",
+    quip: "Too much room."
+  },
+  {
+    ask: "The box opens on Venus. What happens?",
+    solo: true, a: VENUS,
+    choices: [
+      { id: "bigger", text: "It gets bigger" },
+      { id: "smaller", text: "It gets a little smaller" },
+      { id: "pop", text: "It pops" },
+      { id: "crush", text: "It gets crushed" }
+    ],
+    answer: "crush",
+    hint: "Sealed on Earth. The gold number is the air outside.",
+    why: "Venus has very thick air. It presses in until the balloon crumples.",
+    quip: "The smile goes flat."
+  }
+];
+
+function judge(p) {
+  if (p <= 0.02) return { scale: 2.05, fate: "pop", mood: "strain" };
+  if (p >= 20) return { scale: 0.4, fate: "crush", mood: "crush" };
+  const scale = Math.pow(1 / p, 1 / 3);
+  if (scale >= 1.65) return { scale: 2.05, fate: "pop", mood: "strain" };
+  if (scale <= 0.48) return { scale: 0.4, fate: "crush", mood: "crush" };
+  const shown = 1 + (scale - 1) * (scale > 1 ? 1.22 : 1.85);
+  return { scale: shown, fate: "hold", mood: shown > 1.12 ? "wow" : shown < 0.92 ? "sad" : "smile" };
+}
+function airLine(p) {
+  if (p <= 0) return "Air outside: <b>none</b>";
+  let n;
+  if (p >= 10) n = String(Math.round(p));
+  else if (p >= 1) n = String(Math.round(p * 100) / 100);
+  else n = p.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+  return "Air outside: <b>" + n + "× Earth</b>";
+}
+function watchLimit(round) {
+  const fates = [judge(round.a.p).fate];
+  if (round.b) fates.push(judge(round.b.p).fate);
+  if (fates.includes("pop")) return 3.45;
+  if (fates.includes("crush")) return 2.85;
+  return 2.45;
+}
+
+const promptEl = document.getElementById("prompt");
+const noteEl = document.getElementById("note");
+const guessEl = document.getElementById("guess");
+const openBtn = document.getElementById("open");
+const nextBtn = document.getElementById("next");
+const quipEl = document.getElementById("quip");
+const card = document.getElementById("card");
+const stepEl = document.getElementById("step");
+const scoreEl = document.getElementById("score");
+
+let index = 0;
+let phase = "intro";
+let pick = null;
+let right = 0;
+let watchT = 0;
+let panes = [];
+
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById("view"), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.6));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+
+function drawFace(ctx, mood) {
+  const w = 256;
+  ctx.clearRect(0, 0, w, w);
+  ctx.fillStyle = "#ffe7ee";
+  ctx.beginPath();
+  ctx.arc(128, 128, 122, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#2b1c22";
+  ctx.fillStyle = "#2b1c22";
+  ctx.lineWidth = 10;
+  ctx.lineCap = "round";
+  const eye = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+  const cross = (x, y) => {
+    ctx.beginPath();
+    ctx.moveTo(x - 16, y - 16); ctx.lineTo(x + 16, y + 16);
+    ctx.moveTo(x + 16, y - 16); ctx.lineTo(x - 16, y + 16);
+    ctx.stroke();
+  };
+  const frown = (y) => {
+    ctx.beginPath();
+    ctx.moveTo(86, y);
+    ctx.quadraticCurveTo(128, y - 36, 170, y);
+    ctx.stroke();
+  };
+  const blush = () => {
+    ctx.fillStyle = "rgba(255, 130, 156, 0.4)";
+    ctx.beginPath();
+    ctx.ellipse(64, 146, 18, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(192, 146, 18, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#2b1c22";
+  };
+  if (mood === "pop") {
+    cross(90, 108); cross(166, 108);
+    ctx.beginPath(); ctx.arc(128, 162, 20, 0, Math.PI * 2); ctx.stroke();
+  } else if (mood === "strain") {
+    ctx.beginPath();
+    ctx.moveTo(68, 86); ctx.quadraticCurveTo(96, 70, 118, 90);
+    ctx.moveTo(188, 86); ctx.quadraticCurveTo(160, 70, 138, 90);
+    ctx.stroke();
+    eye(96, 112, 18); eye(164, 112, 18);
+    ctx.fillStyle = "#ffe7ee";
+    eye(96, 112, 7); eye(164, 112, 7);
+    ctx.fillStyle = "#2b1c22";
+    ctx.beginPath(); ctx.ellipse(128, 168, 14, 20, 0, 0, Math.PI * 2); ctx.fill();
+  } else if (mood === "crush") {
+    ctx.beginPath();
+    ctx.moveTo(72, 112); ctx.lineTo(112, 124);
+    ctx.moveTo(184, 112); ctx.lineTo(144, 124);
+    ctx.stroke();
+    frown(172);
+  } else if (mood === "sad") {
+    eye(96, 112, 9); eye(160, 112, 9);
+    frown(168);
+  } else if (mood === "wow") {
+    blush();
+    eye(96, 108, 16); eye(164, 108, 16);
+    ctx.fillStyle = "#ffe7ee";
+    eye(96, 108, 7); eye(164, 108, 7);
+    ctx.fillStyle = "#2b1c22";
+    ctx.beginPath(); ctx.ellipse(128, 164, 16, 22, 0, 0, Math.PI * 2); ctx.fill();
+  } else {
+    blush();
+    eye(96, 114, 10); eye(160, 114, 10);
+    ctx.beginPath(); ctx.arc(128, 128, 52, 0.18 * Math.PI, 0.82 * Math.PI); ctx.stroke();
+  }
+}
+
+function makePane(place) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(place.sky);
+  scene.fog = new THREE.FogExp2(place.fog, place.density);
+  const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80);
+  camera.position.set(0.2, 1.55, 5.4);
+  camera.lookAt(0, 1.05, 0);
+  scene.add(new THREE.AmbientLight(0xfff4ea, 0.55));
+  const sun = new THREE.DirectionalLight(0xfff6ea, 1.25);
+  sun.position.set(4, 8, 6);
+  scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffd5e2, 0.55);
+  fill.position.set(-4, 2, 5);
+  scene.add(fill);
+  if (place.stars) {
+    const geo = new THREE.BufferGeometry();
+    const pos = [];
+    for (let i = 0; i < 180; i++) pos.push((Math.random() - 0.5) * 40, Math.random() * 18 + 1, (Math.random() - 0.5) * 30);
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xf3ecdf, size: 0.06 })));
+  }
+  const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(8, 32),
+    new THREE.MeshStandardMaterial({ color: place.ground, roughness: 0.9 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  scene.add(ground);
+
+  const rubber = new THREE.MeshPhysicalMaterial({
+    color: 0xff8fa6, roughness: 0.24, metalness: 0, clearcoat: 0.55, clearcoatRoughness: 0.22,
+    emissive: 0x6a2434, emissiveIntensity: 0.16
+  });
+  const pale = rubber.clone();
+  pale.color = new THREE.Color(0xffd7e2);
+  pale.emissive = new THREE.Color(0x8a4058);
+  const rig = new THREE.Group();
+  rig.position.y = 1.25;
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.72, 36, 28), rubber);
+  body.scale.set(1, 1.08, 1);
+  rig.add(body);
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 10), rubber);
+  knot.scale.set(1.1, 0.65, 1.1);
+  knot.position.y = -0.78;
+  rig.add(knot);
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  drawFace(ctx, "smile");
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const face = new THREE.Mesh(
+    new THREE.CircleGeometry(0.42, 32),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false })
+  );
+  face.position.set(0, 0.06, 0.74);
+  face.renderOrder = 3;
+  rig.add(face);
+  const shine = new THREE.Mesh(
+    new THREE.SphereGeometry(0.16, 12, 10),
+    new THREE.MeshBasicMaterial({ color: 0xfff6fa, transparent: true, opacity: 0.55 })
+  );
+  shine.position.set(-0.28, 0.32, 0.55);
+  rig.add(shine);
+  scene.add(rig);
+
+  const edge = new THREE.MeshStandardMaterial({ color: 0xf3ecdf, roughness: 0.4, metalness: 0.15 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0xd7e6f2, transparent: true, opacity: 0.18, roughness: 0.05, side: THREE.DoubleSide });
+  const cage = new THREE.Group();
+  const post = (x, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.15, 0.06), edge);
+    m.position.set(x, 1.08, z);
+    cage.add(m);
+  };
+  post(-0.95, -0.95); post(0.95, -0.95); post(-0.95, 0.95); post(0.95, 0.95);
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.06, 1.96), edge);
+  floor.position.y = 0.03;
+  cage.add(floor);
+  const side = (x, z, ry) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(1.9, 2.02, 0.03), glass);
+    m.position.set(x, 1.06, z);
+    m.rotation.y = ry;
+    cage.add(m);
+  };
+  side(0, -0.95, 0);
+  side(-0.95, 0, Math.PI / 2);
+  side(0.95, 0, Math.PI / 2);
+  const lid = new THREE.Group();
+  lid.position.set(0, 2.15, -1.02);
+  const lidMesh = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.07, 2.05), edge);
+  lidMesh.position.z = 1.02;
+  lid.add(lidMesh);
+  cage.add(lid);
+  scene.add(cage);
+
+  const burst = new THREE.PointLight(0xfff4f6, 0, 7, 2);
+  burst.position.set(0, 1.45, 0.4);
+  scene.add(burst);
+  const flashMat = new THREE.MeshBasicMaterial({ color: 0xfff7f4, transparent: true, opacity: 0, depthWrite: false });
+  const flash = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 12), flashMat);
+  flash.position.set(0, 1.4, 0.3);
+  flash.visible = false;
+  scene.add(flash);
+  const rings = [1.35, 0.55, 0.12].map((y, n) => {
+    const mesh = new THREE.Mesh(
+      new THREE.RingGeometry(0.18, 0.34, 28),
+      new THREE.MeshBasicMaterial({ color: n === 2 ? 0xfff6ea : 0xffd0dc, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+    );
+    mesh.position.set(0, y, 0.15);
+    if (n < 2) mesh.rotation.x = -Math.PI / 2;
+    mesh.visible = false;
+    scene.add(mesh);
+    return mesh;
+  });
+  const shards = [];
+  for (let i = 0; i < 16; i++) {
+    const bit = new THREE.Mesh(new THREE.SphereGeometry(0.11 + (i % 4) * 0.035, 8, 6), i % 2 ? pale : rubber);
+    bit.visible = false;
+    scene.add(bit);
+    shards.push(bit);
+  }
+  const faceBit = new THREE.Mesh(
+    new THREE.CircleGeometry(0.5, 28),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false })
+  );
+  faceBit.visible = false;
+  faceBit.renderOrder = 4;
+  scene.add(faceBit);
+  const sparkN = 42;
+  const sparkPos = new Float32Array(sparkN * 3);
+  const sparkGeo = new THREE.BufferGeometry();
+  sparkGeo.setAttribute("position", new THREE.BufferAttribute(sparkPos, 3));
+  const sparkMat = new THREE.PointsMaterial({ color: 0xfff6ea, size: 0.07, transparent: true, opacity: 0, depthWrite: false });
+  const sparks = new THREE.Points(sparkGeo, sparkMat);
+  sparks.visible = false;
+  scene.add(sparks);
+  const sparkV = Array.from({ length: sparkN }, () => new THREE.Vector3());
+  const dustMat = new THREE.MeshBasicMaterial({ color: 0xf3ecdf, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+  const dust = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.55, 28), dustMat);
+  dust.rotation.x = -Math.PI / 2;
+  dust.position.y = 0.08;
+  dust.visible = false;
+  scene.add(dust);
+  return {
+    scene, camera, rig, body, face, ctx, tex, lid, shards, faceBit, rings, flash, flashMat,
+    burst, sparks, sparkPos, sparkGeo, sparkMat, sparkV, dust, dustMat,
+    popped: false, slammed: false, shake: 0, mood: "smile",
+    baseCam: camera.position.clone()
+  };
+}
+
+function setMood(pane, mood) {
+  if (pane.mood === mood) return;
+  pane.mood = mood;
+  drawFace(pane.ctx, mood);
+  pane.tex.needsUpdate = true;
+}
+
+function layout() {
+  const solo = document.body.classList.contains("solo");
+  const stacked = !solo && innerWidth < 800;
+  document.body.classList.toggle("stacked", stacked);
+  renderer.setSize(innerWidth, innerHeight);
+  const w = solo || stacked ? innerWidth : innerWidth / 2;
+  const h = stacked ? innerHeight / 2 : innerHeight;
+  panes.forEach((pane) => { pane.camera.aspect = w / Math.max(h, 1); pane.camera.updateProjectionMatrix(); });
+}
+
+function showRound() {
+  const round = ROUNDS[index];
+  document.body.classList.toggle("solo", !!round.solo);
+  panes = round.solo ? [makePane(round.a)] : [makePane(round.a), makePane(round.b)];
+  layout();
+  phase = "predict";
+  pick = null;
+  watchT = 0;
+  stepEl.textContent = "Guess " + (index + 1) + " of " + ROUNDS.length;
+  scoreEl.textContent = "Right " + right;
+  const placeA = document.getElementById("place-a");
+  const placeB = document.getElementById("place-b");
+  placeA.hidden = false;
+  placeB.hidden = !!round.solo;
+  placeA.querySelector("h2").textContent = round.a.name;
+  placeA.querySelector("p").innerHTML = airLine(round.a.p);
+  if (round.b) {
+    placeB.querySelector("h2").textContent = round.b.name;
+    placeB.querySelector("p").innerHTML = airLine(round.b.p);
+  }
+  document.getElementById("half-a").classList.remove("on");
+  document.getElementById("half-b").classList.remove("on");
+  promptEl.textContent = round.ask;
+  noteEl.textContent = round.hint;
+  quipEl.hidden = true;
+  guessEl.hidden = false;
+  openBtn.hidden = false;
+  openBtn.disabled = true;
+  openBtn.textContent = round.solo ? "Open the box" : "Open the boxes";
+  nextBtn.hidden = true;
+  guessEl.replaceChildren();
+  round.choices.forEach((choice) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = choice.text;
+    button.addEventListener("click", () => {
+      if (phase !== "predict") return;
+      pick = choice.id;
+      for (const el of guessEl.children) el.classList.toggle("on", el === button);
+      openBtn.disabled = false;
+    });
+    guessEl.append(button);
+  });
+}
+
+function finishWatch() {
+  const round = ROUNDS[index];
+  phase = "result";
+  const ok = pick === round.answer;
+  if (ok) right += 1;
+  scoreEl.textContent = "Right " + right;
+  document.getElementById("half-a").classList.remove("on");
+  document.getElementById("half-b").classList.remove("on");
+  if (round.solo) {
+    if (ok) document.getElementById("half-a").classList.add("on");
+  } else if (round.mark === "both") {
+    document.getElementById("half-a").classList.add("on");
+    document.getElementById("half-b").classList.add("on");
+  } else if (round.mark) {
+    document.getElementById("half-" + round.mark).classList.add("on");
+  }
+  promptEl.textContent = ok ? "Yes." : "Not that one.";
+  noteEl.textContent = round.why;
+  quipEl.hidden = false;
+  quipEl.textContent = round.quip;
+  guessEl.hidden = true;
+  openBtn.hidden = true;
+  nextBtn.hidden = false;
+  nextBtn.textContent = index >= ROUNDS.length - 1 ? "See the score" : "Next";
+}
+
+function endGame() {
+  phase = "end";
+  document.getElementById("dock").hidden = true;
+  document.getElementById("tag").hidden = true;
+  document.querySelectorAll(".place").forEach((el) => { el.hidden = true; });
+  quipEl.hidden = true;
+  card.hidden = false;
+  document.getElementById("card-title").textContent = right === ROUNDS.length ? "Every box told the truth" : "The boxes are open";
+  document.getElementById("card-body").textContent = "You had " + right + " of " + ROUNDS.length + " right. The air inside stayed the air from Earth. The air outside did the pushing.";
+  document.getElementById("begin").textContent = "Back to the lab";
+  document.getElementById("begin").onclick = () => { location.href = "../index.html"; };
+}
+
+openBtn.addEventListener("click", () => {
+  if (phase !== "predict" || !pick) return;
+  phase = "watch";
+  watchT = 0;
+  audio();
+  openBtn.disabled = true;
+  guessEl.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+  promptEl.textContent = "Watch.";
+  noteEl.textContent = "";
+});
+nextBtn.addEventListener("click", () => {
+  if (index >= ROUNDS.length - 1) endGame();
+  else { index += 1; showRound(); }
+});
+document.getElementById("begin").addEventListener("click", () => {
+  if (phase !== "intro") return;
+  card.hidden = true;
+  showRound();
+});
+
+function smooth(k) { const x = Math.min(1, Math.max(0, k)); return x * x * (3 - 2 * x); }
+function animT(fate) {
+  if (phase === "result" || phase === "end") return 1;
+  if (phase !== "watch") return 0;
+  const dur = fate === "pop" ? 1.55 : fate === "crush" ? 1.05 : 1.15;
+  return Math.min(1, Math.max(0, (watchT - 0.3) / dur));
+}
+function arrive(t) {
+  const x = Math.min(1, Math.max(0, t));
+  const rise = 1 - Math.pow(1 - x, 3);
+  return rise * (1 + Math.sin(x * Math.PI * 3) * (1 - x) * 0.18);
+}
+
+let audioCtx;
+function audio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioCtx) audioCtx = new Ctx();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function tonePop() {
+  try {
+    const ctx = audio();
+    if (!ctx) return;
+    const n = Math.floor(0.22 * ctx.sampleRate);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 1.4);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2400, ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(380, ctx.currentTime + 0.2);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.22, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    src.connect(filter); filter.connect(g); g.connect(ctx.destination);
+    src.start();
+    const o = ctx.createOscillator();
+    const og = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(520, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(70, ctx.currentTime + 0.16);
+    og.gain.setValueAtTime(0.08, ctx.currentTime);
+    og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    o.connect(og); og.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.2);
+  } catch (err) { /* sound is optional */ }
+}
+function toneCrush() {
+  try {
+    const ctx = audio();
+    if (!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(150, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(46, ctx.currentTime + 0.18);
+    g.gain.setValueAtTime(0.08, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.24);
+  } catch (err) { /* sound is optional */ }
+}
+
+function pop(pane) {
+  pane.popped = true;
+  pane.rig.visible = false;
+  setMood(pane, "pop");
+  pane.shake = 0.36;
+  pane.burst.intensity = 16;
+  pane.flash.visible = true;
+  pane.flash.scale.setScalar(0.3);
+  pane.flashMat.opacity = 0.95;
+  pane.rings.forEach((ring, n) => {
+    ring.visible = true;
+    ring.scale.setScalar(0.35);
+    ring.material.opacity = 0.95;
+    ring.userData.delay = n * 0.07;
+  });
+  pane.faceBit.visible = true;
+  pane.faceBit.position.set(0.08, 1.6, 0.5);
+  pane.faceBit.userData.v = new THREE.Vector3(0.4, 2.5, 0.55);
+  pane.faceBit.userData.spin = 5;
+  pane.shards.forEach((bit, i) => {
+    const ang = (i / pane.shards.length) * Math.PI * 2;
+    const dir = new THREE.Vector3(Math.cos(ang), 0.4 + (i % 3) * 0.22, Math.sin(ang) * 0.75).normalize();
+    bit.visible = true;
+    bit.position.set(dir.x * 0.4, 1.4 + dir.y * 0.2, dir.z * 0.4);
+    bit.userData.v = dir.multiplyScalar(1.05 + (i % 5) * 0.2);
+    bit.userData.spin = 2 + (i % 4);
+    bit.scale.set(0.65 + (i % 3) * 0.4, 0.18 + (i % 2) * 0.14, 0.42);
+  });
+  pane.sparks.visible = true;
+  pane.sparkMat.opacity = 1;
+  pane.sparkV.forEach((v, n) => {
+    const dir = new THREE.Vector3(Math.random() - 0.5, 0.25 + Math.random() * 0.75, Math.random() - 0.5).normalize();
+    v.copy(dir).multiplyScalar(1.6 + Math.random() * 2.4);
+    pane.sparkPos[n * 3] = dir.x * 0.12;
+    pane.sparkPos[n * 3 + 1] = 1.45;
+    pane.sparkPos[n * 3 + 2] = dir.z * 0.12;
+  });
+  pane.sparkGeo.attributes.position.needsUpdate = true;
+  tonePop();
+}
+function slam(pane) {
+  pane.slammed = true;
+  pane.shake = 0.18;
+  pane.dust.visible = true;
+  pane.dust.scale.setScalar(0.55);
+  pane.dustMat.opacity = 0.75;
+  toneCrush();
+}
+function fallBit(bit, dt, floor, bounce) {
+  if (!bit.visible || !bit.userData.v) return;
+  bit.position.addScaledVector(bit.userData.v, dt);
+  bit.userData.v.y -= dt * 3.2;
+  bit.rotation.x += dt * (bit.userData.spin || 2);
+  bit.rotation.z += dt * (bit.userData.spin || 2) * 0.6;
+  if (bit.position.y < floor) {
+    bit.position.y = floor;
+    bit.userData.v.y *= -bounce;
+    bit.userData.v.x *= 0.76;
+    bit.userData.v.z *= 0.76;
+  }
+}
+function stepFx(pane, dt) {
+  if (pane.burst.intensity > 0) pane.burst.intensity = Math.max(0, pane.burst.intensity - dt * 22);
+  if (pane.flash.visible) {
+    pane.flash.scale.multiplyScalar(1 + dt * 8);
+    pane.flashMat.opacity = Math.max(0, pane.flashMat.opacity - dt * 2.6);
+    if (pane.flashMat.opacity <= 0) pane.flash.visible = false;
+  }
+  pane.rings.forEach((ring) => {
+    if (!ring.visible) return;
+    ring.userData.delay = (ring.userData.delay || 0) - dt;
+    if (ring.userData.delay > 0) return;
+    ring.scale.addScalar(dt * 3.6);
+    ring.material.opacity = Math.max(0, ring.material.opacity - dt * 0.8);
+  });
+  if (pane.dust.visible) {
+    pane.dust.scale.addScalar(dt * 2.4);
+    pane.dustMat.opacity = Math.max(0, pane.dustMat.opacity - dt * 0.65);
+  }
+  if (pane.sparks.visible) {
+    pane.sparkV.forEach((v, n) => {
+      v.y -= dt * 1.8;
+      pane.sparkPos[n * 3] += v.x * dt;
+      pane.sparkPos[n * 3 + 1] += v.y * dt;
+      pane.sparkPos[n * 3 + 2] += v.z * dt;
+    });
+    pane.sparkGeo.attributes.position.needsUpdate = true;
+    pane.sparkMat.opacity = Math.max(0, pane.sparkMat.opacity - dt * 0.7);
+  }
+  pane.shards.forEach((bit) => fallBit(bit, dt, 0.16, 0.36));
+  fallBit(pane.faceBit, dt, 0.32, 0.3);
+  if (pane.shake > 0) {
+    pane.camera.position.set(
+      pane.baseCam.x + (Math.random() - 0.5) * pane.shake,
+      pane.baseCam.y + (Math.random() - 0.5) * pane.shake * 0.5,
+      pane.baseCam.z
+    );
+    pane.shake = Math.max(0, pane.shake - dt * 0.65);
+  } else pane.camera.position.copy(pane.baseCam);
+}
+function pose(pane, judged, now, i) {
+  const bob = Math.sin(now * 0.0022 + i) * 0.028;
+  const t = animT(judged.fate);
+  if (judged.fate === "pop") {
+    const k = Math.min(t, 0.94) / 0.94;
+    const s = 1 + (judged.scale - 1) * Math.pow(k, 0.78);
+    const panic = k * k;
+    const stretch = Math.sin(now * (0.009 + panic * 0.04)) * (0.03 + panic * 0.12);
+    pane.face.scale.set(1, 1, 1);
+    pane.rig.scale.set(s * (1 - stretch), s * (1 + stretch * 1.35), s * (1 - stretch * 0.4));
+    pane.rig.position.y = 1.25 + bob + (s - 1) * 0.2;
+    pane.rig.rotation.y = Math.sin(now * 0.0015 + i) * (0.08 + panic * 0.3);
+    setMood(pane, k > 0.62 ? "strain" : k > 0.25 ? "wow" : "smile");
+    if (t >= 0.94) pop(pane);
+    return;
+  }
+  if (judged.fate === "crush") {
+    if (t < 0.42) {
+      const u = t / 0.42;
+      const s = 1 - u * 0.14;
+      pane.face.scale.set(1, 1, 1);
+      pane.rig.scale.set(s * (1 + u * 0.08), s * (1 - u * 0.1), s);
+      pane.rig.position.y = 1.25 + bob * (1 - u);
+      setMood(pane, u > 0.25 ? "sad" : "smile");
+    } else {
+      const u = (t - 0.42) / 0.58;
+      const slamK = Math.pow(Math.min(u, 1), 0.4);
+      const bounce = Math.sin(Math.min(u, 1) * Math.PI * 2.1) * Math.exp(-u * 3) * 0.1;
+      const wide = 0.9 + slamK * 0.3;
+      const tall = Math.max(0.2, 0.8 - slamK * 0.58 + bounce);
+      pane.rig.scale.set(wide, tall, wide);
+      pane.face.scale.set(1, (wide / tall) * 0.66, 1);
+      pane.rig.position.y = 1.25 - slamK * 0.86;
+      setMood(pane, u > 0.16 ? "crush" : "sad");
+      if (u > 0.08 && !pane.slammed) slam(pane);
+    }
+    return;
+  }
+  const s = 1 + (judged.scale - 1) * arrive(t);
+  const dir = Math.abs(judged.scale - 1) < 0.04 ? 0 : Math.sign(judged.scale - 1);
+  const stretch = Math.sin(t * Math.PI * 2.5) * (1 - Math.min(t, 1)) * 0.08 * dir;
+  pane.face.scale.set(1, 1, 1);
+  pane.rig.scale.set(s * (1 - stretch * 0.6), s * (1 + stretch), s * (1 - stretch * 0.3));
+  if (t > 0.92) pane.rig.scale.multiplyScalar(1 + Math.sin(now * 0.004 + i) * 0.014);
+  pane.rig.position.y = 1.25 + bob + (s - 1) * 0.16;
+  pane.rig.rotation.y = Math.sin(now * 0.0007 + i) * 0.08;
+  setMood(pane, t > 0.32 ? judged.mood : "smile");
+}
+
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  const round = ROUNDS[index];
+  if (phase === "watch") {
+    watchT += dt;
+    if (watchT > watchLimit(round)) finishWatch();
+  }
+  document.body.dataset.balloon = phase + ":" + watchT.toFixed(2);
+  const moving = phase === "watch" || phase === "result" || phase === "end";
+  panes.forEach((pane, i) => {
+    const place = i === 0 ? round.a : round.b;
+    const judged = judge(place.p);
+    const lidT = !moving ? 0 : phase === "watch" ? Math.min(1, watchT / 0.42) : 1;
+    pane.lid.rotation.x = -(smooth(lidT) * 1.32 + (phase === "watch" && watchT < 0.7 ? Math.sin(lidT * Math.PI) * 0.08 : 0));
+    if (!pane.popped) pose(pane, judged, now, i);
+    stepFx(pane, dt);
+  });
+  const solo = document.body.classList.contains("solo");
+  const stacked = document.body.classList.contains("stacked");
+  const w = solo || stacked ? innerWidth : innerWidth / 2;
+  const h = stacked ? innerHeight / 2 : innerHeight;
+  renderer.setScissorTest(true);
+  panes.forEach((pane, i) => {
+    const x = !solo && !stacked && i === 1 ? w : 0;
+    const y = !solo && stacked && i === 0 ? h : 0;
+    renderer.setViewport(x, y, w, h);
+    renderer.setScissor(x, y, w, h);
+    renderer.render(pane.scene, pane.camera);
+  });
+}
+
+window.addEventListener("resize", layout);
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
