@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Orbit Pilot</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --gold: #e6c27a;
+    --ink: #e8eef6;
+    --dim: #9aa8bc;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #05060a;
+    overflow: hidden;
+    font-family: "Segoe UI", "Avenir Next", "Trebuchet MS", sans-serif;
+    color: var(--ink);
+  }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .overlay {
+    position: fixed;
+    z-index: 4;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 5.5rem 1.25rem 8.5rem;
+    background: rgba(5, 7, 12, 0.62);
+    backdrop-filter: blur(6px);
+  }
+  .overlay[hidden] { display: none; }
+  .card {
+    width: min(38rem, 100%);
+    max-height: min(70vh, 36rem);
+    overflow: auto;
+    background: rgba(10, 14, 22, 0.94);
+    border: 1px solid rgba(230, 194, 122, 0.38);
+    border-radius: 1.25rem;
+    padding: 1.6rem 1.55rem 1.3rem;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  }
+  .kicker {
+    margin: 0 0 0.35rem;
+    color: var(--gold);
+    letter-spacing: 0.28em;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  h1, h2 { margin: 0; font-weight: 650; letter-spacing: -0.03em; }
+  h1 { font-size: clamp(2rem, 5vw, 2.8rem); }
+  h2 { font-size: 1.7rem; }
+  .route {
+    margin: 0.45rem 0 0;
+    color: var(--dim);
+    letter-spacing: 0.04em;
+  }
+  .card p { color: #c5d0de; line-height: 1.5; }
+  .ending-art {
+    display: block;
+    width: 100%;
+    max-height: 11rem;
+    object-fit: cover;
+    border-radius: 0.8rem;
+    margin: 0.75rem 0 0.15rem;
+    border: 1px solid rgba(230, 194, 122, 0.28);
+  }
+  #coach, #coachShow {
+    position: fixed;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+  }
+  #coach {
+    width: min(340px, calc(100vw - 24px));
+    padding: 12px 14px 8px;
+    border: 1px solid rgba(230, 194, 122, 0.85);
+    border-radius: 14px;
+    background: rgba(8, 12, 20, 0.94);
+    color: #f4f7fb;
+    text-align: center;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+  #coach::before {
+    content: "";
+    position: absolute;
+    top: -7px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    margin-left: -6px;
+    background: rgba(8, 12, 20, 0.94);
+    border-left: 1px solid rgba(230, 194, 122, 0.85);
+    border-top: 1px solid rgba(230, 194, 122, 0.85);
+    transform: rotate(45deg);
+  }
+  #coachText { margin: 0 0 10px; min-height: 3.2em; }
+  #coachNav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  #coachBack, #coachNext {
+    border: 1px solid rgba(230, 194, 122, 0.45);
+    background: transparent;
+    color: #e8eef6;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font: inherit;
+    cursor: pointer;
+  }
+  #coachNext { background: var(--gold); color: #1c1408; border-color: transparent; font-weight: 650; }
+  #coachBack:disabled { opacity: 0.35; cursor: default; }
+  #coachCount { font-size: 0.78rem; color: rgba(232, 238, 246, 0.62); }
+  #coachHide {
+    margin-top: 6px;
+    padding: 2px 8px;
+    border: 0;
+    background: transparent;
+    color: rgba(232, 238, 246, 0.62);
+    font: inherit;
+    cursor: pointer;
+  }
+  #coachShow {
+    width: auto;
+    border-radius: 999px;
+    background: rgba(8, 12, 20, 0.94);
+    border: 1px solid rgba(230, 194, 122, 0.85);
+    color: var(--gold);
+    font-size: 0.85rem;
+    padding: 6px 12px;
+  }
+  @media (max-width: 760px) {
+    #coach, #coachShow { top: 168px; }
+  }
+  button:disabled { opacity: 0.38; cursor: default; }
+  .flight-btns {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 7;
+    display: flex;
+    gap: 0.45rem;
+  }
+  .mission-btn {
+    padding: 0.42rem 0.95rem;
+    background: rgba(8, 12, 20, 0.88);
+    color: var(--gold);
+    border-color: rgba(230, 194, 122, 0.55);
+    letter-spacing: 0.16em;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .mission-btn[hidden] { display: none; }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.4rem; }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 999px;
+    padding: 0.72rem 1.15rem;
+    border: 1px solid transparent;
+  }
+  button.primary {
+    background: var(--gold);
+    color: #1c1408;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+  button.ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+  .touch {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: none;
+    justify-content: center;
+    gap: 0.7rem;
+    padding: 0.7rem 0.8rem calc(0.7rem + env(safe-area-inset-bottom));
+    pointer-events: none;
+  }
+  .touch button {
+    pointer-events: auto;
+    min-width: 5.6rem;
+    min-height: 3.3rem;
+    background: rgba(8, 12, 20, 0.82);
+    color: var(--ink);
+    border-color: rgba(230, 194, 122, 0.45);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  @media (pointer: coarse) { .touch { display: flex; } }
+  @media (max-width: 760px) {
+    .flight-btns {
+      top: 8px;
+      left: 12px;
+      transform: none;
+    }
+    .mission-btn { letter-spacing: 0.08em; }
+    #hud {
+      font-size: 0.68rem;
+      min-width: 0;
+      max-width: 48vw;
+      padding: 6px 8px;
+    }
+    #control {
+      left: 10px;
+      right: 10px;
+      max-width: none;
+      font-size: 0.95rem;
+    }
+    #control .emoji { font-size: 2.2rem; }
+  }
+  #hud {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 8;
+    min-width: 196px;
+    padding: 8px 12px;
+    background: rgba(8, 12, 20, 0.9);
+    border: 1px solid rgba(230, 194, 122, 0.35);
+    border-radius: 12px;
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+  #hud .hud-row { display: flex; justify-content: space-between; gap: 14px; }
+  #hud .hud-row + .hud-row { margin-top: 3px; }
+  #hud .hud-row span { color: var(--dim); }
+  #hud .hud-row b { font-variant-numeric: tabular-nums; color: var(--gold); font-weight: 650; }
+  #hud .hud-row b.ok { color: #8fd0aa; }
+  #hud .hud-row b.bad { color: #ff8d7a; }
+  #control {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 8;
+    pointer-events: none;
+    max-width: min(420px, calc(100% - 32px));
+    padding: 12px 16px;
+    background: rgba(8, 12, 20, 0.92);
+    border: 1px solid rgba(230, 194, 122, 0.4);
+    border-radius: 14px;
+    font-size: 1.05rem;
+    line-height: 1.4;
+  }
+  #control .emoji {
+    font-size: 2.7rem;
+    vertical-align: middle;
+    margin-right: 8px;
+    line-height: 1;
+  }
+  #control .caret {
+    display: inline-block;
+    color: var(--gold);
+    animation: caretBlink 0.7s step-end infinite;
+  }
+  @keyframes caretBlink { 50% { opacity: 0; } }
+  @media (pointer: coarse) {
+    #control { bottom: 96px; max-width: min(420px, calc(100% - 24px)); }
+  }
+  #introPopup {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: rgba(5, 7, 12, 0.72);
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+  #introPopup.show { display: flex; }
+  #introPopup .popup-box {
+    width: min(34rem, 100%);
+    max-height: min(92vh, 42rem);
+    overflow: auto;
+    background: rgba(10, 14, 22, 0.96);
+    border: 1px solid rgba(230, 194, 122, 0.4);
+    border-radius: 1.25rem;
+    padding: 1.5rem 1.4rem 1.2rem;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  }
+  .brief-art {
+    display: block;
+    width: 100%;
+    height: 10.5rem;
+    object-fit: cover;
+    border-radius: 0.75rem;
+    margin: 0 0 0.85rem;
+    border: 1px solid rgba(230, 194, 122, 0.28);
+    background: #061018;
+  }
+  .brief-date { color: var(--gold); letter-spacing: 0.08em; font-size: 0.78rem; font-weight: 700; margin: 0 0 0.35rem; }
+  .brief-head { display: flex; align-items: center; gap: 10px; margin-bottom: 0.7rem; }
+  .brief-face { font-size: 2.2rem; line-height: 1; }
+  .brief-name { margin: 0; font-size: 1.45rem; font-weight: 650; }
+  .brief-head h1 { font-size: 1.55rem; }
+  .brief-body { min-height: 4.6em; white-space: pre-wrap; margin: 0; color: #d5deea; line-height: 1.5; }
+  @media (max-width: 760px) {
+    .brief-art { height: 7.5rem; }
+  }
+  #popupOk {
+    display: none;
+    margin-top: 1rem;
+    width: 100%;
+  }
+  #popupOk.ready { display: block; }
+</style>
+</head>
+<body>
+<canvas id="view" aria-label="Orbit Pilot"></canvas>
+<div id="hud" aria-label="Flight books">
+  <div class="hud-row"><span>Mission money</span><b id="hudMission">¥0</b></div>
+  <div class="hud-row"><span>Savings</span><b id="hudSavings">¥0</b></div>
+  <div class="hud-row"><span>Debt</span><b id="hudDebt">¥0</b></div>
+  <div class="hud-row"><span>Failed flights</span><b id="hudFails" class="ok">0</b></div>
+  <div class="hud-row"><span>People dead</span><b id="hudCasualties" class="ok">0</b></div>
+  <div class="hud-row"><span>Fuel left last time</span><b id="hudLastAcc">—</b></div>
+  <div class="hud-row"><span>Average fuel left</span><b id="hudAvgAcc">—</b></div>
+</div>
+<div class="flight-btns">
+  <button type="button" class="mission-btn" id="mission" hidden>Mission</button>
+  <button type="button" class="mission-btn" id="restart" hidden>Restart</button>
+</div>
+<div id="coach" hidden>
+  <p id="coachText"></p>
+  <div id="coachNav">
+    <button type="button" id="coachBack">Back</button>
+    <span id="coachCount">1 / 1</span>
+    <button type="button" id="coachNext">Next</button>
+  </div>
+  <button type="button" id="coachHide">Hide</button>
+</div>
+<button type="button" id="coachShow" hidden>Show steps</button>
+<div id="control"><span class="emoji">😐</span>Stand by for the brief.</div>
+<div id="introPopup">
+  <div class="popup-box">
+    <div id="popupText"></div>
+    <button type="button" class="primary" id="popupOk">I am ready</button>
+  </div>
+</div>
+<div class="touch" id="touch">
+  <button type="button" id="turn-left" tabindex="-1" aria-label="Rotate left">LEFT</button>
+  <button type="button" id="burn" tabindex="-1" aria-label="Fire the engine">GO</button>
+  <button type="button" id="turn-right" tabindex="-1" aria-label="Rotate right">RIGHT</button>
+</div>
+<div class="overlay" id="overlay"></div>
+<p id="live" class="sr" aria-live="polite"></p>
+<script>
+(function () {
+  const THRUST = 34;
+  const FUEL_RATE = 22;
+  const ROT = 2.65;
+  const SWEEP = 1.7;
+  const STEP = 1 / 60;
+
+  const LEVELS = [
+    {
+      title: "Into the Black Hole",
+      date: "January 2026",
+      face: "🛰️",
+      art: "brief-into-the-black-hole.webp",
+      artAlt: "A satellite near the dark edge of a black hole",
+      crew: 0,
+      cost: 6,
+      goal: "dive",
+      target: "nox",
+      sky: "#120e18",
+      fuel: 160,
+      route: ["lumen", "nox"],
+      blurb: "A satellite is flying in a circle around Lumen. Nox is a black hole.\n\nThe aim is the dark edge. The satellite sends the research data back, and then it is lost.",
+      steps: [
+        "The left and right arrow keys turn the nose. The blue line shows the way the satellite is already moving. For this flight, you do not need to follow that line.",
+        "Turn the nose so it points at Nox, the black hole.",
+        "Hold Space. The engine pushes the satellite towards Nox. Let go when the dotted line reaches the dark edge.",
+        "The satellite should go into the black hole, not around it. Crossing the dark edge sends the data back. Hitting Lumen loses the flight. Press R to start again."
+      ],
+      bodies: [
+        { id: "lumen", name: "Lumen", kind: "rock", x: 0, y: 0, r: 16, kill: 16, capture: 90, mu: 40000, orbit: 48, colors: ["#8a93a3", "#e7edf4", "#4d5666"] },
+        { id: "nox", name: "Nox", kind: "hole", x: 210, y: 0, r: 16, kill: 78, capture: 100, mu: 500000 }
+      ]
+    },
+    {
+      title: "Leave the Circle",
+      date: "February 2026",
+      face: "📡",
+      art: "brief-leave-the-circle.webp",
+      artAlt: "A satellite leaving a rocky world along a pale marked path",
+      crew: 0,
+      cost: 8,
+      goal: "escape",
+      sky: "#101820",
+      fuel: 140,
+      route: ["iris", "exit"],
+      blurb: "A satellite is flying in a circle around Iris. There is no Earth on this mission.\n\nA pale line marks the way out. The flight is done when the satellite passes through the circle at the end of that line.",
+      steps: [
+        "The arrow keys turn the nose. Point it along the blue line. That line matches the pale marked path at the start.",
+        "Hold Space for a short time, then let go. Stop when the dotted line goes through the circle labelled Marked path.",
+        "Do not fly into Iris. Do not turn back the other way. The satellite should leave the circle around Iris.",
+        "When the satellite flies through the marked circle, this flight is done. Press R to start again."
+      ],
+      gate: { x: -70, y: 280, r: 130, fromX: 64, fromY: 0 },
+      bodies: [
+        { id: "iris", name: "Iris", kind: "rock", x: 0, y: 0, r: 22, kill: 22, capture: 130, mu: 90000, orbit: 64, colors: ["#6d7c8a", "#d5e2ea", "#3c4854"] }
+      ]
+    },
+    {
+      title: "The Quiet Hop",
+      date: "March 2026",
+      face: "🛰️",
+      art: "brief-quiet-hop.webp",
+      artAlt: "A ship between a grey world, a red planet, and Earth",
+      crew: 0,
+      cost: 10,
+      sky: "#10182a",
+      fuel: 220,
+      route: ["vesta", "mars", "earth"],
+      blurb: "The ship is flying in a circle around Vesta. Mars is the next world, and Earth is the last.\n\nMars should hold the ship in a circle. Then Earth should hold the ship in a circle around it. Do not fly into Earth.",
+      steps: [
+        "The left and right arrow keys turn the nose of the ship. Point the nose along the blue line. The blue line shows the way the ship is already moving.",
+        "Wait until the blue line points beside Mars, not straight at it. Pressing Space here stretches the path towards the gold circle.",
+        "Hold Space for a short time, then let go. Stop when the dotted line just reaches the gold circle around Mars. Holding Space for too long wastes fuel, and you arrive too fast.",
+        "Let go of Space. Wait until the ship is inside the gold circle.",
+        "Turn the nose so it points back along the blue line. Hold Space until Mars holds the ship. Fly past the side of the planet. A path through the middle will hit it.",
+        "The fuel fills up. From Mars, point along the blue line towards Earth. Press Space for a short time, then slow down inside Earth's gold circle so Earth holds the ship in orbit. Do not fly into Earth. Press R to start this mission again."
+      ],
+      bodies: [
+        { id: "vesta", name: "Vesta", kind: "rock", x: -520, y: 20, r: 28, kill: 28, capture: 155, mu: 200000, orbit: 85, colors: ["#6e675e", "#d7cec0", "#3e3a34"] },
+        { id: "mars", name: "Mars", kind: "mars", x: 20, y: 280, r: 40, kill: 40, capture: 185, mu: 310000, colors: ["#6e2e22", "#e07a52", "#3d1a12"] },
+        { id: "earth", name: "Earth", kind: "earth", x: 740, y: -160, r: 40, kill: 40, capture: 230, mu: 300000 }
+      ]
+    },
+    {
+      title: "Past the Star",
+      date: "August 2026",
+      face: "☀️",
+      art: "brief-past-the-star.webp",
+      artAlt: "A ship passing a bright star, outside the red glow, with Earth ahead",
+      crew: 2,
+      cost: 14,
+      sky: "#24180e",
+      fuel: 170,
+      route: ["titan", "helios", "earth"],
+      blurb: "The ship starts in a circle around Titan. Helios is a star. Stay in the gold circle, and stay outside the red circle.\n\nAfter Helios holds the ship, fly on to Earth. Earth should hold the ship in a circle around it. Do not fly into Earth.",
+      steps: [
+        "The arrow keys turn the nose. Point it along the blue line when that line aims beside Helios, into the gold circle, and not into the red circle.",
+        "Hold Space for a short time, then let go. Stop when the dotted line reaches the gold circle. A longer press makes you arrive too fast. The star can throw you past, or pull you into the red circle.",
+        "Let go of Space. The red circle is dangerous. If you cross it, the ship is lost. Stay outside it.",
+        "Inside the gold circle, turn the nose back along the blue line and hold Space until Helios holds the ship. Then let go.",
+        "The fuel fills up. On the side facing Earth, point along the blue line, press Space for a short time, then slow down inside Earth's gold circle. Earth should hold the ship in orbit. Do not fly into Earth. Press R to start this mission again."
+      ],
+      bodies: [
+        { id: "titan", name: "Titan", kind: "rock", x: -600, y: -60, r: 26, kill: 26, capture: 145, mu: 170000, orbit: 78, colors: ["#a87432", "#f0d0a0", "#6a4418"] },
+        { id: "helios", name: "Helios", kind: "star", x: 0, y: 20, r: 48, kill: 86, capture: 310, mu: 520000 },
+        { id: "earth", name: "Earth", kind: "earth", x: 780, y: 240, r: 40, kill: 40, capture: 230, mu: 280000 }
+      ]
+    },
+    {
+      title: "The Black Hole",
+      date: "November 2026",
+      face: "🌑",
+      art: "brief-the-black-hole.webp",
+      artAlt: "A ship skirting a black hole, with Earth farther ahead",
+      crew: 3,
+      cost: 16,
+      sky: "#160e22",
+      fuel: 200,
+      route: ["nix", "umbra", "earth"],
+      blurb: "The ship starts in a circle around Nix. Umbra is a black hole. Do not cross the dark edge.\n\nUmbra should hold the ship for a short time. Then fly on to Earth. Earth should hold the ship in a circle around it. Do not fly into Earth.",
+      steps: [
+        "The arrow keys turn the nose. Point it along the blue line when that line aims into Umbra's gold circle, far from the dark edge.",
+        "Hold Space for a short time, then let go. Extra speed makes Umbra harder to slow down for, and it uses fuel you need to get away.",
+        "Let go of Space. A path through the middle falls past the dark edge. The ship cannot come back from there.",
+        "As soon as you are in the gold circle, turn the nose back along the blue line and hold Space. Slow down before the fall gets faster. Let go once Umbra is holding the ship.",
+        "The fuel fills up, but the black hole keeps pulling. On the side facing Earth, point along the blue line and hold Space to get away. Then slow down inside Earth's gold circle so Earth holds the ship in orbit. Do not fly into Earth. Press R to start this mission again."
+      ],
+      bodies: [
+        { id: "nix", name: "Nix", kind: "rock", x: -540, y: 150, r: 22, kill: 22, capture: 140, mu: 160000, orbit: 72, colors: ["#9eb4c2", "#f4f8fb", "#5e7382"] },
+        { id: "umbra", name: "Umbra", kind: "hole", x: 10, y: -20, r: 18, kill: 58, capture: 250, mu: 420000 },
+        { id: "earth", name: "Earth", kind: "earth", x: 760, y: 160, r: 42, kill: 42, capture: 230, mu: 300000 }
+      ]
+    }
+  ];
+
+  const GRAB_LINE = {
+    mars: "Mars is holding the ship. The fuel is full again.",
+    helios: "Helios is holding the ship. Stay outside the red circle.",
+    umbra: "Umbra is holding the ship. Point away from it and press Space before you fall in.",
+    earth: "You have reached Earth."
+  };
+
+  const canvas = document.getElementById("view");
+  const ctx = canvas.getContext("2d");
+  const overlay = document.getElementById("overlay");
+  const missionBtn = document.getElementById("mission");
+  const restartBtn = document.getElementById("restart");
+  function showFlightButtons(on) {
+    missionBtn.hidden = !on;
+    restartBtn.hidden = !on;
+  }
+  const liveEl = document.getElementById("live");
+  const introPopup = document.getElementById("introPopup");
+  const popupText = document.getElementById("popupText");
+  const popupOk = document.getElementById("popupOk");
+  const coachEl = document.getElementById("coach");
+  const coachText = document.getElementById("coachText");
+  const coachCount = document.getElementById("coachCount");
+  const coachBack = document.getElementById("coachBack");
+  const coachNext = document.getElementById("coachNext");
+  const coachShow = document.getElementById("coachShow");
+  let coachIndex = 0;
+  const control = document.getElementById("control");
+  const hudMission = document.getElementById("hudMission");
+  const hudSavings = document.getElementById("hudSavings");
+  const hudDebt = document.getElementById("hudDebt");
+  const hudFails = document.getElementById("hudFails");
+  const hudCasualties = document.getElementById("hudCasualties");
+  const hudLastAcc = document.getElementById("hudLastAcc");
+  const hudAvgAcc = document.getElementById("hudAvgAcc");
+  const keys = Object.create(null);
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const coarse = matchMedia("(pointer: coarse)");
+
+  const G = {
+    levelIndex: 0,
+    bodies: [],
+    route: [],
+    progress: 1,
+    ship: null,
+    meter: 0,
+    prevAng: null,
+    sweepBase: 0,
+    sweepSign: 1,
+    mode: "play",
+    toast: "",
+    toastT: 0,
+    reason: "",
+    trail: [],
+    particles: [],
+    stars: [],
+    cam: { x: 0, y: 0, s: 1, shake: 0 },
+    time: 0,
+    fuelMax: 160,
+    intro: true,
+    flightPaid: false,
+    openingBrief: false,
+    judged: false,
+    failNote: ""
+  };
+
+  let viewW = 1;
+  let viewH = 1;
+  let dpr = 1;
+
+  function say(text) { liveEl.textContent = text; }
+
+  const books = {
+    missionBudget: 0,
+    savings: 0,
+    debt: 0,
+    failed: 0,
+    casualties: 0,
+    lastAcc: null,
+    accSum: 0,
+    accN: 0
+  };
+
+  function formatMoney(mil) {
+    return "¥" + Math.round(mil * 1e6).toLocaleString("en-US");
+  }
+
+  function refreshHud() {
+    hudMission.textContent = formatMoney(books.missionBudget);
+    hudMission.className = books.missionBudget <= 0 ? "bad" : "";
+    hudSavings.textContent = formatMoney(books.savings);
+    hudSavings.className = books.savings > 0 ? "ok" : "";
+    hudDebt.textContent = formatMoney(books.debt);
+    hudDebt.className = books.debt > 0 ? "bad" : "ok";
+    hudFails.textContent = String(books.failed);
+    hudFails.className = books.failed > 0 ? "bad" : "ok";
+    hudCasualties.textContent = String(books.casualties);
+    hudCasualties.className = books.casualties > 0 ? "bad" : "ok";
+    if (books.lastAcc == null) {
+      hudLastAcc.textContent = "—";
+      hudLastAcc.className = "";
+    } else {
+      hudLastAcc.textContent = books.lastAcc + "%";
+      hudLastAcc.className = books.lastAcc >= 40 ? "ok" : books.lastAcc < 15 ? "bad" : "";
+    }
+    if (books.accN <= 0) {
+      hudAvgAcc.textContent = "—";
+      hudAvgAcc.className = "";
+    } else {
+      const avg = books.accSum / books.accN;
+      hudAvgAcc.textContent = Math.round(avg) + "%";
+      hudAvgAcc.className = avg >= 40 ? "ok" : avg < 15 ? "bad" : "";
+    }
+  }
+
+  function spend(amount) {
+    let left = amount;
+    const fromBudget = Math.min(books.missionBudget, left);
+    books.missionBudget -= fromBudget;
+    left -= fromBudget;
+    const fromSavings = Math.min(books.savings, left);
+    books.savings -= fromSavings;
+    left -= fromSavings;
+    books.debt += left;
+    refreshHud();
+  }
+
+  function bankLeftover() {
+    if (books.missionBudget <= 0) return;
+    if (books.debt > 0) {
+      const pay = Math.min(books.debt, books.missionBudget);
+      books.debt -= pay;
+      books.missionBudget -= pay;
+    }
+    books.savings += books.missionBudget;
+    books.missionBudget = 0;
+    refreshHud();
+  }
+
+  function beginMap(level) {
+    books.missionBudget = level.cost * 2;
+    refreshHud();
+  }
+
+  function recordAccuracy(frac) {
+    const pct = Math.max(0, Math.min(100, Math.round(frac * 100)));
+    books.lastAcc = pct;
+    books.accSum += pct;
+    books.accN += 1;
+    refreshHud();
+  }
+
+  function hurtSentence() {
+    const level = LEVELS[G.levelIndex];
+    if (!level || !level.crew) return "";
+    return level.crew === 1 ? " One person is dead." : " " + level.crew + " people are dead.";
+  }
+
+  function recordFail() {
+    if (G.judged) return;
+    G.judged = true;
+    books.failed += 1;
+    const level = LEVELS[G.levelIndex];
+    if (level && level.crew > 0) books.casualties += level.crew;
+    recordAccuracy(0);
+  }
+
+  function careerLine() {
+    let line = "Savings " + formatMoney(books.savings) + ".";
+    if (books.debt > 0) line += " Debt " + formatMoney(books.debt) + ".";
+    line += books.casualties > 0
+      ? " People dead: " + books.casualties + "."
+      : " Nobody died.";
+    return line;
+  }
+
+  const TYPE_MS = 20;
+  const talkNotes = [659.25, 783.99, 880, 987.77, 1174.66];
+  let typeJob = { id: 0, timer: 0, i: 0, text: "", render: null, onDone: null };
+  let afterBrief = null;
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function playTalkBlip() {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const filt = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    osc.type = "square";
+    const f = talkNotes[(Math.random() * talkNotes.length) | 0] * (0.97 + Math.random() * 0.06);
+    osc.frequency.setValueAtTime(f, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(200, f * 0.78), ctx.currentTime + 0.032);
+    filt.type = "bandpass";
+    filt.frequency.setValueAtTime(1100, ctx.currentTime);
+    filt.Q.setValueAtTime(1.4, ctx.currentTime);
+    g.gain.setValueAtTime(0.055, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.034);
+    osc.connect(filt);
+    filt.connect(g);
+    g.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.04);
+  }
+
+  function isTyping() {
+    return !!typeJob.render && typeJob.i < typeJob.text.length;
+  }
+
+  function finishType() {
+    if (!typeJob.render) return false;
+    if (typeJob.i >= typeJob.text.length) return false;
+    clearTimeout(typeJob.timer);
+    typeJob.i = typeJob.text.length;
+    typeJob.render(typeJob.text, false);
+    typeJob.render = null;
+    typeJob.onDone = null;
+    typeJob.id += 1;
+    if (introOpen()) setPopupReady(true);
+    return true;
+  }
+
+  function startType(text, render, onDone) {
+    clearTimeout(typeJob.timer);
+    typeJob.id += 1;
+    const id = typeJob.id;
+    typeJob.text = text;
+    typeJob.render = render;
+    typeJob.onDone = onDone || null;
+    typeJob.i = 0;
+    if (reduceMotion) {
+      typeJob.i = text.length;
+      render(text, false);
+      typeJob.render = null;
+      const done = typeJob.onDone;
+      typeJob.onDone = null;
+      if (done) done();
+      return;
+    }
+    render("", true);
+    function tick() {
+      if (id !== typeJob.id) return;
+      typeJob.i += 1;
+      const shown = typeJob.text.slice(0, typeJob.i);
+      const ch = typeJob.text[typeJob.i - 1];
+      if (ch && /[A-Za-z0-9]/.test(ch)) playTalkBlip();
+      const more = typeJob.i < typeJob.text.length;
+      render(shown, more);
+      if (more) typeJob.timer = setTimeout(tick, TYPE_MS);
+      else {
+        typeJob.render = null;
+        const done = typeJob.onDone;
+        typeJob.onDone = null;
+        if (done) done();
+      }
+    }
+    typeJob.timer = setTimeout(tick, TYPE_MS);
+  }
+
+  function typeInto(el, text, onDone) {
+    if (!el) return;
+    startType(text, function (shown, caret) {
+      el.innerHTML = escapeHtml(shown) + (caret ? '<span class="caret">▌</span>' : "");
+    }, onDone);
+  }
+
+  function setPopupReady(on) {
+    popupOk.classList.toggle("ready", !!on);
+  }
+
+  function comment(raw) {
+    const space = raw.indexOf(" ");
+    const emoji = space > 0 ? raw.slice(0, space) : raw;
+    const rest = space > 0 ? raw.slice(space + 1) : "";
+    startType(rest, function (shown, caret) {
+      control.innerHTML = (emoji ? '<span class="emoji">' + emoji + "</span>" : "") +
+        escapeHtml(shown) + (caret ? '<span class="caret">▌</span>' : "");
+    });
+  }
+
+  function updateMoneyTalk(extra) {
+    const level = LEVELS[G.levelIndex];
+    const left = level.cost > 0 ? books.missionBudget / level.cost : 0;
+    let emoji;
+    let text;
+    if (books.missionBudget <= 0 && books.savings <= 0) {
+      emoji = "😟";
+      text = "Both paid flights are used. The next try goes on the debt.";
+    } else if (books.missionBudget <= 0 && books.savings > 0) {
+      emoji = "😐";
+      text = "Both flights for this mission are used. Savings pay for the next try before debt.";
+    } else if (left >= 1.9) {
+      emoji = "🙂";
+      text = "You have money for two flights. Finish on the first try and the spare money is saved.";
+    } else if (left >= 0.9) {
+      emoji = "🙂";
+      text = "One spare flight is still paid for. Finish this flight and that money is saved.";
+    } else {
+      emoji = "😟";
+      text = "You are short of money. Extra cost comes from savings first, then debt.";
+    }
+    comment(emoji + " " + text + (extra || ""));
+  }
+
+  function introOpen() {
+    return introPopup.classList.contains("show");
+  }
+
+  function showGameIntro() {
+    setPopupReady(false);
+    popupOk.textContent = "I am ready";
+    popupText.innerHTML =
+      '<p class="brief-date">FLIGHT SCHOOL</p>' +
+      '<div class="brief-head"><span class="brief-face">🚀</span><h2 class="brief-name">Orbit Pilot</h2></div>' +
+      '<p id="briefTalk" class="brief-body"></p>';
+    introPopup.classList.add("show");
+    showFlightButtons(false);
+    coachEl.hidden = true;
+    coachShow.hidden = true;
+    control.innerHTML = '<span class="emoji">😐</span> Wait for the instructions.';
+    afterBrief = function () { loadLevel(0, "brief"); };
+    typeInto(document.getElementById("briefTalk"),
+      "You fly a ship from one world to the next, until you reach Earth.\n\nEach mission pays for two flights. If you finish on the first try, the spare money is saved. Another try uses your savings. After that, you go into debt.\n\nSome flights have people on board. If the ship is lost, those people are dead.",
+      function () { setPopupReady(true); }
+    );
+    say("Orbit Pilot. Fly from one world to the next until you reach Earth.");
+  }
+
+  function rng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+
+  function makeStars() {
+    const rand = rng(42);
+    G.stars = [];
+    for (let i = 0; i < 220; i++) {
+      G.stars.push({
+        x: rand() * 2800 - 1400,
+        y: rand() * 1800 - 900,
+        r: rand() < 0.08 ? 1.8 : 0.7 + rand() * 0.6,
+        a: 0.25 + rand() * 0.7,
+        ph: rand() * Math.PI * 2
+      });
+    }
+  }
+
+  function angDiff(a, b) {
+    let d = a - b;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  function bodyById(id) {
+    return G.bodies.find(function (b) { return b.id === id; });
+  }
+
+  function spawn(level) {
+    const home = level.bodies.find(function (b) { return b.id === level.route[0]; });
+    const R = home.orbit;
+    const v = Math.sqrt(home.mu / R);
+    return {
+      x: home.x + R,
+      y: home.y,
+      vx: 0,
+      vy: v,
+      angle: Math.PI / 2,
+      fuel: level.fuel
+    };
+  }
+
+  function pullScale(b, dist) {
+    const inner = b.capture * 0.95;
+    const outer = b.capture * 1.55;
+    if (dist <= inner) return 1;
+    if (dist >= outer) return 0;
+    const t = (dist - inner) / (outer - inner);
+    const s = t * t * (3 - 2 * t);
+    return 1 - s;
+  }
+
+  function accel(x, y, angle, thrusting) {
+    let ax = 0;
+    let ay = 0;
+    for (let i = 0; i < G.bodies.length; i++) {
+      const b = G.bodies[i];
+      const dx = b.x - x;
+      const dy = b.y - y;
+      const d2 = dx * dx + dy * dy;
+      const d = Math.sqrt(d2) || 1;
+      const scale = pullScale(b, d);
+      if (scale <= 0) continue;
+      const inv = (b.mu * scale) / (d2 * d);
+      ax += dx * inv;
+      ay += dy * inv;
+    }
+    if (thrusting) {
+      ax += Math.cos(angle) * THRUST;
+      ay += Math.sin(angle) * THRUST;
+    }
+    return [ax, ay];
+  }
+
+  function verlet(s, dt, thrusting) {
+    const a1 = accel(s.x, s.y, s.angle, thrusting);
+    s.x += s.vx * dt + 0.5 * a1[0] * dt * dt;
+    s.y += s.vy * dt + 0.5 * a1[1] * dt * dt;
+    const a2 = accel(s.x, s.y, s.angle, thrusting);
+    s.vx += 0.5 * (a1[0] + a2[0]) * dt;
+    s.vy += 0.5 * (a1[1] + a2[1]) * dt;
+  }
+
+  function elements(ship, body) {
+    const rx = ship.x - body.x;
+    const ry = ship.y - body.y;
+    const r = Math.hypot(rx, ry) || 1;
+    const h = rx * ship.vy - ry * ship.vx;
+    const ex = (ship.vy * h) / body.mu - rx / r;
+    const ey = (-ship.vx * h) / body.mu - ry / r;
+    const e = Math.hypot(ex, ey);
+    const speed2 = ship.vx * ship.vx + ship.vy * ship.vy;
+    const energy = speed2 / 2 - body.mu / r;
+    const a = Math.abs(energy) > 1e-4 ? -body.mu / (2 * energy) : null;
+    return { e: e, energy: energy, ex: ex, ey: ey, a: a, r: r, pull: body.mu / (r * r) };
+  }
+
+  function dominant() {
+    let best = null;
+    let pull = 0;
+    for (let i = 0; i < G.bodies.length; i++) {
+      const el = elements(G.ship, G.bodies[i]);
+      const felt = el.pull * pullScale(G.bodies[i], el.r);
+      if (felt > pull) {
+        pull = felt;
+        best = { body: G.bodies[i], el: el, felt: felt };
+      }
+    }
+    return best;
+  }
+
+  function killMessage(b) {
+    if (b.kind === "hole") return "You crossed the dark edge of " + b.name + ". The ship cannot come back.";
+    if (b.kind === "star") return "The ship flew into the red circle. Stay outside it.";
+    return "You hit " + b.name + ". Fly past the side, inside the gold circle.";
+  }
+
+  function die(reason) {
+    if (G.mode !== "play") return;
+    G.mode = "dead";
+    G.reason = reason;
+    G.cam.shake = reduceMotion ? 0 : 14;
+    recordFail();
+    sfx(/let go|escape|path/i.test(reason) ? "escape" : "crash");
+    comment("😟 " + reason + hurtSentence());
+    say(reason + hurtSentence());
+    showEnd(false);
+  }
+
+  function win(gained) {
+    if (G.mode !== "play") return;
+    G.mode = "won";
+    sfx("success");
+    const last = G.levelIndex === LEVELS.length - 1;
+    const goal = LEVELS[G.levelIndex].goal || "orbit";
+    const money = gained > 0
+      ? " You saved " + formatMoney(gained) + "."
+      : " No spare money left to save.";
+    const headline = goal === "dive"
+      ? "The satellite went into the black hole and sent the research data back before reaching its event horizon. It is lost now."
+      : goal === "escape"
+        ? "The satellite left the circle on the marked path."
+        : "You have reached Earth. Earth is holding the ship in a circle around it.";
+    comment("🙂 " + headline + money + (last ? " " + careerLine() : ""));
+    say(headline + money + (last ? " " + careerLine() : ""));
+    showEnd(true);
+  }
+
+  function succeedNow() {
+    if (G.mode !== "play") return;
+    const kept = G.fuelMax > 0 ? G.ship.fuel / G.fuelMax : 0;
+    recordAccuracy(kept);
+    const savedBefore = books.savings;
+    bankLeftover();
+    win(books.savings - savedBefore);
+  }
+
+  function grab(body) {
+    const kept = G.fuelMax > 0 ? G.ship.fuel / G.fuelMax : 0;
+    G.progress += 1;
+    G.meter = 0;
+    G.prevAng = null;
+    G.ship.fuel = G.fuelMax;
+    sfx("ok");
+    if (G.progress >= G.route.length) {
+      recordAccuracy(kept);
+      const savedBefore = books.savings;
+      bankLeftover();
+      win(books.savings - savedBefore);
+      return;
+    }
+    const line = GRAB_LINE[body.id] || (body.name + " is holding the ship. The fuel is full again.");
+    G.toast = line;
+    G.toastT = 2.6;
+    say(line);
+    comment("🙂 " + line);
+  }
+
+  function controlsOn() {
+    return G.mode === "play" && overlay.hidden && !introOpen();
+  }
+
+  function routePoints(level) {
+    const pts = [];
+    if (level.goal === "escape" && level.gate) {
+      pts.push({ x: level.gate.fromX, y: level.gate.fromY });
+      pts.push({ x: level.gate.x, y: level.gate.y });
+      return pts;
+    }
+    const ids = level.route || [];
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = 0; j < level.bodies.length; j++) {
+        if (level.bodies[j].id === ids[i]) {
+          pts.push({ x: level.bodies[j].x, y: level.bodies[j].y });
+          break;
+        }
+      }
+    }
+    return pts;
+  }
+
+  function distToSegment(px, py, ax, ay, bx, by) {
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    if (len2 < 1) return Math.hypot(px - ax, py - ay);
+    let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+    if (t < 0) t = 0;
+    else if (t > 1) t = 1;
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
+
+  function farOffPath(level, x, y) {
+    const pts = routePoints(level);
+    if (pts.length < 2) return false;
+    let near = false;
+    for (let i = 0; i < level.bodies.length; i++) {
+      const b = level.bodies[i];
+      if (Math.hypot(x - b.x, y - b.y) < b.capture * 1.8) near = true;
+    }
+    if (near) return false;
+    let best = Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const d = distToSegment(x, y, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+      if (d < best) best = d;
+    }
+    return best > 900;
+  }
+
+  function physics(dt) {
+    if (!controlsOn()) return;
+    const ship = G.ship;
+    if (keys.ArrowLeft || keys.KeyA) ship.angle -= ROT * dt;
+    if (keys.ArrowRight || keys.KeyD) ship.angle += ROT * dt;
+
+    const thrusting = !!keys.Space && ship.fuel > 0;
+    if (thrusting) {
+      ship.fuel = Math.max(0, ship.fuel - FUEL_RATE * dt);
+      if (Math.random() < 0.7) {
+        const c = Math.cos(ship.angle);
+        const s = Math.sin(ship.angle);
+        G.particles.push({
+          x: ship.x - c * 8,
+          y: ship.y - s * 8,
+          vx: ship.vx - c * 36 + (Math.random() - 0.5) * 10,
+          vy: ship.vy - s * 36 + (Math.random() - 0.5) * 10,
+          life: 0.28,
+          max: 0.28
+        });
+      }
+    }
+
+    verlet(ship, dt, thrusting);
+
+    if (G.trail.length === 0 || Math.hypot(ship.x - G.trail[G.trail.length - 1].x, ship.y - G.trail[G.trail.length - 1].y) > 4) {
+      G.trail.push({ x: ship.x, y: ship.y });
+      if (G.trail.length > 240) G.trail.shift();
+    }
+
+    for (let i = G.particles.length - 1; i >= 0; i--) {
+      const p = G.particles[i];
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.life <= 0) G.particles.splice(i, 1);
+    }
+
+    const level = LEVELS[G.levelIndex];
+    const goal = level.goal || "orbit";
+    for (let i = 0; i < G.bodies.length; i++) {
+      const b = G.bodies[i];
+      if (Math.hypot(ship.x - b.x, ship.y - b.y) < b.kill) {
+        if (goal === "dive" && b.id === level.target) {
+          succeedNow();
+          return;
+        }
+        die(killMessage(b));
+        return;
+      }
+    }
+    if (goal === "escape" && level.gate) {
+      const gate = level.gate;
+      if (Math.hypot(ship.x - gate.x, ship.y - gate.y) < gate.r) {
+        succeedNow();
+        return;
+      }
+    }
+    if (farOffPath(level, ship.x, ship.y)) {
+      die("The ship is much too far from the correct path. This mission has failed.");
+      return;
+    }
+
+    if (goal !== "orbit") return;
+    const next = bodyById(G.route[G.progress]);
+    if (!next) return;
+    const ddx = ship.x - next.x;
+    const ddy = ship.y - next.y;
+    const dist = Math.hypot(ddx, ddy);
+    const speed = Math.hypot(ship.vx, ship.vy);
+    const vEsc = Math.sqrt((2 * next.mu) / Math.max(dist, 1));
+    const bound = dist > next.kill * 1.08 && dist < next.capture && speed < vEsc * 0.98;
+    if (bound) {
+      const ang = Math.atan2(ddy, ddx);
+      if (G.prevAng == null) G.sweepBase = ang;
+      if (G.prevAng != null) {
+        let d = ang - G.prevAng;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        G.meter += Math.abs(d);
+        if (d !== 0) G.sweepSign = d > 0 ? 1 : -1;
+      }
+      G.prevAng = ang;
+      if (G.meter > SWEEP) grab(next);
+    } else {
+      G.meter = Math.max(0, G.meter - dt * 0.55);
+      G.prevAng = null;
+    }
+  }
+
+  function predict() {
+    const s = {
+      x: G.ship.x,
+      y: G.ship.y,
+      vx: G.ship.vx,
+      vy: G.ship.vy,
+      angle: G.ship.angle,
+      fuel: G.ship.fuel
+    };
+    const pts = [];
+    let hit = -1;
+    const burnSteps = controlsOn() && keys.Space && s.fuel > 0 ? 18 : 0;
+    for (let i = 0; i < 420; i++) {
+      verlet(s, STEP, i < burnSteps);
+      if (i % 4 === 0) pts.push({ x: s.x, y: s.y });
+      if (hit < 0) {
+        for (let b = 0; b < G.bodies.length; b++) {
+          const body = G.bodies[b];
+          if (Math.hypot(s.x - body.x, s.y - body.y) < body.kill) {
+            hit = pts.length - 1;
+            break;
+          }
+        }
+      }
+      if (hit >= 0 && pts.length > hit + 8) break;
+    }
+    return { pts: pts, hit: hit };
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    viewW = window.innerWidth;
+    viewH = window.innerHeight;
+    canvas.width = Math.max(1, Math.floor(viewW * dpr));
+    canvas.height = Math.max(1, Math.floor(viewH * dpr));
+  }
+
+  function cameraTarget() {
+    let minX = G.ship.x;
+    let maxX = G.ship.x;
+    let minY = G.ship.y;
+    let maxY = G.ship.y;
+    const gate = LEVELS[G.levelIndex] && LEVELS[G.levelIndex].gate;
+    if (gate) {
+      minX = Math.min(minX, gate.x - gate.r - 40);
+      maxX = Math.max(maxX, gate.x + gate.r + 40);
+      minY = Math.min(minY, gate.y - gate.r - 40);
+      maxY = Math.max(maxY, gate.y + gate.r + 40);
+    }
+    for (let i = 0; i < G.bodies.length; i++) {
+      const b = G.bodies[i];
+      minX = Math.min(minX, b.x - b.capture - 30);
+      maxX = Math.max(maxX, b.x + b.capture + 30);
+      minY = Math.min(minY, b.y - b.capture - 30);
+      maxY = Math.max(maxY, b.y + b.capture + 30);
+    }
+    minX = Math.min(minX, G.ship.x - 40);
+    maxX = Math.max(maxX, G.ship.x + 40);
+    minY = Math.min(minY, G.ship.y - 40);
+    maxY = Math.max(maxY, G.ship.y + 40);
+    const spanX = Math.max(200, maxX - minX);
+    const spanY = Math.max(200, maxY - minY);
+    const margin = coarse.matches ? 150 : 120;
+    const s = Math.min((viewW - 40) / spanX, (viewH - margin) / spanY);
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, s: s };
+  }
+
+  function snapCamera(instant) {
+    const t = cameraTarget();
+    if (instant) {
+      G.cam.x = t.x;
+      G.cam.y = t.y;
+      G.cam.s = t.s;
+      return;
+    }
+  }
+
+  function updateCamera(dt) {
+    const t = cameraTarget();
+    const k = 1 - Math.pow(0.0008, dt);
+    G.cam.x += (t.x - G.cam.x) * k;
+    G.cam.y += (t.y - G.cam.y) * k;
+    G.cam.s += (t.s - G.cam.s) * k;
+    if (G.cam.shake > 0) G.cam.shake = Math.max(0, G.cam.shake - dt * 28);
+  }
+
+  function worldToScreen(x, y) {
+    const shake = G.cam.shake ? Math.sin(G.time * 48) * G.cam.shake : 0;
+    return [
+      viewW / 2 + (x - G.cam.x) * G.cam.s + shake,
+      viewH / 2 + (y - G.cam.y) * G.cam.s
+    ];
+  }
+
+  function eWord(el) {
+    if (!el || el.pull < 4) return "not held";
+    if (el.energy >= 0 || el.e >= 1) return "flying away";
+    if (el.e < 0.06) return "circle";
+    if (el.e < 0.35) return "a little oval";
+    if (el.e < 0.75) return "oval";
+    return "very oval";
+  }
+
+  function drawSky() {
+    const sky = LEVELS[G.levelIndex].sky;
+    const g = ctx.createRadialGradient(viewW * 0.5, viewH * 0.45, 40, viewW * 0.5, viewH * 0.5, Math.max(viewW, viewH) * 0.72);
+    g.addColorStop(0, sky);
+    g.addColorStop(1, "#05060a");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, viewW, viewH);
+  }
+
+  function drawStars() {
+    for (let i = 0; i < G.stars.length; i++) {
+      const star = G.stars[i];
+      const p = worldToScreen(star.x, star.y);
+      if (p[0] < -10 || p[1] < -10 || p[0] > viewW + 10 || p[1] > viewH + 10) continue;
+      const tw = reduceMotion ? star.a : star.a * (0.65 + 0.35 * Math.sin(G.time * 1.4 + star.ph));
+      ctx.fillStyle = "rgba(232, 238, 246, " + tw.toFixed(3) + ")";
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], star.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawRing(body) {
+    const idx = G.route.indexOf(body.id);
+    const next = idx === G.progress;
+    const done = idx > -1 && idx < G.progress;
+    const p = worldToScreen(body.x, body.y);
+    const rad = body.capture * G.cam.s;
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], rad, 0, Math.PI * 2);
+    ctx.strokeStyle = next ? "rgba(230, 194, 122, 0.95)" : done ? "rgba(126, 196, 154, 0.55)" : "rgba(180, 196, 214, 0.28)";
+    ctx.lineWidth = next ? 2.25 : 1.25;
+    ctx.setLineDash(next ? [7, 8] : [4, 10]);
+    ctx.lineDashOffset = reduceMotion ? 0 : -G.time * (next ? 28 : 10);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (next && G.meter > 0.05) {
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(255, 236, 196, 0.95)";
+      ctx.lineWidth = 4;
+      const a0 = G.sweepBase;
+      const a1 = G.sweepBase + G.sweepSign * Math.min(G.meter, SWEEP);
+      ctx.arc(p[0], p[1], rad - 7, a0, a1, G.sweepSign < 0);
+      ctx.stroke();
+    }
+    if (body.kind === "star" || body.kind === "hole") {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], body.kill * G.cam.s, 0, Math.PI * 2);
+      ctx.strokeStyle = body.kind === "star" ? "rgba(255, 90, 70, 0.85)" : "rgba(255, 150, 90, 0.7)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function drawEllipse(dom) {
+    const el = dom.el;
+    if (!el.a || el.energy >= 0 || el.e >= 0.96 || el.a > 2200 || el.a < 8) return;
+    const b = el.a * Math.sqrt(Math.max(0, 1 - el.e * el.e));
+    const phi = Math.atan2(el.ey, el.ex);
+    const c = el.a * el.e;
+    const cx = dom.body.x - Math.cos(phi) * c;
+    const cy = dom.body.y - Math.sin(phi) * c;
+    const center = worldToScreen(cx, cy);
+    ctx.save();
+    ctx.translate(center[0], center[1]);
+    ctx.rotate(phi);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, el.a * G.cam.s, Math.max(1, b * G.cam.s), 0, 0, Math.PI * 2);
+    ctx.strokeStyle = el.e < 0.2 ? "rgba(140, 214, 255, 0.45)" : "rgba(255, 196, 130, 0.5)";
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPrediction() {
+    if (G.mode !== "play") return;
+    const pred = predict();
+    if (pred.pts.length < 2) return;
+    function strokeRange(i0, i1, color) {
+      ctx.beginPath();
+      for (let i = i0; i <= i1 && i < pred.pts.length; i++) {
+        const p = worldToScreen(pred.pts[i].x, pred.pts[i].y);
+        if (i === i0) ctx.moveTo(p[0], p[1]);
+        else ctx.lineTo(p[0], p[1]);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([2, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (pred.hit >= 0) {
+      strokeRange(0, pred.hit, "rgba(186, 214, 255, 0.75)");
+      strokeRange(pred.hit, pred.pts.length - 1, "rgba(255, 96, 82, 0.9)");
+    } else {
+      strokeRange(0, pred.pts.length - 1, "rgba(186, 214, 255, 0.8)");
+    }
+  }
+
+  function drawTrail() {
+    const n = G.trail.length;
+    if (n < 2) return;
+    for (let i = 1; i < n; i++) {
+      const a = worldToScreen(G.trail[i - 1].x, G.trail[i - 1].y);
+      const b = worldToScreen(G.trail[i].x, G.trail[i].y);
+      ctx.strokeStyle = "rgba(150, 196, 230, " + (0.05 + 0.4 * (i / n)).toFixed(3) + ")";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(b[0], b[1]);
+      ctx.stroke();
+    }
+  }
+
+  function drawParticles() {
+    for (let i = 0; i < G.particles.length; i++) {
+      const p = G.particles[i];
+      const s = worldToScreen(p.x, p.y);
+      ctx.fillStyle = "rgba(255, 186, 110, " + (p.life / p.max).toFixed(3) + ")";
+      ctx.fillRect(s[0], s[1], 2.2, 2.2);
+    }
+  }
+
+  function disk(x, y, r, c0, c1) {
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.15, x, y, r);
+    g.addColorStop(0, c0);
+    g.addColorStop(1, c1);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawBody(body) {
+    const p = worldToScreen(body.x, body.y);
+    const rad = Math.max(2, body.r * G.cam.s);
+    if (body.kind === "star") {
+      const glow = ctx.createRadialGradient(p[0], p[1], rad * 0.2, p[0], p[1], body.kill * G.cam.s * 1.15);
+      glow.addColorStop(0, "rgba(255, 244, 210, 0.95)");
+      glow.addColorStop(0.35, "rgba(255, 186, 70, 0.55)");
+      glow.addColorStop(1, "rgba(255, 80, 40, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], body.kill * G.cam.s * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+      disk(p[0], p[1], rad, "#fff6d2", "#ffb03a");
+      return;
+    }
+    if (body.kind === "hole") {
+      const halo = body.kill * G.cam.s;
+      for (let i = 0; i < 14; i++) {
+        const a = (reduceMotion ? 0.4 : G.time * 0.7) + i * 0.55;
+        ctx.strokeStyle = "hsla(" + (24 + (i % 5) * 12) + ", 95%, " + (58 + (i % 3) * 10) + "%, 0.8)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], halo * 1.18, a, a + 0.42);
+        ctx.stroke();
+      }
+      ctx.fillStyle = "#020203";
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], halo * 0.92, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 220, 180, 0.8)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], halo, 0, Math.PI * 2);
+      ctx.stroke();
+      return;
+    }
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], rad, 0, Math.PI * 2);
+    ctx.clip();
+    if (body.kind === "earth") {
+      disk(p[0], p[1], rad, "#7eb6e8", "#1c4f86");
+      ctx.fillStyle = "#3e8f52";
+      ctx.beginPath();
+      ctx.ellipse(p[0] - rad * 0.15, p[1] - rad * 0.05, rad * 0.42, rad * 0.28, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(p[0] + rad * 0.28, p[1] + rad * 0.22, rad * 0.22, rad * 0.16, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.ellipse(p[0] - rad * 0.05, p[1] - rad * 0.42, rad * 0.28, rad * 0.12, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      disk(p[0], p[1], rad, body.colors[1], body.colors[2]);
+      const rand = rng(body.name.length * 97 + body.r);
+      ctx.fillStyle = body.colors[0];
+      for (let i = 0; i < 5; i++) {
+        const a = rand() * Math.PI * 2;
+        const d = rand() * rad * 0.55;
+        ctx.beginPath();
+        ctx.arc(p[0] + Math.cos(a) * d, p[1] + Math.sin(a) * d, rad * (0.08 + rand() * 0.12), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(p[0], p[1], rad + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = body.kind === "earth" ? "rgba(150, 200, 255, 0.45)" : "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  function drawShip() {
+    const ship = G.ship;
+    const p = worldToScreen(ship.x, ship.y);
+    const speed = Math.hypot(ship.vx, ship.vy);
+    const velAng = Math.atan2(ship.vy, ship.vx);
+    const align = Math.abs(angDiff(ship.angle, velAng));
+    let aimColor = "rgba(255,255,255,0.9)";
+    if (align < 0.22) aimColor = "#9ee7ff";
+    else if (align > Math.PI - 0.28) aimColor = "#ffb089";
+
+    const vlen = Math.max(18, Math.min(78, speed * G.cam.s * 0.9));
+    ctx.strokeStyle = "rgba(140, 196, 255, 0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(p[0] + Math.cos(velAng) * vlen, p[1] + Math.sin(velAng) * vlen);
+    ctx.stroke();
+
+    ctx.strokeStyle = aimColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(p[0] + Math.cos(ship.angle) * 34, p[1] + Math.sin(ship.angle) * 34);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(p[0], p[1]);
+    ctx.rotate(ship.angle);
+    if (controlsOn() && keys.Space && ship.fuel > 0) {
+      ctx.fillStyle = "rgba(255, 170, 80, 0.95)";
+      ctx.beginPath();
+      ctx.moveTo(-8, 0);
+      ctx.lineTo(-18 - Math.random() * 8, 3.5);
+      ctx.lineTo(-18 - Math.random() * 8, -3.5);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#f4f7fb";
+    ctx.beginPath();
+    ctx.moveTo(15, 0);
+    ctx.lineTo(-11, 7);
+    ctx.lineTo(-6, 0);
+    ctx.lineTo(-11, -7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#7fd0ff";
+    ctx.fillRect(2, -2.2, 5, 4.4);
+    ctx.restore();
+  }
+
+  function drawLabels() {
+    ctx.font = "600 12px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    for (let i = 0; i < G.bodies.length; i++) {
+      const b = G.bodies[i];
+      const p = worldToScreen(b.x, b.y);
+      const y = p[1] - Math.max(16, (b.kind === "hole" ? b.kill : b.r) * G.cam.s) - 10;
+      const idx = G.route.indexOf(b.id);
+      const next = idx === G.progress;
+      ctx.fillStyle = next ? "#f0d7a4" : "rgba(232,238,246,0.8)";
+      ctx.fillText(b.name, p[0], y);
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawHud(dom) {
+    const level = LEVELS[G.levelIndex];
+    const pad = 18;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.shadowColor = "rgba(0,0,0,0.65)";
+    ctx.shadowBlur = 6;
+
+    const narrow = viewW < 760;
+    const titleY = narrow ? 50 : pad + 38;
+    if (!narrow) {
+      ctx.fillStyle = "#e6c27a";
+      ctx.font = "700 11px Segoe UI, sans-serif";
+      ctx.fillText("ORBIT PILOT  ·  " + (G.levelIndex + 1) + " / " + LEVELS.length, pad, pad + 12);
+    }
+    ctx.fillStyle = "#e8eef6";
+    ctx.font = (narrow ? "600 18px " : "600 22px ") + "Segoe UI, sans-serif";
+    ctx.fillText(level.title, pad, titleY);
+
+    ctx.font = "600 13px Segoe UI, sans-serif";
+    let rx = pad;
+    let routeY = titleY + 24;
+    const rightLimit = Math.max(pad + 110, viewW - (narrow ? Math.min(200, viewW * 0.48) : 16));
+    for (let i = 0; i < G.route.length; i++) {
+      const b = bodyById(G.route[i]);
+      const done = i < G.progress;
+      const next = i === G.progress && G.mode === "play";
+      const label = (done ? "● " : "○ ") + (b ? b.name : "Exit");
+      const labelW = ctx.measureText(label).width;
+      if (rx > pad + 4 && rx + labelW > rightLimit) {
+        rx = pad;
+        routeY += 18;
+      }
+      ctx.fillStyle = done ? "#8fd0aa" : next ? "#f0d7a4" : "rgba(232,238,246,0.55)";
+      ctx.fillText(label, rx, routeY);
+      rx += labelW + 8;
+      if (i < G.route.length - 1) {
+        ctx.fillStyle = "rgba(232,238,246,0.4)";
+        const arrow = "→";
+        if (rx + 16 > rightLimit) {
+          rx = pad;
+          routeY += 18;
+        }
+        ctx.fillText(arrow, rx, routeY);
+        rx += 22;
+      }
+    }
+
+    const barW = Math.min(180, viewW * (narrow ? 0.42 : 0.22));
+    const fy = routeY + 22;
+    ctx.fillStyle = "#e8eef6";
+    ctx.font = "700 11px Segoe UI, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("FUEL  " + Math.ceil(G.ship.fuel), pad, fy);
+    roundRect(pad, fy + 8, barW, 8, 4);
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    ctx.fill();
+    const frac = G.ship.fuel / G.fuelMax;
+    if (frac > 0) {
+      roundRect(pad, fy + 8, Math.max(8, barW * frac), 8, 4);
+      ctx.fillStyle = frac < 0.2 ? "#ff7a66" : frac < 0.45 ? "#e6c27a" : "#8fd0e8";
+      ctx.fill();
+    }
+    const el = dom && dom.felt >= 4 ? dom.el : null;
+    const foot = coarse.matches ? 210 : (narrow ? 150 : 110);
+    const eY = viewH - foot;
+    ctx.font = "600 13px Segoe UI, sans-serif";
+    ctx.fillStyle = "#d5deea";
+    if (el) {
+      ctx.fillStyle = "#9ee7ff";
+      ctx.font = "700 12px Segoe UI, sans-serif";
+      ctx.fillText("PATH", pad, eY - 22);
+      ctx.font = "600 20px Segoe UI, sans-serif";
+      ctx.fillStyle = "#f4f7fb";
+      ctx.fillText(el.e.toFixed(2), pad, eY);
+      ctx.font = "600 13px Segoe UI, sans-serif";
+      ctx.fillStyle = "#d5deea";
+      ctx.fillText(eWord(el) + " around " + dom.body.name, pad + 58, eY);
+    } else {
+      ctx.fillText("No planet is holding the ship", pad, eY);
+    }
+
+    if (G.toastT > 0) {
+      ctx.textAlign = "center";
+      ctx.font = "600 16px Segoe UI, sans-serif";
+      ctx.fillStyle = "rgba(244, 247, 251, " + Math.min(1, G.toastT).toFixed(2) + ")";
+      ctx.fillText(G.toast, viewW / 2, pad + 96);
+    }
+    ctx.shadowBlur = 0;
+  }
+
+  function drawGoal() {
+    const gate = LEVELS[G.levelIndex] && LEVELS[G.levelIndex].gate;
+    if (!gate) return;
+    const end = worldToScreen(gate.x, gate.y);
+    const start = worldToScreen(gate.fromX, gate.fromY);
+    const rad = Math.max(12, gate.r * G.cam.s);
+    ctx.save();
+    ctx.strokeStyle = "rgba(158, 231, 255, 0.9)";
+    ctx.fillStyle = "rgba(158, 231, 255, 0.08)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([7, 7]);
+    ctx.beginPath();
+    ctx.moveTo(start[0], start[1]);
+    ctx.lineTo(end[0], end[1]);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(end[0], end[1], rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#9ee7ff";
+    ctx.font = "600 13px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Marked path", end[0], end[1] - rad - 10);
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, viewW, viewH);
+    drawSky();
+    drawStars();
+    const dom = dominant();
+    for (let i = 0; i < G.bodies.length; i++) drawRing(G.bodies[i]);
+    if (dom) drawEllipse(dom);
+    drawPrediction();
+    drawTrail();
+    drawParticles();
+    for (let i = 0; i < G.bodies.length; i++) drawBody(G.bodies[i]);
+    drawGoal();
+    drawLabels();
+    drawShip();
+    drawHud(dom);
+  }
+
+  let audioCtx = null;
+  function getAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  window.addEventListener("pointerdown", function () { getAudio(); }, { once: true });
+  window.addEventListener("keydown", function () { getAudio(); }, { once: true });
+
+  function playTone(freq, dur, type, gain, freqEnd) {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    if (freqEnd) osc.frequency.exponentialRampToValueAtTime(Math.max(40, freqEnd), ctx.currentTime + dur);
+    g.gain.setValueAtTime(gain || 0.08, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + dur + 0.02);
+  }
+
+  function playNoise(dur, gain, cutoff) {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const n = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.setValueAtTime(cutoff || 900, ctx.currentTime);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(gain || 0.12, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    src.connect(f);
+    f.connect(g);
+    g.connect(ctx.destination);
+    src.start();
+  }
+
+  let engine = null;
+  function engineStart() {
+    if (engine) return;
+    const ctx = getAudio();
+    if (!ctx) return;
+    const seconds = 2;
+    const n = Math.floor(ctx.sampleRate * seconds);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    noise.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 420;
+    filter.Q.value = 0.6;
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = "sine";
+    lfo.frequency.value = 14;
+    lfoGain.gain.value = 180;
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+    const rumble = ctx.createOscillator();
+    rumble.type = "sawtooth";
+    rumble.frequency.value = 62;
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.value = 0.04;
+    const tremolo = ctx.createOscillator();
+    const tremoloGain = ctx.createGain();
+    tremolo.frequency.value = 9;
+    tremoloGain.gain.value = 0.02;
+    tremolo.connect(tremoloGain);
+    tremoloGain.connect(rumbleGain.gain);
+    const out = ctx.createGain();
+    out.gain.value = 0.0001;
+    noise.connect(filter);
+    filter.connect(out);
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(out);
+    out.connect(ctx.destination);
+    noise.start();
+    lfo.start();
+    rumble.start();
+    tremolo.start();
+    out.gain.linearRampToValueAtTime(0.16, ctx.currentTime + 0.06);
+    engine = { noise: noise, lfo: lfo, rumble: rumble, tremolo: tremolo, out: out };
+  }
+
+  function engineStop() {
+    if (!engine) return;
+    const ctx = getAudio();
+    const current = engine;
+    engine = null;
+    if (!ctx) return;
+    try {
+      current.out.gain.cancelScheduledValues(ctx.currentTime);
+      current.out.gain.setValueAtTime(current.out.gain.value, ctx.currentTime);
+      current.out.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+      const stopAt = ctx.currentTime + 0.1;
+      current.noise.stop(stopAt);
+      current.lfo.stop(stopAt);
+      current.rumble.stop(stopAt);
+      current.tremolo.stop(stopAt);
+    } catch (err) { /* already stopped */ }
+  }
+
+  function sfx(kind) {
+    if (kind === "success") {
+      playTone(523.25, 0.12, "sine", 0.09);
+      setTimeout(function () { playTone(783.99, 0.28, "sine", 0.08); }, 120);
+    } else if (kind === "crash") {
+      playNoise(0.55, 0.22, 500);
+      playTone(90, 0.45, "square", 0.06, 40);
+    } else if (kind === "escape") {
+      playTone(480, 0.7, "sine", 0.07, 80);
+      playNoise(0.3, 0.08, 1800);
+    } else if (kind === "click") {
+      playTone(880, 0.06, "square", 0.03);
+    } else if (kind === "ok") {
+      playTone(392, 0.08, "sine", 0.05);
+      setTimeout(function () { playTone(523, 0.1, "sine", 0.04); }, 70);
+    } else if (kind === "wrong") {
+      playTone(196, 0.28, "square", 0.05);
+    }
+  }
+
+  function card(html) {
+    overlay.hidden = false;
+    showFlightButtons(false);
+    overlay.innerHTML = '<div class="card">' + html + "</div>";
+    showCoachStep();
+  }
+
+  function closeOverlay() {
+    overlay.hidden = true;
+    G.intro = false;
+    showFlightButtons(G.mode === "play" && !introOpen());
+    showCoachStep();
+  }
+
+  function showCoachStep() {
+    const level = LEVELS[G.levelIndex];
+    const steps = level && level.steps ? level.steps : [];
+    const flying = G.mode === "play" && overlay.hidden && !introOpen();
+    const live = flying && coachEl.dataset.shut !== "1" && steps.length > 0;
+    coachEl.hidden = !live;
+    coachShow.hidden = !(flying && coachEl.dataset.shut === "1");
+    if (!live) return;
+    if (coachIndex >= steps.length) coachIndex = steps.length - 1;
+    if (coachIndex < 0) coachIndex = 0;
+    coachText.textContent = steps[coachIndex];
+    coachCount.textContent = (coachIndex + 1) + " / " + steps.length;
+    coachBack.disabled = coachIndex === 0;
+    coachNext.textContent = coachIndex === steps.length - 1 ? "Done" : "Next";
+  }
+
+  function showBrief(level, resume) {
+    overlay.hidden = true;
+    G.openingBrief = !resume;
+    setPopupReady(false);
+    popupOk.textContent = "Understood";
+    popupText.innerHTML =
+      '<img class="brief-art" src="art/' + level.art + '" alt="' + escapeHtml(level.artAlt) + '">' +
+      '<p class="brief-date">' + level.date + "</p>" +
+      '<div class="brief-head"><span class="brief-face">' + level.face + '</span><h2 class="brief-name">' + level.title + "</h2></div>" +
+      '<p class="route">' + level.bodies.map(function (b) { return b.name; }).join("  →  ") + "</p>" +
+      '<p id="briefTalk" class="brief-body"></p>';
+    introPopup.classList.add("show");
+    showFlightButtons(false);
+    showCoachStep();
+    afterBrief = function () {
+      const starting = G.openingBrief && !G.flightPaid && G.mode === "play";
+      G.openingBrief = false;
+      if (starting) {
+        spend(level.cost);
+        G.flightPaid = true;
+        coachIndex = 0;
+        coachEl.dataset.shut = "0";
+        updateMoneyTalk();
+      }
+      showFlightButtons(G.mode === "play");
+      showCoachStep();
+    };
+    typeInto(document.getElementById("briefTalk"), level.blurb, function () { setPopupReady(true); });
+    say(level.title + ". " + level.blurb);
+  }
+
+  function endingPicture() {
+    const lost = books.casualties > 0;
+    const broke = books.debt > books.savings;
+    const name = (lost ? "ending-loss-" : "ending-safe-") + (broke ? "debt" : "savings");
+    const alt = lost
+      ? (broke
+        ? "A battered ship far from a dim Earth, with empty seats"
+        : "A ship at Earth, with empty seats in the cabin")
+      : (broke
+        ? "A worn ship still safely orbiting a pale Earth"
+        : "A clean ship in a calm orbit around a bright Earth");
+    return '<img class="ending-art" src="art/' + name + '.jpg" alt="' + alt + '">';
+  }
+
+  function showEnd(success) {
+    const level = LEVELS[G.levelIndex];
+    const last = G.levelIndex === LEVELS.length - 1;
+    const goal = level.goal || "orbit";
+    if (success && last) {
+      card(
+        '<p class="kicker">EARTH</p><h2>You have reached Earth.</h2>' +
+        endingPicture() +
+        "<p>All five missions are done. Earth is holding the ship in orbit around it. " + careerLine() + "</p>" +
+        '<div class="actions"><button type="button" class="primary" data-go="replay" tabindex="-1">Fly the first mission again</button></div>'
+      );
+    } else if (success && goal === "dive") {
+      card(
+        '<p class="kicker">' + level.title.toUpperCase() + "</p><h2>The data is in.</h2>" +
+        "<p>The satellite went into the black hole and sent the research data back before reaching its event horizon. It is lost now.</p>" +
+        '<div class="actions"><button type="button" class="primary" data-go="next" tabindex="-1">Next mission</button>' +
+        '<button type="button" class="ghost" data-go="retry" tabindex="-1">Retry this mission</button></div>'
+      );
+    } else if (success && goal === "escape") {
+      card(
+        '<p class="kicker">' + level.title.toUpperCase() + "</p><h2>It left the circle.</h2>" +
+        "<p>The satellite is on the marked path, away from Iris.</p>" +
+        '<div class="actions"><button type="button" class="primary" data-go="next" tabindex="-1">Next mission</button>' +
+        '<button type="button" class="ghost" data-go="retry" tabindex="-1">Retry this mission</button></div>'
+      );
+    } else if (success) {
+      card(
+        '<p class="kicker">' + level.title.toUpperCase() + "</p><h2>Earth is holding the ship.</h2>" +
+        "<p>The ship is in orbit around Earth. You did not fly into Earth. The fuel fills up on the next mission. The circles will be in different places.</p>" +
+        '<div class="actions"><button type="button" class="primary" data-go="next" tabindex="-1">Next mission</button>' +
+        '<button type="button" class="ghost" data-go="retry" tabindex="-1">Retry this mission</button></div>'
+      );
+    } else {
+      card(
+        '<p class="kicker">FLIGHT OVER</p><h2>' + level.title + "</h2>" +
+        "<p>" + G.reason + "</p>" +
+        '<div class="actions"><button type="button" class="primary" data-go="retry" tabindex="-1">Try this mission again</button></div>'
+      );
+    }
+    const buttons = overlay.querySelectorAll("[data-go]");
+    for (let i = 0; i < buttons.length; i++) {
+      buttons[i].onclick = onOverlay;
+    }
+  }
+
+  function onOverlay(e) {
+    const go = e.currentTarget.getAttribute("data-go");
+    sfx(go === "retry" ? "click" : "ok");
+    if (go === "next") loadLevel(G.levelIndex + 1, "brief");
+    else if (go === "replay") loadLevel(0, "brief");
+    else if (go === "retry") loadLevel(G.levelIndex, "retry");
+    else if (go === "confirm-restart") abortFlight();
+    else closeOverlay();
+  }
+
+  function loadLevel(index, how) {
+    const level = LEVELS[index];
+    G.levelIndex = index;
+    G.bodies = level.bodies.map(function (b) { return Object.assign({}, b); });
+    G.route = level.route.slice();
+    G.fuelMax = level.fuel;
+    G.progress = 1;
+    G.ship = spawn(level);
+    G.meter = 0;
+    G.prevAng = null;
+    G.sweepSign = 1;
+    G.mode = "play";
+    G.toast = "";
+    G.toastT = 0;
+    G.reason = "";
+    G.trail = [];
+    G.particles = [];
+    G.cam.shake = 0;
+    G.flightPaid = false;
+    G.openingBrief = false;
+    G.judged = false;
+    G.intro = how === "brief";
+    resize();
+    snapCamera(true);
+    if (how === "brief") {
+      beginMap(level);
+      coachIndex = 0;
+      coachEl.dataset.shut = "0";
+      showBrief(level, false);
+    } else if (how === "retry") {
+      const note = G.failNote;
+      G.failNote = "";
+      spend(level.cost);
+      G.flightPaid = true;
+      overlay.hidden = true;
+      G.intro = false;
+      introPopup.classList.remove("show");
+      showFlightButtons(true);
+      coachIndex = 0;
+      coachEl.dataset.shut = "0";
+      showCoachStep();
+      updateMoneyTalk(note);
+      say(level.title + " restarted.");
+    } else {
+      overlay.hidden = true;
+      showFlightButtons(false);
+    }
+  }
+
+  function abortFlight() {
+    if (G.mode === "play" && G.flightPaid && !G.judged) {
+      recordFail();
+      G.failNote = hurtSentence();
+    }
+    loadLevel(G.levelIndex, "retry");
+  }
+
+  function askRestart() {
+    if (G.mode !== "play" || !overlay.hidden || introOpen()) return;
+    sfx("click");
+    const level = LEVELS[G.levelIndex];
+    const crew = level && level.crew > 0 ? hurtSentence() : "";
+    card(
+      '<p class="kicker">RESTART</p><h2>Restart this mission?</h2>' +
+      "<p>This flight will count as failed." + crew + "</p>" +
+      '<div class="actions"><button type="button" class="primary" data-go="confirm-restart">Restart</button>' +
+      '<button type="button" class="ghost" data-go="cancel">Keep flying</button></div>'
+    );
+    const buttons = overlay.querySelectorAll("[data-go]");
+    for (let i = 0; i < buttons.length; i++) buttons[i].onclick = onOverlay;
+  }
+
+  function bindHold(el, code) {
+    function down(e) {
+      e.preventDefault();
+      keys[code] = true;
+      if (overlay && !overlay.hidden) return;
+      try { el.setPointerCapture(e.pointerId); } catch (err) { /* already gone */ }
+    }
+    function up() { keys[code] = false; }
+    el.addEventListener("pointerdown", down);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("lostpointercapture", up);
+  }
+
+  window.addEventListener("keydown", function (e) {
+    keys[e.code] = true;
+    if (e.code === "ArrowLeft" || e.code === "ArrowRight" || e.code === "Space") e.preventDefault();
+    if (e.code === "Enter" && introOpen()) {
+      e.preventDefault();
+      popupOk.click();
+    } else if (e.code === "Enter" && !overlay.hidden) {
+      e.preventDefault();
+      const btn = overlay.querySelector(".primary");
+      if (btn) btn.click();
+    }
+    if (e.code === "KeyR" && !e.repeat) {
+      e.preventDefault();
+      if (introOpen() && G.openingBrief) {
+        showBrief(LEVELS[G.levelIndex], false);
+        return;
+      }
+      if (introOpen()) return;
+      if (!overlay.hidden && G.openingBrief) {
+        showBrief(LEVELS[G.levelIndex], false);
+        return;
+      }
+      if (!overlay.hidden) {
+        if (G.mode !== "play") loadLevel(G.levelIndex, "retry");
+        return;
+      }
+      askRestart();
+    }
+  });
+  window.addEventListener("keyup", function (e) { keys[e.code] = false; });
+  window.addEventListener("blur", function () {
+    for (const k in keys) delete keys[k];
+  });
+  window.addEventListener("resize", function () { resize(); });
+
+  missionBtn.addEventListener("click", function () {
+    if (G.mode !== "play" || !overlay.hidden || introOpen()) return;
+    sfx("click");
+    showBrief(LEVELS[G.levelIndex], true);
+  });
+  restartBtn.addEventListener("click", askRestart);
+
+  popupText.addEventListener("click", function () { finishType(); });
+
+  popupOk.addEventListener("click", function () {
+    if (finishType()) return;
+    if (!popupOk.classList.contains("ready")) return;
+    sfx("ok");
+    introPopup.classList.remove("show");
+    setPopupReady(false);
+    const follow = afterBrief;
+    afterBrief = null;
+    if (follow) follow();
+  });
+
+  coachBack.addEventListener("click", function () {
+    sfx("click");
+    if (coachIndex > 0) coachIndex -= 1;
+    showCoachStep();
+  });
+  coachNext.addEventListener("click", function () {
+    const steps = LEVELS[G.levelIndex].steps;
+    if (coachIndex < steps.length - 1) {
+      sfx("click");
+      coachIndex += 1;
+    } else {
+      sfx("ok");
+      coachEl.dataset.shut = "1";
+    }
+    showCoachStep();
+  });
+  document.getElementById("coachHide").addEventListener("click", function () {
+    sfx("click");
+    coachEl.dataset.shut = "1";
+    showCoachStep();
+  });
+  coachShow.addEventListener("click", function () {
+    sfx("click");
+    coachEl.dataset.shut = "0";
+    showCoachStep();
+  });
+
+  bindHold(document.getElementById("turn-left"), "ArrowLeft");
+  bindHold(document.getElementById("turn-right"), "ArrowRight");
+  bindHold(document.getElementById("burn"), "Space");
+
+  let last = 0;
+  let acc = 0;
+  function frame(ts) {
+    if (!last) last = ts;
+    let dt = Math.min(0.05, (ts - last) / 1000);
+    last = ts;
+    G.time += dt;
+    if (G.toastT > 0) G.toastT -= dt;
+    acc += dt;
+    while (acc >= STEP) {
+      physics(STEP);
+      acc -= STEP;
+    }
+    updateCamera(dt);
+    const thrusting = controlsOn() && G.ship && keys.Space && G.ship.fuel > 0;
+    if (thrusting) engineStart();
+    else engineStop();
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  makeStars();
+  refreshHud();
+  loadLevel(0, "silent");
+  showGameIntro();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
