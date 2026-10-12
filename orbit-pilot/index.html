@@ -825,10 +825,10 @@
     control.innerHTML = '<span class="emoji">😐</span> Wait for the instructions.';
     afterBrief = function () { loadLevel(0, "brief"); };
     typeInto(document.getElementById("briefTalk"),
-      "You fly a ship from one world to the next, until you reach Earth.\n\nEach mission pays for two flights. If you finish on the first try, the spare money is saved. Another try uses your savings. After that, you go into debt.\n\nSome flights have people on board. If the ship is lost, those people are dead.",
+      "You fly five missions. The aim is not always Earth.\n\nSome flights send a satellite into a black hole, or away along a marked path. Later missions fly on until Earth is holding the ship in a circle.\n\nEach mission pays for two flights. If you finish on the first try, the spare money is saved. Another try uses your savings. After that, you go into debt.\n\nSome flights have people on board. If the ship is lost, those people are dead.",
       function () { setPopupReady(true); }
     );
-    say("Orbit Pilot. Fly from one world to the next until you reach Earth.");
+    say("Orbit Pilot. Five missions. The aim is not always Earth.");
   }
 
   function rng(seed) {
